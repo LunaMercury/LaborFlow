@@ -24,7 +24,7 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
 
 fn main() -> std::io::Result<()> {
     let bind_addr = std::env::var("LABORFLOW_FAST_BIND_ADDR")
-        .unwrap_or_else(|_| "127.0.0.1:18081".to_string());
+        .unwrap_or_else(|_| "127.0.0.1:5582".to_string());
     let listener = TcpListener::bind(&bind_addr)?;
     println!("laborflow backend-fast listening on {bind_addr}");
 

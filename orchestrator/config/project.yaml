@@ -10,7 +10,7 @@ modules:
   rust: backend-fast/** (Rust latency-sensitive upload, realtime fan-out, and streaming paths)
   mobile: mobile/** (Android Kotlin field client, token storage, capture, and background transfer)
 contracts:
-  - Health endpoints are web UI ready state, backend-core /api/health, backend-fast /health, and Android debug build.
+  - Local health endpoints are web http://localhost:5580, backend-core http://localhost:5581/api/health, backend-fast http://localhost:5582/health, and Android debug build.
   - Before auth work, document shared JWT claims, signing algorithm, expiry policy, and secret environment variable.
   - Before data work, document local database URL, port, migration strategy, retention policy, and deletion policy.
   - Before realtime work, document API and WebSocket base URL environment variables, event names, payloads, and origin policy.
