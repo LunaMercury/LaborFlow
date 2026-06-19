@@ -1,0 +1,18 @@
+name: LaborFlow
+goal: 인력 관리, 근태, 일정, 업무 흐름을 관리하는 앱
+priorities:
+  - Preserve fast response on latency-sensitive paths
+  - Keep local development and verification reproducible
+modules:
+  frontend: web/** (React + TypeScript user interface)
+  java: backend-core/** (Spring Boot auth, accounts, history, and core business rules)
+  rust: backend-fast/** (latency-sensitive hot paths and realtime delivery)
+  mobile: mobile/** (Android Kotlin client flows)
+contracts:
+  - Document the local database URL and port.
+  - Document shared JWT claims, signing algorithm, and secret environment variable.
+  - Document API and WebSocket base URL environment variables.
+policySources:
+  - AGENTS.md
+  - security_guidelines.md
+  - system_architecture.md

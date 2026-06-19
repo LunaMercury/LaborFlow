@@ -1,0 +1,22 @@
+auth:
+  roleContracts:
+    frontend:
+      - "Document the backend OAuth entry point and the client token handling contract."
+    rust:
+      - "Document the JWT claims backend-fast must validate or ignore."
+    java:
+      - "Document provider credentials, callback URI, user identity mapping, and JWT issuance contract."
+    mobile:
+      - "Document whether mobile performs provider login directly or only consumes backend-issued JWTs."
+
+design:
+  verifierChecks:
+    - "Confirm the project-specific design system and UI policy documents."
+
+redis:
+  verifierChecks:
+    - "Confirm project-specific Redis connection, TTL, invalidation, and fallback contracts."
+
+realtime:
+  verifierChecks:
+    - "Confirm project-specific WebSocket event names, payloads, authentication, and origin policy."

@@ -1,0 +1,73 @@
+﻿﻿# 초기 설정 안내
+
+이 파일은 `project:package`로 생성한 새 프로젝트에서 처음 확인할 명령을 정리합니다.
+
+## 1. 보일러 원본에서 새 프로젝트 생성
+
+원본 보일러의 orchestrator 폴더에서 실행합니다.
+
+```powershell
+cd "D:\개발\agent-orchestrator-boilerplate\orchestrator"
+& "C:\Program Files\nodejs\npm.cmd" run project:package -- --target "D:\개발\my-new-project" --name "My New Project" --goal "Describe the project goal" --force
+```
+
+## 2. 새 프로젝트에서 의존성 설치
+
+```powershell
+cd "D:\개발\my-new-project\orchestrator"
+& "C:\Program Files\nodejs\npm.cmd" install
+```
+
+## 3. 새 프로젝트 루트에서 Git 초기화
+
+```powershell
+cd "D:\개발\my-new-project"
+git init
+git add .
+git commit -m "Initial agent orchestrator setup"
+```
+
+루트 `.gitignore`는 `node_modules`, `runs`, `dist`, `.env`, `orchestrator/runs` 같은 런타임 산출물을 제외합니다.
+
+## 4. 새 프로젝트 설정 초기화
+
+```powershell
+cd "D:\개발\my-new-project\orchestrator"
+& "C:\Program Files\nodejs\npm.cmd" run project:init -- --name "My New Project" --goal "Describe the project goal" --force
+```
+
+## 5. 반드시 수정할 파일
+
+- `AGENTS.md`
+- `agent_role.md`
+- `security_guidelines.md`
+- `system_architecture.md`
+- `orchestrator/config/project.yaml`
+- `orchestrator/config/project-templates.yaml`
+- `.skills/verify-*.ps1`
+
+## 6. 초기 검증
+
+```powershell
+cd "D:\개발\my-new-project\orchestrator"
+& "C:\Program Files\nodejs\npm.cmd" run runner:readiness:strict
+& "C:\Program Files\nodejs\npm.cmd" run runner:docs-encoding -- --compact
+& "C:\Program Files\nodejs\npm.cmd" run ci:dry-run
+```
+
+## 7. 첫 실제 사용 흐름
+
+```powershell
+& "C:\Program Files\nodejs\npm.cmd" run runner:goal -- --roles frontend "작은 기능 요청"
+& "C:\Program Files\nodejs\npm.cmd" run runner:quick
+& "C:\Program Files\nodejs\npm.cmd" run runner:accept
+```
+
+`runner:goal`은 안전 리허설입니다. 성공해도 파일 변경은 롤백됩니다. 결과가 마음에 들 때만 `runner:accept`를 실행합니다.
+
+## 8. 주의 사항
+
+- `.env`, `.env.local`, API key, OAuth secret, JWT secret은 Git에 커밋하지 않습니다.
+- `orchestrator/runs`는 실행 기록이므로 새 프로젝트 원본에 포함하지 않습니다.
+- `PIPELINE_STATUS.md`는 원본 프로젝트의 이력 문서라 새 프로젝트 패키지에는 포함하지 않습니다.
+- 새 프로젝트의 실제 정책과 경로를 확정하기 전에는 큰 기능을 바로 적용하지 말고 `runner:plan` 또는 `runner:goal`로 리허설합니다.
