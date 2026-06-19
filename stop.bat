@@ -9,12 +9,18 @@ echo ==========================================
 echo Stopping LaborFlow Services...
 echo ==========================================
 
-echo [1/3] Closing service windows...
+echo [1/4] Closing service windows...
 taskkill /FI "WINDOWTITLE eq LF-Core" /T /F >nul 2>&1
 taskkill /FI "WINDOWTITLE eq LF-Fast" /T /F >nul 2>&1
 taskkill /FI "WINDOWTITLE eq LF-Web" /T /F >nul 2>&1
 
-echo [2/3] Releasing local service ports...
+echo [2/4] Releasing local service ports...
+echo   Stopping PostgreSQL container...
+docker compose down >nul 2>&1
+if errorlevel 1 (
+    echo [WARN] Docker compose shutdown was skipped or failed. Docker Desktop may already be stopped.
+)
+
 for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:":5581 .*LISTENING"') do (
     if not "%%P"=="0" (
         echo   Stopping Core API process on port 5581 ^(PID %%P^)...
@@ -33,8 +39,7 @@ for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:":5580 .*LISTENING"') d
         taskkill /PID %%P /T /F >nul 2>&1
     )
 )
-
-echo [3/3] Stopping Gradle daemons...
+echo [3/4] Stopping Gradle daemons...
 if exist "backend-core\gradlew.bat" (
     pushd "backend-core" >nul
     call "gradlew.bat" --stop >nul 2>&1
@@ -45,6 +50,8 @@ if exist "mobile\gradlew.bat" (
     call "gradlew.bat" --stop >nul 2>&1
     popd >nul
 )
+
+echo [4/4] Docker cleanup completed.
 
 echo.
 echo ==========================================

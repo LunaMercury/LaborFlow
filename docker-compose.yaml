@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: laborflow_db
+    ports:
+      - "55432:5432"
+    environment:
+      POSTGRES_DB: laborflow_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d laborflow_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - laborflow-postgres18-data:/var/lib/postgresql
+
+volumes:
+  laborflow-postgres18-data:
