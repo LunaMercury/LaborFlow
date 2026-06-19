@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LaborFlow</string>
+    <string name="health_message">모바일 골격이 준비되었습니다.</string>
+</resources>

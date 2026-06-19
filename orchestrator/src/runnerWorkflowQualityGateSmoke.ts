@@ -10,6 +10,10 @@ function main() {
   const orchestratorRoot = path.resolve(__dirname, "..");
   const repoRoot = path.resolve(orchestratorRoot, "..");
   const tsxCli = path.join(orchestratorRoot, "node_modules", "tsx", "dist", "cli.mjs");
+  const webRoot = path.join(repoRoot, "web");
+  const webPackageLock = path.join(webRoot, "package-lock.json");
+  const webRootExisted = fs.existsSync(webRoot);
+  const webPackageLockExisted = fs.existsSync(webPackageLock);
   const probePath = path.join(repoRoot, "web", "src", "components", "WorkflowQualityGateSmoke.md");
 
   const result = spawnSync(
@@ -53,6 +57,12 @@ function main() {
     fs.rmSync(runDir, { recursive: true, force: true });
   }
   fs.rmSync(probePath, { force: true });
+  if (!webPackageLockExisted) {
+    fs.rmSync(webPackageLock, { force: true });
+  }
+  if (!webRootExisted) {
+    fs.rmSync(webRoot, { recursive: true, force: true });
+  }
 
   console.log("# Runner Workflow Quality Gate Smoke");
   console.log(`Workflow exit: ${result.status}`);

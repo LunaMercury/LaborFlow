@@ -1,22 +1,33 @@
 auth:
   roleContracts:
     frontend:
-      - "Document the backend OAuth entry point and the client token handling contract."
+      - "Document the backend login entry point, token storage policy, and authenticated API error handling."
     rust:
-      - "Document the JWT claims backend-fast must validate or ignore."
+      - "Document the JWT claims backend-fast must validate or explicitly ignore for realtime and upload paths."
     java:
-      - "Document provider credentials, callback URI, user identity mapping, and JWT issuance contract."
+      - "Document identity source, user mapping, role/permission rules, JWT issuance, and token expiry contract."
     mobile:
-      - "Document whether mobile performs provider login directly or only consumes backend-issued JWTs."
+      - "Document whether mobile performs login directly or only consumes backend-issued JWTs, plus secure token storage."
 
 design:
   verifierChecks:
-    - "Confirm the project-specific design system and UI policy documents."
+    - "Confirm LaborFlow UI uses React, TypeScript, CSS Modules, accessible Korean copy, and no placeholder domain features."
 
 redis:
   verifierChecks:
-    - "Confirm project-specific Redis connection, TTL, invalidation, and fallback contracts."
+    - "Confirm whether LaborFlow needs Redis before adding it; document connection, TTL, invalidation, and fallback contracts."
 
 realtime:
   verifierChecks:
-    - "Confirm project-specific WebSocket event names, payloads, authentication, and origin policy."
+    - "Confirm LaborFlow WebSocket event names, payloads, authentication, authorization, and origin policy before implementation."
+
+attendance:
+  roleContracts:
+    frontend:
+      - "Document attendance UI states, empty states, and timezone display rules before implementing flows."
+    java:
+      - "Document attendance write rules, audit history, timezone source, and permission checks."
+    rust:
+      - "Review latency-sensitive attendance fan-out only when realtime updates are requested."
+    mobile:
+      - "Document offline capture, retry, and background transfer behavior before implementing field flows."

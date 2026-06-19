@@ -1,5 +1,5 @@
 {
-  "name": "whiteboard-capture-orchestrator",
+  "name": "laborflow-orchestrator",
   "private": true,
   "version": "0.1.0",
   "type": "module",

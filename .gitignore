@@ -3,6 +3,8 @@ runs/
 dist/
 .env
 .env.local
+local.properties
+mobile/local.properties
 *.log
 .DS_Store
 Thumbs.db

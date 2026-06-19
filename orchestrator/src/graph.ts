@@ -68,8 +68,8 @@ function createMockSpecialistPlan(role: SpecialistRole, userRequest: string): Sp
   const touchedAreas: Record<SpecialistRole, string[]> = {
     frontend: ["web/src/components", "web/src/config.ts"],
     rust: ["backend-fast/src/handlers.rs", "backend-fast/src/main.rs"],
-    java: ["backend-core/src/main/java/com/whiteboard/core/auth", "backend-core/src/main/resources"],
-    mobile: ["mobile/app/src/main/java/com/example/whiteboardcapture"],
+    java: ["backend-core/src/main/java/com/laborflow/core", "backend-core/src/main/resources"],
+    mobile: ["mobile/app/src/main/java/com/laborflow/mobile"],
   };
 
   const verification: Record<SpecialistRole, string[]> = {
@@ -686,7 +686,7 @@ async function buildManagerDecision(
     [
       "system",
       [
-        "You are the manager agent for the Whiteboard Capture repository.",
+        "You are the manager agent for the LaborFlow repository.",
         "Answer in Korean.",
         "Decide which specialist teams should work on the user's request.",
         "Do not implement code. Only produce orchestration decisions.",
@@ -725,7 +725,7 @@ async function buildSpecialistPlan(
     [
       "system",
       [
-        `You are the ${role} specialist for the Whiteboard Capture repository.`,
+        `You are the ${role} specialist for the LaborFlow repository.`,
         "Answer in Korean.",
         "Return a concrete implementation plan for your module only.",
         "Reference project-specific verification commands and integration dependencies.",
@@ -796,7 +796,7 @@ async function buildVerifierReport(state: OrchestratorStateType): Promise<Verifi
     [
       "system",
       [
-        "You are the verifier agent for the Whiteboard Capture repository.",
+        "You are the verifier agent for the LaborFlow repository.",
         "Answer in Korean.",
         "Review the manager decision and specialist plans before implementation starts.",
         "Focus on contract mismatches, missing verification, hidden risks, release blockers, and whether the worker task packets are executable.",
