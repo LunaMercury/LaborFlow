@@ -24,3 +24,8 @@ Farm owner data follows the same split:
 - `farm_owner`: non-sensitive owner profile and operating status.
 - `farm_owner_sensitive_profile`: phone, bank account, business registration number, and other encrypted sensitive fields.
 - `farm_work_site`: farm/work location owned by `farm_owner`, including farm address, required headcount, and work details.
+
+Service user data for labor agency owners follows the same split:
+
+- `labor_agency_owner`: non-sensitive labor agency owner profile.
+- `labor_agency_owner_sensitive_profile`: phone, bank account, email, business registration number, and other encrypted sensitive fields.
