@@ -16,5 +16,20 @@ services:
     volumes:
       - laborflow-postgres18-data:/var/lib/postgresql
 
+  redis:
+    image: redis:8-alpine
+    container_name: laborflow_redis
+    ports:
+      - "56379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "admin"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a admin ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - laborflow-redis8-data:/data
+
 volumes:
   laborflow-postgres18-data:
+  laborflow-redis8-data:

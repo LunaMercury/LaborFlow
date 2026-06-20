@@ -27,12 +27,16 @@ set "WEB_PORT=5580"
 set "CORE_PORT=5581"
 set "FAST_PORT=5582"
 set "DB_PORT=55432"
+set "REDIS_PORT=56379"
 
 if not defined LABORFLOW_FAST_BIND_ADDR set "LABORFLOW_FAST_BIND_ADDR=127.0.0.1:%FAST_PORT%"
 set "SERVER_PORT=%CORE_PORT%"
 if not defined SPRING_DATASOURCE_URL set "SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:%DB_PORT%/laborflow_db"
 if not defined SPRING_DATASOURCE_USERNAME set "SPRING_DATASOURCE_USERNAME=admin"
 if not defined SPRING_DATASOURCE_PASSWORD set "SPRING_DATASOURCE_PASSWORD=admin"
+if not defined SPRING_DATA_REDIS_HOST set "SPRING_DATA_REDIS_HOST=localhost"
+if not defined SPRING_DATA_REDIS_PORT set "SPRING_DATA_REDIS_PORT=%REDIS_PORT%"
+if not defined SPRING_DATA_REDIS_PASSWORD set "SPRING_DATA_REDIS_PASSWORD=admin"
 if not defined VITE_API_BASE_URL set "VITE_API_BASE_URL=http://localhost:%CORE_PORT%"
 if not defined VITE_FAST_API_BASE_URL set "VITE_FAST_API_BASE_URL=http://localhost:%FAST_PORT%"
 if not defined VITE_REALTIME_WS_URL set "VITE_REALTIME_WS_URL=ws://localhost:%FAST_PORT%/ws"
@@ -54,8 +58,8 @@ if defined DRY_RUN (
     exit /b 0
 )
 
-echo [1/4] Starting PostgreSQL (Docker)...
-docker compose up -d postgres
+echo [1/4] Starting PostgreSQL and Redis (Docker)...
+docker compose up -d postgres redis
 if errorlevel 1 goto :fail
 
 echo Waiting for PostgreSQL to accept connections...
@@ -75,6 +79,23 @@ if not defined DB_READY (
     goto :fail
 )
 
+echo Waiting for Redis to accept connections...
+set "REDIS_READY="
+for /L %%I in (1,1,60) do (
+    docker exec laborflow_redis redis-cli -a admin ping >nul 2>&1
+    if not errorlevel 1 (
+        set "REDIS_READY=1"
+        goto :redis_ready
+    )
+    ping -n 2 127.0.0.1 >nul
+)
+
+:redis_ready
+if not defined REDIS_READY (
+    echo Redis did not become ready in time.
+    goto :fail
+)
+
 echo [2/4] Starting Backend Core (Spring Boot)...
 start "LF-Core" cmd /k "cd /d ""%CD%\backend-core"" && .\gradlew.bat bootRun"
 
@@ -91,6 +112,7 @@ echo Core API: http://localhost:%CORE_PORT%/api/health
 echo Fast API: http://localhost:%FAST_PORT%/health
 echo Web App:  http://localhost:%WEB_PORT%
 echo Database: localhost:%DB_PORT% / laborflow_db / admin
+echo Redis:    localhost:%REDIS_PORT% / password admin
 echo ==========================================
 
 if not defined NO_OPEN (

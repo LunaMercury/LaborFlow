@@ -12,6 +12,9 @@
 - 민감 정보는 `.env`, 운영 secret store, CI secret에만 저장합니다.
 - 로그에 access token, refresh token, client secret, 개인정보를 출력하지 않습니다.
 - 캐시를 도입하는 경우 TTL, 무효화 정책, 실패 시 fallback을 명확히 정의합니다.
+- Redis에는 개인정보 원문, 비밀번호, refresh token 원문, 장기 감사 로그를 저장하지 않습니다.
+- Redis 키에는 사용자 이름, 전화번호, 주민등록번호, 주소 등 직접 식별 정보를 넣지 않습니다.
+- 캐시 miss 또는 Redis 장애가 발생해도 핵심 쓰기 데이터의 정합성은 PostgreSQL 기준으로 유지합니다.
 - 개인정보 보관 기간과 삭제 정책을 문서화합니다.
 
 ## 클라이언트 보안

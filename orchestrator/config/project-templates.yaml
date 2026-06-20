@@ -15,7 +15,15 @@ design:
 
 redis:
   verifierChecks:
-    - "Confirm whether LaborFlow needs Redis before adding it; document connection, TTL, invalidation, and fallback contracts."
+    - "Confirm Redis runs as laborflow_redis on localhost:56379 for local development."
+    - "Confirm Redis usage is limited to cache, rate limit counters, idempotency keys, distributed locks, and realtime fan-out support."
+    - "Confirm TTL, key namespace, invalidation, fallback, and no-raw-PII rules are documented before adding Redis-backed features."
+
+enterprise:
+  verifierChecks:
+    - "Confirm backend-core feature packages use api/application/dto/dao layers and shared infrastructure stays under common."
+    - "Confirm PostgreSQL remains the source of truth for personal data, attendance, schedules, workflow history, and audit logs."
+    - "Confirm high-traffic writes define idempotency, transaction boundary, audit behavior, and cache invalidation before implementation."
 
 realtime:
   verifierChecks:

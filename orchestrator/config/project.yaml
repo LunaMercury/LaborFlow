@@ -1,22 +1,30 @@
 name: LaborFlow
-goal: 인력 관리, 근태, 일정, 업무 흐름을 관리하는 앱
+goal: 인력 관리, 근태, 일정, 업무 흐름을 관리하는 엔터프라이즈급 앱
 priorities:
-  - Preserve fast response on latency-sensitive paths
+  - Preserve fast response on traffic-spike paths
   - Keep authentication and authorization server-enforced
+  - Protect personal data and avoid secret exposure
   - Keep local development and verification reproducible
 modules:
   frontend: web/** (React + TypeScript + CSS Modules user interface)
-  java: backend-core/** (Spring Boot accounts, attendance, scheduling, history, and core business rules)
+  java: backend-core/** (Spring Boot accounts, attendance, scheduling, history, Redis cache/lock policy, and core business rules)
   rust: backend-fast/** (Rust latency-sensitive upload, realtime fan-out, and streaming paths)
   mobile: mobile/** (Android Kotlin field client, token storage, capture, and background transfer)
+  data: docker-compose.yaml (local PostgreSQL and Redis runtime dependencies)
 contracts:
   - Local health endpoints are web http://localhost:5580, backend-core http://localhost:5581/api/health, backend-fast http://localhost:5582/health, and Android debug build.
   - Local PostgreSQL uses localhost:55432, database laborflow_db, and temporary dev credentials admin/admin until .env is introduced.
-  - Before auth work, document shared JWT claims, signing algorithm, expiry policy, and secret environment variable.
-  - Before data work, document local database URL, port, migration strategy, retention policy, and deletion policy.
-  - Before realtime work, document API and WebSocket base URL environment variables, event names, payloads, and origin policy.
-  - Frontend and mobile must not receive provider client secrets, service tokens, private keys, or database credentials.
+  - Local Redis uses localhost:56379, container laborflow_redis, and temporary dev password admin until .env is introduced.
+  - PostgreSQL is the source of truth for personal data, attendance records, schedules, workflow history, and audit trails.
+  - Redis is limited to short-lived cache, rate limit counters, idempotency keys, distributed locks, and realtime fan-out support.
+  - Redis keys and values must not contain raw personal data, passwords, provider secrets, or long-lived audit records.
+  - Backend-core feature packages use api/application/dto/dao layers; shared infrastructure belongs under common only when reused across domains.
+  - Before auth work, document shared JWT claims, signing algorithm, expiry policy, token storage, and secret environment variable.
+  - Before data work, document migration strategy, retention policy, deletion policy, and Redis invalidation/fallback policy.
+  - Before realtime work, document API and WebSocket/SSE base URL environment variables, event names, payloads, authorization, and origin policy.
+  - Frontend and mobile must not receive provider client secrets, service tokens, private keys, database credentials, or Redis credentials.
 policySources:
   - AGENTS.md
   - security_guidelines.md
   - system_architecture.md
+  - enterprise_policies.md

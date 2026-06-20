@@ -23,4 +23,5 @@ orchestrator/PIPELINE_STATUS.md
 build/
 target/
 out/
+bin/
 coverage/
