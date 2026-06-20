@@ -29,3 +29,12 @@ Service user data for labor agency owners follows the same split:
 
 - `labor_agency_owner`: non-sensitive labor agency owner profile.
 - `labor_agency_owner_sensitive_profile`: phone, bank account, email, business registration number, and other encrypted sensitive fields.
+
+Worker records are split into central identity and agency-private views:
+
+- `worker`: central worker identity with shared canonical fields.
+- `worker_sensitive_profile`: central encrypted sensitive fields. `phone_hash` is unique when present, so one normalized phone number maps to one worker UUID.
+- `labor_agency_worker_profile`: per-agency private worker profile. Local name, nickname, phone copy, and private memo are visible only to the owning agency owner.
+
+Application APIs must read agency-facing worker lists from `labor_agency_worker_profile`.
+Central `worker` canonical fields are for identity merge and internal moderation; they must not expose another agency owner's private input.
