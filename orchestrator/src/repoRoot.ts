@@ -7,7 +7,8 @@ export function resolveRepoRoot(fromDir: string) {
     "AGENTS.md",
     ".git",
     ".skills",
-    "run.bat",
+    "run-windows.bat",
+    "run-linux.sh",
   ];
   const hasMarker = markers.some((marker) => fs.existsSync(path.join(repoRoot, marker)));
 
@@ -15,7 +16,7 @@ export function resolveRepoRoot(fromDir: string) {
     throw new Error(
       [
         `Could not find the repository root from ${repoRoot}`,
-        "Expected at least one project marker: AGENTS.md, .git, .skills, or run.bat.",
+        "Expected at least one project marker: AGENTS.md, .git, .skills, run-windows.bat, or run-linux.sh.",
       ].join("\n"),
     );
   }

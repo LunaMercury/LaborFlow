@@ -1,5 +1,6 @@
 node_modules/
 runs/
+.run/
 dist/
 .env
 .env.local
