@@ -54,3 +54,8 @@ Application accounts are split into accounts and roles:
 
 Seed accounts are for local development only. Passwords are stored as bcrypt hashes, never plaintext.
 Social provider subject and email values should be normalized and stored as hash/encrypted fields, not plaintext.
+
+Authentication sessions are stored in `app_auth_session`.
+Refresh token plaintext must never be stored; only a SHA-256/HMAC-style hash is persisted.
+Standard sessions are limited to 12 hours, and remembered sessions are limited to 30 days.
+Refresh token rotation should create a new session row, link it with `replaced_by_session_uuid`, and revoke the previous row.

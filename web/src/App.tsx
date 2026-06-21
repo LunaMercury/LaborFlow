@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import styles from "./App.module.css";
 
 const sessionKey = "laborflow.demoSession";
+const standardSessionDurationMs = 12 * 60 * 60 * 1000;
+const rememberedSessionDurationMs = 30 * 24 * 60 * 60 * 1000;
 
 const healthItems = [
   { label: "Web", value: "ready" },
@@ -48,6 +50,13 @@ const servicePages: Record<string, { label: string; title: string; summary: stri
   },
 };
 
+type DemoSession = {
+  status: "active";
+  rememberLogin: boolean;
+  issuedAt: string;
+  expiresAt: string;
+};
+
 type HeaderProps = {
   isLoggedIn: boolean;
   onLogout: () => void;
@@ -55,8 +64,45 @@ type HeaderProps = {
 };
 
 type LoginPageProps = {
-  onLogin: () => void;
+  onLogin: (rememberLogin: boolean) => void;
 };
+
+function createDemoSession(rememberLogin: boolean): DemoSession {
+  const now = Date.now();
+  const duration = rememberLogin
+    ? rememberedSessionDurationMs
+    : standardSessionDurationMs;
+
+  return {
+    status: "active",
+    rememberLogin,
+    issuedAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + duration).toISOString(),
+  };
+}
+
+function readDemoSession(): DemoSession | null {
+  const rawSession = window.localStorage.getItem(sessionKey);
+
+  if (!rawSession) {
+    return null;
+  }
+
+  try {
+    const session = JSON.parse(rawSession) as DemoSession;
+    const expiresAt = Date.parse(session.expiresAt);
+
+    if (session.status !== "active" || Number.isNaN(expiresAt) || expiresAt <= Date.now()) {
+      window.localStorage.removeItem(sessionKey);
+      return null;
+    }
+
+    return session;
+  } catch {
+    window.localStorage.removeItem(sessionKey);
+    return null;
+  }
+}
 
 function Header({ isLoggedIn, onLogout, onNavigate }: HeaderProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -150,7 +196,8 @@ function Header({ isLoggedIn, onLogout, onNavigate }: HeaderProps) {
 function LoginPage({ onLogin }: LoginPageProps) {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onLogin();
+    const formData = new FormData(event.currentTarget);
+    onLogin(formData.get("rememberLogin") === "on");
   };
 
   return (
@@ -207,7 +254,7 @@ function LoginPage({ onLogin }: LoginPageProps) {
               className={`${styles.socialLoginButton} ${option.className}`}
               type="button"
               key={option.label}
-              onClick={onLogin}
+              onClick={() => onLogin(true)}
             >
               <span>{option.label}</span>
             </button>
@@ -257,9 +304,7 @@ function ServicePage({ path }: { path: string }) {
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    () => window.localStorage.getItem(sessionKey) === "active",
-  );
+  const [isLoggedIn, setIsLoggedIn] = useState(() => readDemoSession() !== null);
 
   useEffect(() => {
     const handlePopState = () => setCurrentPath(window.location.pathname);
@@ -267,13 +312,26 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      if (readDemoSession() === null) {
+        setIsLoggedIn(false);
+      }
+    }, 60 * 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const navigateTo = (path: string) => {
     window.history.pushState(null, "", path);
     setCurrentPath(path);
   };
 
-  const handleLogin = () => {
-    window.localStorage.setItem(sessionKey, "active");
+  const handleLogin = (rememberLogin: boolean) => {
+    window.localStorage.setItem(
+      sessionKey,
+      JSON.stringify(createDemoSession(rememberLogin)),
+    );
     setIsLoggedIn(true);
     navigateTo("/");
   };
