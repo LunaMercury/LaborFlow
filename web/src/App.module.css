@@ -329,7 +329,7 @@
   justify-content: center;
   max-height: calc(100vh - 48px);
   max-width: 620px;
-  overflow: auto;
+  overflow: hidden;
   padding: 28px;
   width: 100%;
 }
@@ -337,6 +337,7 @@
 .modalHeader {
   align-items: flex-start;
   display: flex;
+  flex-shrink: 0;
   justify-content: space-between;
   margin-bottom: 22px;
 }
@@ -374,6 +375,8 @@
   flex-direction: column;
   gap: 22px;
   justify-content: center;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .workerFormGrid {
