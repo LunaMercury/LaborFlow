@@ -141,12 +141,27 @@
   cursor: pointer;
 }
 
+.activeMenuButton {
+  background: #d4dee8;
+  border-radius: 6px;
+  color: #17202a;
+}
+
 .mainContent {
   align-items: center;
   display: flex;
   flex: 1;
   justify-content: center;
   padding: 48px 32px;
+  width: 100%;
+}
+
+.tableMainContent {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  padding: 34px 32px;
   width: 100%;
 }
 
@@ -173,6 +188,111 @@
   font-size: 36px;
   line-height: 1.22;
   margin: 0;
+}
+
+.workersPanel {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 1120px;
+  width: 100%;
+}
+
+.workersPageHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  width: 100%;
+}
+
+.workersHeading {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.workersHeading h1 {
+  font-size: 32px;
+  line-height: 1.22;
+  margin: 0;
+}
+
+.workerCountBadge {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d4dee8;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 16px;
+}
+
+.workerCountBadge span {
+  color: #176b5d;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.workerCountBadge p {
+  color: #4f5d6b;
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.workerTableFrame {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  width: 100%;
+}
+
+.workerTable {
+  border-collapse: collapse;
+  min-width: 760px;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.workerTable th,
+.workerTable td {
+  border: 1px solid #d9e2ec;
+  font-size: 14px;
+  height: 44px;
+  padding: 0 14px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.workerTable th {
+  background: #edf2f6;
+  color: #2f3f50;
+  font-weight: 900;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.workerTable td {
+  background: #ffffff;
+  color: #17202a;
+}
+
+.workerTable tbody tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.workerTable tbody tr:hover td {
+  background: #eef6f4;
 }
 
 .sectionLabel {
@@ -443,5 +563,19 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 12px;
+  }
+
+  .tableMainContent {
+    padding: 24px 16px;
+  }
+
+  .workersPageHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .workerCountBadge {
+    justify-content: flex-start;
   }
 }

@@ -12,7 +12,39 @@ const healthItems = [
   { label: "Mobile", value: "debug build" },
 ];
 
-const menuItems = ["인력 현황", "근태 관리", "일정 관리", "작업 일정"];
+const menuItems = [
+  { label: "인력 현황", path: "/workers" },
+  { label: "근태 관리", path: "/attendance" },
+  { label: "일정 관리", path: "/schedule" },
+  { label: "작업 일정", path: "/work-schedule" },
+];
+
+const workerRows = [
+  {
+    name: "홍길순",
+    phone: "010-1234-5678",
+    availableWork: "마늘 수확, 선별",
+    pickupLocation: "남부 정류장",
+  },
+  {
+    name: "앞산 아줌마",
+    phone: "010-1234-5678",
+    availableWork: "양파 포장",
+    pickupLocation: "앞산 입구",
+  },
+  {
+    name: "김철수",
+    phone: "010-9876-5432",
+    availableWork: "상하차, 운반",
+    pickupLocation: "동문 주차장",
+  },
+  {
+    name: "박영희",
+    phone: "010-2468-1357",
+    availableWork: "수확 보조",
+    pickupLocation: "중앙시장",
+  },
+];
 
 const socialLoginOptions = [
   { label: "Google로 로그인", className: styles.googleLoginButton },
@@ -48,6 +80,21 @@ const servicePages: Record<string, { label: string; title: string; summary: stri
     title: "중요 알림을 확인합니다.",
     summary: "근태, 작업 일정, 결제, 계정 보안 관련 알림을 모아보는 화면입니다.",
   },
+  "/attendance": {
+    label: "근태 관리",
+    title: "근태 흐름을 관리합니다.",
+    summary: "출근, 퇴근, 결근, 조퇴 상태를 확인하고 확정하는 화면입니다.",
+  },
+  "/schedule": {
+    label: "일정 관리",
+    title: "현장 일정을 관리합니다.",
+    summary: "농장별 작업 일정과 필요 인원을 배정하는 화면입니다.",
+  },
+  "/work-schedule": {
+    label: "작업 일정",
+    title: "작업별 배정을 확인합니다.",
+    summary: "작업 내용, 현장, 이동 흐름을 기준으로 배정 상태를 확인하는 화면입니다.",
+  },
 };
 
 type DemoSession = {
@@ -58,6 +105,7 @@ type DemoSession = {
 };
 
 type HeaderProps = {
+  currentPath: string;
   isLoggedIn: boolean;
   onLogout: () => void;
   onNavigate: (path: string) => void;
@@ -104,7 +152,7 @@ function readDemoSession(): DemoSession | null {
   }
 }
 
-function Header({ isLoggedIn, onLogout, onNavigate }: HeaderProps) {
+function Header({ currentPath, isLoggedIn, onLogout, onNavigate }: HeaderProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const handleNavigate = (path: string) => {
@@ -184,8 +232,16 @@ function Header({ isLoggedIn, onLogout, onNavigate }: HeaderProps) {
 
       <nav className={styles.menuBar} aria-label="주요 메뉴">
         {menuItems.map((menuItem) => (
-          <button className={styles.menuButton} type="button" key={menuItem}>
-            {menuItem}
+          <button
+            aria-current={currentPath === menuItem.path ? "page" : undefined}
+            className={`${styles.menuButton} ${
+              currentPath === menuItem.path ? styles.activeMenuButton : ""
+            }`}
+            type="button"
+            key={menuItem.path}
+            onClick={() => handleNavigate(menuItem.path)}
+          >
+            {menuItem.label}
           </button>
         ))}
       </nav>
@@ -288,6 +344,48 @@ function HomePage() {
   );
 }
 
+function WorkersPage() {
+  return (
+    <main className={styles.tableMainContent}>
+      <section className={styles.workersPanel} aria-labelledby="workers-title">
+        <div className={styles.workersPageHeader}>
+          <div className={styles.workersHeading}>
+            <p className={styles.sectionLabel}>인력 현황</p>
+            <h1 id="workers-title">작업자 목록</h1>
+          </div>
+          <div className={styles.workerCountBadge}>
+            <span>{workerRows.length}</span>
+            <p>등록 인력</p>
+          </div>
+        </div>
+
+        <div className={styles.workerTableFrame}>
+          <table className={styles.workerTable}>
+            <thead>
+              <tr>
+                <th scope="col">이름</th>
+                <th scope="col">전화번호</th>
+                <th scope="col">가능한 작업</th>
+                <th scope="col">승차장소</th>
+              </tr>
+            </thead>
+            <tbody>
+              {workerRows.map((worker) => (
+                <tr key={`${worker.name}-${worker.pickupLocation}`}>
+                  <td>{worker.name}</td>
+                  <td>{worker.phone}</td>
+                  <td>{worker.availableWork}</td>
+                  <td>{worker.pickupLocation}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function ServicePage({ path }: { path: string }) {
   const page = servicePages[path] ?? servicePages["/profile"];
 
@@ -333,7 +431,7 @@ export default function App() {
       JSON.stringify(createDemoSession(rememberLogin)),
     );
     setIsLoggedIn(true);
-    navigateTo("/");
+    navigateTo(currentPath === "/login" ? "/" : currentPath);
   };
 
   const handleLogout = () => {
@@ -343,19 +441,23 @@ export default function App() {
   };
 
   const isProtectedServicePath = Object.hasOwn(servicePages, currentPath);
+  const isWorkersPage = currentPath === "/workers";
   const shouldShowLoginPage =
-    !isLoggedIn && (currentPath === "/login" || isProtectedServicePath);
+    !isLoggedIn && (currentPath === "/login" || isProtectedServicePath || isWorkersPage);
   const isServicePage = isLoggedIn && isProtectedServicePath;
 
   return (
     <div className={styles.page}>
       <Header
+        currentPath={currentPath}
         isLoggedIn={isLoggedIn}
         onLogout={handleLogout}
         onNavigate={navigateTo}
       />
       {shouldShowLoginPage ? (
         <LoginPage onLogin={handleLogin} />
+      ) : isLoggedIn && isWorkersPage ? (
+        <WorkersPage />
       ) : isServicePage ? (
         <ServicePage path={currentPath} />
       ) : (
