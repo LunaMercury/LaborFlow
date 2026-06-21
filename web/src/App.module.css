@@ -214,35 +214,47 @@
   justify-content: center;
 }
 
+.workersMetaRow {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.workersMetaRow .sectionLabel {
+  margin: 0;
+}
+
 .workersHeading h1 {
   font-size: 32px;
   line-height: 1.22;
   margin: 0;
 }
 
-.workerCountBadge {
-  align-items: center;
-  background: #ffffff;
-  border: 1px solid #d4dee8;
-  border-radius: 8px;
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  min-height: 46px;
-  padding: 0 16px;
-}
-
-.workerCountBadge span {
-  color: #176b5d;
-  font-size: 20px;
-  font-weight: 900;
-}
-
-.workerCountBadge p {
-  color: #4f5d6b;
+.workersCountText {
+  color: #687789;
   font-size: 13px;
   font-weight: 800;
-  margin: 0;
+}
+
+.registerWorkerButton {
+  align-items: center;
+  background: #176b5d;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+}
+
+.registerWorkerButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
 }
 
 .workerTableFrame {
@@ -575,7 +587,13 @@
     gap: 14px;
   }
 
-  .workerCountBadge {
+  .workersMetaRow {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .registerWorkerButton {
     justify-content: flex-start;
   }
 }

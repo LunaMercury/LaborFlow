@@ -350,13 +350,17 @@ function WorkersPage() {
       <section className={styles.workersPanel} aria-labelledby="workers-title">
         <div className={styles.workersPageHeader}>
           <div className={styles.workersHeading}>
-            <p className={styles.sectionLabel}>인력 현황</p>
+            <div className={styles.workersMetaRow}>
+              <p className={styles.sectionLabel}>인력 현황</p>
+              <span className={styles.workersCountText}>
+                등록 인력 : {workerRows.length} 명
+              </span>
+            </div>
             <h1 id="workers-title">작업자 목록</h1>
           </div>
-          <div className={styles.workerCountBadge}>
-            <span>{workerRows.length}</span>
-            <p>등록 인력</p>
-          </div>
+          <button className={styles.registerWorkerButton} type="button">
+            인력 등록 +
+          </button>
         </div>
 
         <div className={styles.workerTableFrame}>
