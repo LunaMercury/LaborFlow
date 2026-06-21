@@ -34,7 +34,7 @@ if (Test-Path ".\gradlew.bat") {
         $env:GRADLE_USER_HOME = $env:LABORFLOW_CORE_GRADLE_USER_HOME
     }
     elseif (-not $env:GRADLE_USER_HOME) {
-        $env:GRADLE_USER_HOME = "C:\Users\Public\Documents\ESTsoft\CreatorTemp\laborflow-core-gradle"
+        $env:GRADLE_USER_HOME = Join-Path $repoRoot ".gradle-user-home\backend-core"
     }
     New-Item -ItemType Directory -Force -Path $env:GRADLE_USER_HOME | Out-Null
     .\gradlew.bat --stop | Out-Host

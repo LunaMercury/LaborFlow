@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -83,7 +84,9 @@ function printChild(child: ReturnType<typeof runNodeScript>, label: string) {
 
 function makeDefaultTarget() {
   const safeStamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const preferredTempRoot = process.env.ORCHESTRATOR_REHEARSAL_ROOT || "D:\\개발\\boilerplate-test";
+  const preferredTempRoot =
+    process.env.ORCHESTRATOR_REHEARSAL_ROOT ||
+    path.join(os.tmpdir(), "laborflow-orchestrator-rehearsals");
   fs.mkdirSync(preferredTempRoot, { recursive: true });
   return path.join(preferredTempRoot, `orchestrator-package-rehearsal-${safeStamp}`);
 }

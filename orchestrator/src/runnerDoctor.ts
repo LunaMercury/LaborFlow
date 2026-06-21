@@ -51,7 +51,6 @@ function checkCommand(name: string, command: string, args: string[], cwd: string
 function checkNpm(orchestratorRoot: string): CheckResult {
   const candidates = [
     process.env.npm_execpath,
-    process.platform === "win32" ? "C:\\Program Files\\nodejs\\npm.cmd" : undefined,
     process.platform === "win32" ? "npm.cmd" : "npm",
   ].filter((item): item is string => Boolean(item));
 

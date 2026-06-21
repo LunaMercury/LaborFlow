@@ -46,25 +46,25 @@
 새 프로젝트로 옮긴 직후에는 아래 순서로 진행합니다.
 
 ```powershell
-cd "D:\개발\<new-project>\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" install
-& "C:\Program Files\nodejs\npm.cmd" run project:init -- --name "<project name>" --goal "<project goal>" --force
-& "C:\Program Files\nodejs\npm.cmd" run runner:readiness:strict
-& "C:\Program Files\nodejs\npm.cmd" run runner:docs-encoding -- --compact
-& "C:\Program Files\nodejs\npm.cmd" run ci:dry-run
+Set-Location "..\<new-project>\orchestrator"
+npm install
+npm run project:init -- --name "<project name>" --goal "<project goal>" --force
+npm run runner:readiness:strict
+npm run runner:docs-encoding -- --compact
+npm run ci:dry-run
 ```
 
 그 다음 실제 작은 작업으로 리허설합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:goal -- --roles <role> "작은 기능 요청"
-& "C:\Program Files\nodejs\npm.cmd" run runner:quick
+npm run runner:goal -- --roles <role> "작은 기능 요청"
+npm run runner:quick
 ```
 
 결과가 마음에 들면 실제로 유지합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:accept
+npm run runner:accept
 ```
 
 ## 6. 완료 기준
@@ -86,21 +86,21 @@ cd "D:\개발\<new-project>\orchestrator"
 새 프로젝트로 옮기기 전에 실제 임시 폴더에 복사해 아래 항목을 확인합니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run project:rehearse-package
+Set-Location .\orchestrator
+npm run project:rehearse-package
 ```
 
 수동 검증이 필요하면 명시적인 대상 폴더를 사용합니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run project:package -- --target "D:\개발\boilerplate-test\sample-project-1" --name "Sample Project 1" --goal "Reusable orchestrator boilerplate rehearsal" --force
-& "C:\Program Files\nodejs\npm.cmd" run project:validate-package -- --target "D:\개발\boilerplate-test\sample-project-1"
+Set-Location .\orchestrator
+npm run project:package -- --target "..\boilerplate-test\sample-project-1" --name "Sample Project 1" --goal "Reusable orchestrator boilerplate rehearsal" --force
+npm run project:validate-package -- --target "..\boilerplate-test\sample-project-1"
 
-cd "D:\개발\boilerplate-test\sample-project-1\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" install
-& "C:\Program Files\nodejs\npm.cmd" run runner:readiness:strict
-& "C:\Program Files\nodejs\npm.cmd" run ci:dry-run
+Set-Location "..\boilerplate-test\sample-project-1\orchestrator"
+npm install
+npm run runner:readiness:strict
+npm run ci:dry-run
 ```
 
 복사 직후 확인:

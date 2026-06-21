@@ -20,6 +20,7 @@ orchestrator/PIPELINE_STATUS.md
 # Build caches that should not be committed by default
 .gradle/
 .gradle-user-home/
+.cargo-target/
 build/
 target/
 out/

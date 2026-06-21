@@ -204,154 +204,154 @@ orchestrator/runs/<run-id>/
 cd orchestrator
 
 # 가장 짧은 실사용 체인
-"C:\Program Files\nodejs\npm.cmd" run runner:readiness:compact
+npm run runner:readiness:compact
 
 # 중요한 live 실행 전 warning까지 실패로 처리
-"C:\Program Files\nodejs\npm.cmd" run runner:readiness:strict
-"C:\Program Files\nodejs\npm.cmd" run runner:preflight:compact
-"C:\Program Files\nodejs\npm.cmd" run runner:goal -- --roles frontend "요청 내용"
-"C:\Program Files\nodejs\npm.cmd" run runner:quick
-"C:\Program Files\nodejs\npm.cmd" run runner:accept
+npm run runner:readiness:strict
+npm run runner:preflight:compact
+npm run runner:goal -- --roles frontend "요청 내용"
+npm run runner:quick
+npm run runner:accept
 
 # 계획과 worker 제안만 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:plan -- --roles frontend,java "요청 내용"
+npm run runner:plan -- --roles frontend,java "요청 내용"
 
 # 비용 없이 plan/worker 흐름만 점검
-"C:\Program Files\nodejs\npm.cmd" run runner:plan:mock -- --roles frontend,java "요청 내용"
+npm run runner:plan:mock -- --roles frontend,java "요청 내용"
 
 # 목표형 안전 실행: 적용 가능성 검증 후 자동 롤백
-"C:\Program Files\nodejs\npm.cmd" run runner:goal -- --roles frontend "요청 내용"
+npm run runner:goal -- --roles frontend "요청 내용"
 
 `runner:goal`은 안전 리허설입니다. 성공해도 파일 변경은 롤백되며, 결과가 마음에 들면 `runner:quick`으로 최신 run을 확인한 뒤 `runner:accept`로 같은 worker 결과를 실제 적용합니다.
 
 # 예산 제한이 필요한 안전 실행
-"C:\Program Files\nodejs\npm.cmd" run runner:goal:budget -- --roles frontend "요청 내용"
+npm run runner:goal:budget -- --roles frontend "요청 내용"
 
 # 비용 없이 목표형 흐름 점검
-"C:\Program Files\nodejs\npm.cmd" run runner:goal:mock -- --roles frontend,java "요청 내용"
+npm run runner:goal:mock -- --roles frontend,java "요청 내용"
 
 # 적용 가능성을 검증하고 자동 롤백
-"C:\Program Files\nodejs\npm.cmd" run runner:rehearse -- --roles frontend "요청 내용"
+npm run runner:rehearse -- --roles frontend "요청 내용"
 
 # 실제 변경을 남김
-"C:\Program Files\nodejs\npm.cmd" run runner:apply -- --roles frontend "요청 내용"
+npm run runner:apply -- --roles frontend "요청 내용"
 
 # 기존 run의 worker 결과를 재사용해 apply만 다시 시도
-"C:\Program Files\nodejs\npm.cmd" run runner:reuse-apply -- <run-id> --roles mobile
+npm run runner:reuse-apply -- <run-id> --roles mobile
 
 # 적용된 변경의 로컬 품질 게이트만 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:quality -- <run-id> --roles frontend
+npm run runner:quality -- <run-id> --roles frontend
 
 # Markdown 문서 인코딩과 한글 깨짐을 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:docs-encoding -- --compact
+npm run runner:docs-encoding -- --compact
 
 # 문서 인코딩 게이트가 깨진 문서를 차단하는지 비용 없이 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:docs-encoding:smoke
+npm run runner:docs-encoding:smoke
 
 # 품질 게이트가 나쁜 패턴을 실제로 차단하는지 비용 없이 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:quality:smoke
+npm run runner:quality:smoke
 
 # workflow가 품질 게이트 실패를 차단하고 롤백하는지 비용 없이 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:workflow:quality-smoke
+npm run runner:workflow:quality-smoke
 
 # 기존 run에서 다음 행동 추천만 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:continue -- <run-id>
+npm run runner:continue -- <run-id>
 
 # 기존 run에서 다음 행동 추천만 짧게 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:continue:compact -- <run-id>
+npm run runner:continue:compact -- <run-id>
 
 # 기존 run의 핵심 요약만 한 화면으로 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:status:compact -- <run-id>
+npm run runner:status:compact -- <run-id>
 
 # 추천 옵션을 명시적으로 미리보기
-"C:\Program Files\nodejs\npm.cmd" run runner:continue -- <run-id> --choose A
+npm run runner:continue -- <run-id> --choose A
 
 # 추천 옵션 실행
-"C:\Program Files\nodejs\npm.cmd" run runner:continue -- <run-id> --choose A --execute
+npm run runner:continue -- <run-id> --choose A --execute
 
 # 같은 의미의 짧은 alias
-"C:\Program Files\nodejs\npm.cmd" run runner:continue:a -- <run-id>
-"C:\Program Files\nodejs\npm.cmd" run runner:continue:b:execute -- <run-id>
+npm run runner:continue:a -- <run-id>
+npm run runner:continue:b:execute -- <run-id>
 
 # 최신 run 기준으로 바로 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:quick
-"C:\Program Files\nodejs\npm.cmd" run runner:quick:any
-"C:\Program Files\nodejs\npm.cmd" run runner:quick:mock
-"C:\Program Files\nodejs\npm.cmd" run runner:latest
-"C:\Program Files\nodejs\npm.cmd" run runner:latest:quick
-"C:\Program Files\nodejs\npm.cmd" run runner:latest:any
-"C:\Program Files\nodejs\npm.cmd" run runner:latest:status
-"C:\Program Files\nodejs\npm.cmd" run runner:latest:status:compact
-"C:\Program Files\nodejs\npm.cmd" run runner:latest:continue
-"C:\Program Files\nodejs\npm.cmd" run runner:latest:continue:compact
-"C:\Program Files\nodejs\npm.cmd" run runner:latest:b
-"C:\Program Files\nodejs\npm.cmd" run runner:accept:preview
-"C:\Program Files\nodejs\npm.cmd" run runner:accept
+npm run runner:quick
+npm run runner:quick:any
+npm run runner:quick:mock
+npm run runner:latest
+npm run runner:latest:quick
+npm run runner:latest:any
+npm run runner:latest:status
+npm run runner:latest:status:compact
+npm run runner:latest:continue
+npm run runner:latest:continue:compact
+npm run runner:latest:b
+npm run runner:accept:preview
+npm run runner:accept
 
 # 여러 run 리포트 인덱스 생성
-"C:\Program Files\nodejs\npm.cmd" run runner:reports
-"C:\Program Files\nodejs\npm.cmd" run runner:reports:live
-"C:\Program Files\nodejs\npm.cmd" run runner:reports:mock
+npm run runner:reports
+npm run runner:reports:live
+npm run runner:reports:mock
 
 # 명령이 헷갈릴 때
-"C:\Program Files\nodejs\npm.cmd" run runner:help
+npm run runner:help
 
 # live 실행 전 API 키, 모델, 예산, git 상태를 비용 없이 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:preflight:compact
+npm run runner:preflight:compact
 
 # live 실행 준비도와 핵심 안전 가드를 한 번에 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:readiness:compact
+npm run runner:readiness:compact
 
 # npm 옵션 구분자 누락 같은 인자 전달 실수를 비용 없이 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:argument-guard:smoke
+npm run runner:argument-guard:smoke
 
 # plan-only run에서 accept가 잠기는지 비용 없이 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:accept-guard:smoke
+npm run runner:accept-guard:smoke
 
 # 성공한 리허설 뒤 accept가 열리는지 확인
-"C:\Program Files\nodejs\npm.cmd" run runner:accept-unlock:smoke
+npm run runner:accept-unlock:smoke
 ```
 
 ### 1. 일반 오케스트레이션 보기
 
 ```powershell
 cd orchestrator
-"C:\Program Files\nodejs\npm.cmd" run demo -- "네이버 로그인 기능을 만들어줘"
+npm run demo -- "네이버 로그인 기능을 만들어줘"
 ```
 
 mock 모드:
 
 ```powershell
 cd orchestrator
-"C:\Program Files\nodejs\npm.cmd" run demo:mock -- "네이버 로그인 기능을 만들어줘"
+npm run demo:mock -- "네이버 로그인 기능을 만들어줘"
 ```
 
 ### 2. runner bundle 만들기
 
 ```powershell
 cd orchestrator
-"C:\Program Files\nodejs\npm.cmd" run runner:prepare -- "네이버 로그인 기능을 만들어줘"
+npm run runner:prepare -- "네이버 로그인 기능을 만들어줘"
 ```
 
 mock 모드:
 
 ```powershell
 cd orchestrator
-"C:\Program Files\nodejs\npm.cmd" run runner:prepare:mock -- "네이버 로그인 기능을 만들어줘"
+npm run runner:prepare:mock -- "네이버 로그인 기능을 만들어줘"
 ```
 
 ### 3. run 상태 보기
 
 ```powershell
 cd orchestrator
-"C:\Program Files\nodejs\npm.cmd" run runner:status -- <run-id>
+npm run runner:status -- <run-id>
 ```
 
 ### 4. worker prompt 준비
 
 ```powershell
 cd orchestrator
-"C:\Program Files\nodejs\npm.cmd" run worker:prepare -- <run-id> java
+npm run worker:prepare -- <run-id> java
 ```
 
 가능한 role:
@@ -372,21 +372,21 @@ cd orchestrator
 
 ```powershell
 cd orchestrator
-"C:\Program Files\nodejs\npm.cmd" run worker:run -- <run-id> java
+npm run worker:run -- <run-id> java
 ```
 
 수동 준비만 하고 싶다면:
 
 ```powershell
 cd orchestrator
-"C:\Program Files\nodejs\npm.cmd" run worker:run -- <run-id> java --provider manual
+npm run worker:run -- <run-id> java --provider manual
 ```
 
 ### 6. worker 결과 수집
 
 ```powershell
 cd orchestrator
-"C:\Program Files\nodejs\npm.cmd" run runner:collect -- <run-id>
+npm run runner:collect -- <run-id>
 ```
 
 ## 남은 작업

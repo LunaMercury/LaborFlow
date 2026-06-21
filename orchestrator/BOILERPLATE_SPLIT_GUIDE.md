@@ -162,27 +162,27 @@
 2. 현재 프로젝트의 orchestrator에서 패키징 명령을 실행합니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run project:package -- --target "D:\개발\<new-boilerplate-repo>" --name "<Boilerplate Name>" --goal "Reusable agent orchestration boilerplate" --force
+Set-Location .\orchestrator
+npm run project:package -- --target "..\<new-boilerplate-repo>" --name "<Boilerplate Name>" --goal "Reusable agent orchestration boilerplate" --force
 ```
 
 3. 새 repository로 이동해 의존성을 설치합니다.
 
 ```powershell
-cd "D:\개발\<new-boilerplate-repo>\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" install
+Set-Location "..\<new-boilerplate-repo>\orchestrator"
+npm install
 ```
 
 4. 새 repository에서 파이프라인 자체 검증을 실행합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run ci:dry-run
+npm run ci:dry-run
 ```
 
 5. 새 repository에서 `project:init`으로 프로젝트 이름과 목표를 정리합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run project:init -- --name "<Project Name>" --goal "<Project Goal>" --force
+npm run project:init -- --name "<Project Name>" --goal "<Project Goal>" --force
 ```
 
 6. `BOILERPLATE_MIGRATION_CHECKLIST.md`를 기준으로 Whiteboard 전용 문구와 경로를 제거합니다.

@@ -15,10 +15,10 @@
 ## 가장 짧은 실사용 흐름
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run runner:goal -- --roles frontend "요청 내용"
-& "C:\Program Files\nodejs\npm.cmd" run runner:quick
-& "C:\Program Files\nodejs\npm.cmd" run runner:accept
+Set-Location .\orchestrator
+npm run runner:goal -- --roles frontend "요청 내용"
+npm run runner:quick
+npm run runner:accept
 ```
 
 의미:
@@ -32,11 +32,11 @@ cd "D:\개발\whiteboard capture\orchestrator"
 인증, 보안, 배포, 환경변수, 데이터 삭제 정책처럼 영향이 큰 작업은 사전 점검을 먼저 실행합니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run runner:readiness:strict
-& "C:\Program Files\nodejs\npm.cmd" run runner:goal -- --roles frontend,java,rust,mobile "요청 내용"
-& "C:\Program Files\nodejs\npm.cmd" run runner:quick
-& "C:\Program Files\nodejs\npm.cmd" run runner:accept
+Set-Location .\orchestrator
+npm run runner:readiness:strict
+npm run runner:goal -- --roles frontend,java,rust,mobile "요청 내용"
+npm run runner:quick
+npm run runner:accept
 ```
 
 ## 계획만 확인
@@ -44,8 +44,8 @@ cd "D:\개발\whiteboard capture\orchestrator"
 방향성만 보고 싶거나 큰 작업을 쪼개기 전에는 `runner:plan`을 사용합니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run runner:plan -- --roles frontend,java,rust,mobile "요청 내용"
+Set-Location .\orchestrator
+npm run runner:plan -- --roles frontend,java,rust,mobile "요청 내용"
 ```
 
 `runner:plan`은 파일을 적용하지 않습니다. 제안이 마음에 들면 `runner:goal`로 안전 리허설을 다시 실행합니다.
@@ -53,7 +53,7 @@ cd "D:\개발\whiteboard capture\orchestrator"
 비용 없이 흐름만 확인하려면 mock/test provider를 사용합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:plan:mock -- --roles frontend,java "요청 내용"
+npm run runner:plan:mock -- --roles frontend,java "요청 내용"
 ```
 
 ## 기존 run 이어가기
@@ -61,13 +61,13 @@ cd "D:\개발\whiteboard capture\orchestrator"
 특정 run의 다음 선택지를 다시 보고 싶으면 `runner:continue`를 사용합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:continue -- <run-id>
+npm run runner:continue -- <run-id>
 ```
 
 짧은 출력:
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:continue:compact -- <run-id>
+npm run runner:continue:compact -- <run-id>
 ```
 
 선택지:
@@ -79,8 +79,8 @@ cd "D:\개발\whiteboard capture\orchestrator"
 실행 예:
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:continue:a:execute -- <run-id>
-& "C:\Program Files\nodejs\npm.cmd" run runner:continue:b:execute -- <run-id>
+npm run runner:continue:a:execute -- <run-id>
+npm run runner:continue:b:execute -- <run-id>
 ```
 
 ## 결과 재사용
@@ -88,7 +88,7 @@ cd "D:\개발\whiteboard capture\orchestrator"
 worker 결과가 이미 있고 apply 또는 verification만 다시 시도하면 되는 경우 `--reuse-worker-results`를 사용합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:workflow -- <run-id> --compact --roles mobile --reuse-worker-results --apply-provider openai --apply --rollback-after-verify --concurrency 1 --continue-on-error
+npm run runner:workflow -- <run-id> --compact --roles mobile --reuse-worker-results --apply-provider openai --apply --rollback-after-verify --concurrency 1 --continue-on-error
 ```
 
 재사용 가드:
@@ -104,7 +104,7 @@ worker 결과가 이미 있고 apply 또는 verification만 다시 시도하면 
 역할별 검증만으로 부족할 때는 `--verify-all`을 사용합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:workflow -- <run-id> --roles java --apply --rollback-after-verify --verify-all
+npm run runner:workflow -- <run-id> --roles java --apply --rollback-after-verify --verify-all
 ```
 
 주의:

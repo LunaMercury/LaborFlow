@@ -18,14 +18,14 @@
 먼저 dry-run으로 생성될 파일과 충돌 여부를 확인합니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run project:package -- --target "D:\개발\new-project" --name "New Project" --goal "Describe the product outcome" --dry-run
+Set-Location .\orchestrator
+npm run project:package -- --target "..\new-project" --name "New Project" --goal "Describe the product outcome" --dry-run
 ```
 
 문제가 없으면 실제로 생성합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run project:package -- --target "D:\개발\new-project" --name "New Project" --goal "Describe the product outcome"
+npm run project:package -- --target "..\new-project" --name "New Project" --goal "Describe the product outcome"
 ```
 
 ## 복사 리허설
@@ -34,19 +34,19 @@ cd "D:\개발\whiteboard capture\orchestrator"
 
 OpenAI API를 호출하지 않으며, 기본 실행 후 임시 폴더를 삭제합니다.
 
-기본 리허설 경로는 `D:\개발\boilerplate-test\orchestrator-package-rehearsal-*`입니다.
+기본 리허설 경로는 `ORCHESTRATOR_REHEARSAL_ROOT` 또는 OS 임시 디렉터리의 `laborflow-orchestrator-rehearsals\orchestrator-package-rehearsal-*`입니다.
 
 다른 위치를 사용하려면 `--target`을 지정하거나 `ORCHESTRATOR_REHEARSAL_ROOT` 환경변수를 설정합니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run project:rehearse-package
+Set-Location .\orchestrator
+npm run project:rehearse-package
 ```
 
 생성된 임시 폴더를 보존하고 싶다면 `--keep`을 사용합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run project:rehearse-package -- --keep
+npm run project:rehearse-package -- --keep
 ```
 
 ## 패키지 검증
@@ -56,15 +56,15 @@ cd "D:\개발\whiteboard capture\orchestrator"
 올바른 사용 예:
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run project:validate-package -- --target "D:\개발\new-project"
+Set-Location .\orchestrator
+npm run project:validate-package -- --target "..\new-project"
 ```
 
 원본 프로젝트의 오케스트레이터 상태를 확인하려면 아래 명령을 사용합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:doctor -- --compact
-& "C:\Program Files\nodejs\npm.cmd" run ci:dry-run
+npm run runner:doctor -- --compact
+npm run ci:dry-run
 ```
 
 ## 안전장치
@@ -78,9 +78,9 @@ cd "D:\개발\whiteboard capture\orchestrator"
 ## 대상 프로젝트에서 다음에 할 일
 
 ```powershell
-cd "D:\개발\new-project\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" install
-& "C:\Program Files\nodejs\npm.cmd" run project:init -- --name "New Project" --goal "Describe the product outcome" --force
+Set-Location "..\new-project\orchestrator"
+npm install
+npm run project:init -- --name "New Project" --goal "Describe the product outcome" --force
 ```
 
 그 다음 [BOILERPLATE_MIGRATION_CHECKLIST.md](./BOILERPLATE_MIGRATION_CHECKLIST.md)를 따라 아래 파일을 새 프로젝트 실제 구조에 맞게 검토합니다.

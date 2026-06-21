@@ -29,5 +29,5 @@
 복사된 오케스트레이터에서 아래 명령을 실행하면 프로젝트 전용 YAML을 초기화할 수 있습니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run project:init -- --name "프로젝트 이름" --goal "프로젝트 목표"
+npm run project:init -- --name "프로젝트 이름" --goal "프로젝트 목표"
 ```

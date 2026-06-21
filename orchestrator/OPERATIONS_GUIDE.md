@@ -47,101 +47,101 @@
 | `runner:workflow:quality-smoke` | workflow가 품질 실패를 차단하고 롤백하는지 자체 점검 | 없음 |
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
+Set-Location .\orchestrator
 
 # 계획과 worker 결과만 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:plan -- --roles frontend,java "요청 내용"
+npm run runner:plan -- --roles frontend,java "요청 내용"
 
 # live 실행 전 계기판 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:preflight:compact
+npm run runner:preflight:compact
 
 # live 실행 준비도와 핵심 안전 가드 한 번에 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:readiness:compact
+npm run runner:readiness:compact
 
 # 중요한 live 실행 전 warning도 실패 처리
-& "C:\Program Files\nodejs\npm.cmd" run runner:readiness:strict
+npm run runner:readiness:strict
 
 # npm `--` 누락 같은 인자 전달 실수가 차단되는지 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:argument-guard:smoke
+npm run runner:argument-guard:smoke
 
 # 안전 리허설 전 accept가 잠기는지 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:accept-guard:smoke
+npm run runner:accept-guard:smoke
 
 # 안전 리허설 후 accept가 열리는지 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:accept-unlock:smoke
+npm run runner:accept-unlock:smoke
 
 # Markdown 문서 인코딩과 한글 깨짐 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:docs-encoding -- --compact
+npm run runner:docs-encoding -- --compact
 
 # 문서 인코딩 게이트 자체 점검
-& "C:\Program Files\nodejs\npm.cmd" run runner:docs-encoding:smoke
+npm run runner:docs-encoding:smoke
 
 # 비용 없이 plan/worker 흐름만 점검
-& "C:\Program Files\nodejs\npm.cmd" run runner:plan:mock -- --roles frontend,java "요청 내용"
+npm run runner:plan:mock -- --roles frontend,java "요청 내용"
 
 # 목표형 안전 실행: 적용 가능성 검증 후 자동 롤백
-& "C:\Program Files\nodejs\npm.cmd" run runner:goal -- --roles frontend "요청 내용"
+npm run runner:goal -- --roles frontend "요청 내용"
 
 `runner:goal`은 안전 리허설입니다. 성공해도 파일 변경은 롤백되며, 결과가 마음에 들면 `runner:quick`으로 최신 run을 확인한 뒤 `runner:accept`로 같은 worker 결과를 실제 적용합니다.
 
 # 예산 제한이 필요한 안전 실행
-& "C:\Program Files\nodejs\npm.cmd" run runner:goal:budget -- --roles frontend "요청 내용"
+npm run runner:goal:budget -- --roles frontend "요청 내용"
 
 # 비용 없이 목표형 흐름 점검
-& "C:\Program Files\nodejs\npm.cmd" run runner:goal:mock -- --roles frontend,java "요청 내용"
+npm run runner:goal:mock -- --roles frontend,java "요청 내용"
 
 # 안전 리허설: 적용, 검증, 자동 롤백
-& "C:\Program Files\nodejs\npm.cmd" run runner:rehearse -- --roles frontend "요청 내용"
+npm run runner:rehearse -- --roles frontend "요청 내용"
 
 # 실제 적용: 성공한 변경을 worktree에 유지
-& "C:\Program Files\nodejs\npm.cmd" run runner:apply -- --roles frontend "요청 내용"
+npm run runner:apply -- --roles frontend "요청 내용"
 
 # 기존 run의 worker 결과를 재사용해 apply만 다시 시도
-& "C:\Program Files\nodejs\npm.cmd" run runner:reuse-apply -- <run-id> --roles mobile
+npm run runner:reuse-apply -- <run-id> --roles mobile
 
 # 기존 run에서 다음 행동 추천만 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:continue -- <run-id>
+npm run runner:continue -- <run-id>
 
 # 기존 run에서 다음 행동 추천만 짧게 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:continue:compact -- <run-id>
+npm run runner:continue:compact -- <run-id>
 
 # 기존 run의 핵심 요약만 한 화면으로 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:status:compact -- <run-id>
+npm run runner:status:compact -- <run-id>
 
 # 추천 옵션을 명시적으로 미리보기
-& "C:\Program Files\nodejs\npm.cmd" run runner:continue -- <run-id> --choose A
+npm run runner:continue -- <run-id> --choose A
 
 # 추천 옵션 실행
-& "C:\Program Files\nodejs\npm.cmd" run runner:continue -- <run-id> --choose A --execute
+npm run runner:continue -- <run-id> --choose A --execute
 
 # 같은 의미의 짧은 alias
-& "C:\Program Files\nodejs\npm.cmd" run runner:continue:a -- <run-id>
-& "C:\Program Files\nodejs\npm.cmd" run runner:continue:b:execute -- <run-id>
+npm run runner:continue:a -- <run-id>
+npm run runner:continue:b:execute -- <run-id>
 
 # 최신 run 기준으로 바로 확인
-& "C:\Program Files\nodejs\npm.cmd" run runner:quick
-& "C:\Program Files\nodejs\npm.cmd" run runner:quick:any
-& "C:\Program Files\nodejs\npm.cmd" run runner:quick:mock
-& "C:\Program Files\nodejs\npm.cmd" run runner:latest
-& "C:\Program Files\nodejs\npm.cmd" run runner:latest:quick
-& "C:\Program Files\nodejs\npm.cmd" run runner:latest:any
-& "C:\Program Files\nodejs\npm.cmd" run runner:latest:status
-& "C:\Program Files\nodejs\npm.cmd" run runner:latest:status:compact
-& "C:\Program Files\nodejs\npm.cmd" run runner:latest:continue
-& "C:\Program Files\nodejs\npm.cmd" run runner:latest:continue:compact
-& "C:\Program Files\nodejs\npm.cmd" run runner:latest:b
-& "C:\Program Files\nodejs\npm.cmd" run runner:accept:preview
-& "C:\Program Files\nodejs\npm.cmd" run runner:accept
+npm run runner:quick
+npm run runner:quick:any
+npm run runner:quick:mock
+npm run runner:latest
+npm run runner:latest:quick
+npm run runner:latest:any
+npm run runner:latest:status
+npm run runner:latest:status:compact
+npm run runner:latest:continue
+npm run runner:latest:continue:compact
+npm run runner:latest:b
+npm run runner:accept:preview
+npm run runner:accept
 
 # 여러 run 리포트 인덱스 생성
-& "C:\Program Files\nodejs\npm.cmd" run runner:reports
-& "C:\Program Files\nodejs\npm.cmd" run runner:reports:live
-& "C:\Program Files\nodejs\npm.cmd" run runner:reports:mock
+npm run runner:reports
+npm run runner:reports:live
+npm run runner:reports:mock
 
 `runner:reports`는 `orchestrator/runs/index.html`을 갱신합니다. 실작업 기록만 보고 싶으면 `runner:reports:live`, CI/mock 리허설만 보고 싶으면 `runner:reports:mock`을 사용합니다. 목록을 훑은 뒤 최신 항목만 빠르게 판단하려면 `runner:quick`, `runner:quick:any`, `runner:quick:mock`을 사용합니다.
 
 # 명령이 헷갈릴 때
-& "C:\Program Files\nodejs\npm.cmd" run runner:help
+npm run runner:help
 ```
 
 ### 0. 작업 전 빠른 점검
@@ -149,8 +149,8 @@ cd "D:\개발\whiteboard capture\orchestrator"
 로컬 도구, 필수 스크립트, 정책 문서, 검증 파일이 준비되어 있는지 확인합니다. OpenAI API를 호출하지 않으므로 비용이 들지 않습니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run runner:doctor -- --compact
+Set-Location .\orchestrator
+npm run runner:doctor -- --compact
 ```
 
 복사 직후 아직 Git 저장소가 아닌 프로젝트에서는 `git worktree`가 warning으로 표시될 수 있습니다. 실제 apply workflow를 사용하기 전에는 대상 프로젝트에서 `git init`과 첫 커밋을 완료하는 것이 좋습니다.
@@ -158,14 +158,14 @@ cd "D:\개발\whiteboard capture\orchestrator"
 warning도 CI에서 실패로 다루고 싶다면 `--strict`를 추가합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:doctor -- --compact --strict
+npm run runner:doctor -- --compact --strict
 ```
 
 보일러플레이트 복사가 가능한지 빠르게 확인하려면 다음 명령을 사용합니다. 임시 폴더에 패키징하고 검증한 뒤 기본적으로 삭제합니다.
-기본 리허설 경로는 `D:\개발\boilerplate-test` 아래이며, 필요하면 `--target` 또는 `ORCHESTRATOR_REHEARSAL_ROOT`로 바꿀 수 있습니다.
+기본 리허설 경로는 `ORCHESTRATOR_REHEARSAL_ROOT` 또는 OS 임시 디렉터리의 `laborflow-orchestrator-rehearsals` 아래이며, 필요하면 `--target` 또는 `ORCHESTRATOR_REHEARSAL_ROOT`로 바꿀 수 있습니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run project:rehearse-package
+npm run project:rehearse-package
 ```
 
 ### 1. 계획과 worker 결과만 확인
@@ -173,8 +173,8 @@ warning도 CI에서 실패로 다루고 싶다면 `--strict`를 추가합니다.
 실제 파일은 수정하지 않습니다. 비용과 작업 범위를 먼저 확인할 때 사용합니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run runner:full -- --compact --roles frontend,java,rust,mobile --worker-provider openai --concurrency 2 "네이버 로그인 기능을 만들어줘"
+Set-Location .\orchestrator
+npm run runner:full -- --compact --roles frontend,java,rust,mobile --worker-provider openai --concurrency 2 "네이버 로그인 기능을 만들어줘"
 ```
 
 ### 2. 안전 리허설
@@ -182,8 +182,8 @@ cd "D:\개발\whiteboard capture\orchestrator"
 실제 파일에 적용하고 검증한 뒤 자동 롤백합니다. 파이프라인 테스트와 위험한 작업 검증에 사용합니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run runner:full -- --compact --roles frontend --worker-provider openai --apply-provider openai --apply --rollback-after-verify --concurrency 1 --continue-on-error "로그인 화면 하단에 개인정보 처리방침 링크를 추가해줘"
+Set-Location .\orchestrator
+npm run runner:full -- --compact --roles frontend --worker-provider openai --apply-provider openai --apply --rollback-after-verify --concurrency 1 --continue-on-error "로그인 화면 하단에 개인정보 처리방침 링크를 추가해줘"
 ```
 
 성공 여부는 마지막 `Final Summary`에서 확인합니다.
@@ -200,8 +200,8 @@ runner:workflow: exit=0
 검증 후 변경을 유지합니다. 작업트리가 깨끗하고, 요청이 충분히 명확할 때만 사용합니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run runner:full -- --compact --roles frontend --worker-provider openai --apply-provider openai --apply --keep-applied --concurrency 1 --continue-on-error "로그인 화면에 베타 안내 문구를 추가해줘"
+Set-Location .\orchestrator
+npm run runner:full -- --compact --roles frontend --worker-provider openai --apply-provider openai --apply --keep-applied --concurrency 1 --continue-on-error "로그인 화면에 베타 안내 문구를 추가해줘"
 ```
 
 적용 후에는 직접 diff를 확인하고 커밋합니다.
@@ -217,8 +217,8 @@ git status --short
 worker 계획은 이미 성공했고 apply나 verification에서만 실패한 경우 사용합니다. OpenAI worker 호출을 다시 하지 않아 비용을 줄입니다.
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
-& "C:\Program Files\nodejs\npm.cmd" run runner:workflow -- <run-id> --compact --roles mobile --reuse-worker-results --apply-provider openai --apply --rollback-after-verify --concurrency 1 --continue-on-error
+Set-Location .\orchestrator
+npm run runner:workflow -- <run-id> --compact --roles mobile --reuse-worker-results --apply-provider openai --apply --rollback-after-verify --concurrency 1 --continue-on-error
 ```
 
 재사용은 같은 `run-id`, 같은 Git HEAD, 같은 worktree 상태에서만 허용됩니다. worker 결과 생성 이후 commit, 파일 수정, untracked 파일 추가 등이 있으면 안전 가드가 재사용을 차단합니다.
@@ -311,14 +311,14 @@ runner:workflow: exit=...
 apply를 실행하기 전에 현재까지의 OpenAI API 추정 비용이 지정한 한도를 넘었는지 확인할 수 있습니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:full:rehearse -- --roles frontend --worker-provider openai --apply-provider openai --max-cost-usd 0.10 "요청 내용"
+npm run runner:full:rehearse -- --roles frontend --worker-provider openai --apply-provider openai --max-cost-usd 0.10 "요청 내용"
 ```
 
 또는 환경변수로 기본값을 줄 수 있습니다.
 
 ```powershell
 $env:RUNNER_MAX_COST_USD="0.10"
-& "C:\Program Files\nodejs\npm.cmd" run runner:full:rehearse -- --roles frontend --worker-provider openai --apply-provider openai "요청 내용"
+npm run runner:full:rehearse -- --roles frontend --worker-provider openai --apply-provider openai "요청 내용"
 ```
 
 주의:
@@ -333,14 +333,14 @@ $env:RUNNER_MAX_COST_USD="0.10"
 프로젝트 루트에서 전체 검증:
 
 ```powershell
-cd "D:\개발\whiteboard capture"
+Set-Location .
 powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\.skills\verify-all.ps1"
 ```
 
 orchestrator 폴더에서 전체 검증:
 
 ```powershell
-cd "D:\개발\whiteboard capture\orchestrator"
+Set-Location .\orchestrator
 powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "..\.skills\verify-all.ps1"
 ```
 
@@ -367,13 +367,13 @@ powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "..\.skills\
 가장 안전하고 저렴한 기본 실행입니다. 출력은 compact이고 worker는 한 번에 하나씩 실행합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:full:safe -- --roles frontend,java "요청 내용"
+npm run runner:full:safe -- --roles frontend,java "요청 내용"
 ```
 
 조금 더 빠르게 실행하고 싶을 때는 동시성을 2로 올린 balanced alias를 사용합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:full:balanced -- --roles frontend,java,rust,mobile "요청 내용"
+npm run runner:full:balanced -- --roles frontend,java,rust,mobile "요청 내용"
 ```
 
 ### 적용 리허설
@@ -381,13 +381,13 @@ powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "..\.skills\
 실제 파일에 적용하고 검증한 뒤 자동 롤백합니다. 파이프라인 테스트와 위험도 확인에 사용합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:full:rehearse -- --roles frontend --worker-provider openai --apply-provider openai --continue-on-error "요청 내용"
+npm run runner:full:rehearse -- --roles frontend --worker-provider openai --apply-provider openai --continue-on-error "요청 내용"
 ```
 
 기존 run을 대상으로 리허설할 때는 다음 alias를 사용합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:workflow:rehearse -- <run-id> --roles java --worker-provider openai --apply-provider openai --continue-on-error
+npm run runner:workflow:rehearse -- <run-id> --roles java --worker-provider openai --apply-provider openai --continue-on-error
 ```
 
 ### 실패 후 재시도
@@ -395,7 +395,7 @@ powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "..\.skills\
 worker 결과가 이미 생성되어 있고 apply 또는 verification만 다시 시도하면 되는 경우 사용합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:workflow:reuse -- <run-id> --roles mobile --apply-provider openai --apply --rollback-after-verify --continue-on-error
+npm run runner:workflow:reuse -- <run-id> --roles mobile --apply-provider openai --apply --rollback-after-verify --continue-on-error
 ```
 
 ### alias 선택 기준

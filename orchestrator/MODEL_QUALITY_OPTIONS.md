@@ -38,19 +38,19 @@ OPENAI_FORCE_REASONING
 가벼운 UI 문구/스타일 변경:
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:goal -- --roles frontend "로그인 화면 문구를 정리해줘"
+npm run runner:goal -- --roles frontend "로그인 화면 문구를 정리해줘"
 ```
 
 보안, 인증, JWT, OAuth, 인프라 계약 변경:
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:goal -- --roles java,rust --worker-reasoning high --apply-reasoning medium "JWT 계약을 점검하고 필요한 변경을 반영해줘"
+npm run runner:goal -- --roles java,rust --worker-reasoning high --apply-reasoning medium "JWT 계약을 점검하고 필요한 변경을 반영해줘"
 ```
 
 비용 절감이 중요한 계획 확인:
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run runner:plan:budget -- --roles frontend "작은 UI 개선안을 검토해줘"
+npm run runner:plan:budget -- --roles frontend "작은 UI 개선안을 검토해줘"
 ```
 
 ## 비용 표시

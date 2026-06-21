@@ -8,7 +8,7 @@
 2. 복사된 `orchestrator` 디렉터리에서 초기화 명령을 실행합니다.
 
 ```powershell
-& "C:\Program Files\nodejs\npm.cmd" run project:init -- --name "프로젝트 이름" --goal "프로젝트 목표"
+npm run project:init -- --name "프로젝트 이름" --goal "프로젝트 목표"
 ```
 
 3. 프로젝트 이름, 목표, 모듈 경로, 환경변수, API/JWT/WebSocket 계약을 실제 값으로 수정합니다.
