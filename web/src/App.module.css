@@ -326,7 +326,7 @@
   box-shadow: 0 24px 60px rgba(23, 32, 42, 0.24);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   max-height: calc(100vh - 48px);
   max-width: 620px;
   overflow: hidden;
@@ -372,9 +372,11 @@
 .workerRegistrationForm {
   align-items: stretch;
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 22px;
   justify-content: center;
+  min-height: 0;
   overflow: auto;
   padding-right: 4px;
 }
