@@ -29,14 +29,18 @@ set "FAST_PORT=5582"
 set "DB_PORT=55432"
 set "REDIS_PORT=56379"
 
+if not defined POSTGRES_DB set "POSTGRES_DB=laborflow_db"
+if not defined POSTGRES_USER set "POSTGRES_USER=admin"
+if not defined POSTGRES_PASSWORD set "POSTGRES_PASSWORD=admin"
+if not defined REDIS_PASSWORD set "REDIS_PASSWORD=admin"
 if not defined LABORFLOW_FAST_BIND_ADDR set "LABORFLOW_FAST_BIND_ADDR=127.0.0.1:%FAST_PORT%"
 set "SERVER_PORT=%CORE_PORT%"
-if not defined SPRING_DATASOURCE_URL set "SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:%DB_PORT%/laborflow_db"
-if not defined SPRING_DATASOURCE_USERNAME set "SPRING_DATASOURCE_USERNAME=admin"
-if not defined SPRING_DATASOURCE_PASSWORD set "SPRING_DATASOURCE_PASSWORD=admin"
+if not defined SPRING_DATASOURCE_URL set "SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:%DB_PORT%/%POSTGRES_DB%"
+if not defined SPRING_DATASOURCE_USERNAME set "SPRING_DATASOURCE_USERNAME=%POSTGRES_USER%"
+if not defined SPRING_DATASOURCE_PASSWORD set "SPRING_DATASOURCE_PASSWORD=%POSTGRES_PASSWORD%"
 if not defined SPRING_DATA_REDIS_HOST set "SPRING_DATA_REDIS_HOST=localhost"
 if not defined SPRING_DATA_REDIS_PORT set "SPRING_DATA_REDIS_PORT=%REDIS_PORT%"
-if not defined SPRING_DATA_REDIS_PASSWORD set "SPRING_DATA_REDIS_PASSWORD=admin"
+if not defined SPRING_DATA_REDIS_PASSWORD set "SPRING_DATA_REDIS_PASSWORD=%REDIS_PASSWORD%"
 if not defined VITE_API_BASE_URL set "VITE_API_BASE_URL=http://localhost:%CORE_PORT%"
 if not defined VITE_FAST_API_BASE_URL set "VITE_FAST_API_BASE_URL=http://localhost:%FAST_PORT%"
 if not defined VITE_REALTIME_WS_URL set "VITE_REALTIME_WS_URL=ws://localhost:%FAST_PORT%/ws"
@@ -65,7 +69,7 @@ if errorlevel 1 goto :fail
 echo Waiting for PostgreSQL to accept connections...
 set "DB_READY="
 for /L %%I in (1,1,60) do (
-    docker exec laborflow_db pg_isready -U admin -d laborflow_db >nul 2>&1
+    docker exec laborflow_db pg_isready -U %POSTGRES_USER% -d %POSTGRES_DB% >nul 2>&1
     if not errorlevel 1 (
         set "DB_READY=1"
         goto :db_ready
@@ -82,7 +86,7 @@ if not defined DB_READY (
 echo Waiting for Redis to accept connections...
 set "REDIS_READY="
 for /L %%I in (1,1,60) do (
-    docker exec laborflow_redis redis-cli -a admin ping >nul 2>&1
+    docker exec laborflow_redis redis-cli -a %REDIS_PASSWORD% ping >nul 2>&1
     if not errorlevel 1 (
         set "REDIS_READY=1"
         goto :redis_ready
@@ -111,8 +115,8 @@ echo LaborFlow services are starting.
 echo Core API: http://localhost:%CORE_PORT%/api/health
 echo Fast API: http://localhost:%FAST_PORT%/health
 echo Web App:  http://localhost:%WEB_PORT%
-echo Database: localhost:%DB_PORT% / laborflow_db / admin
-echo Redis:    localhost:%REDIS_PORT% / password admin
+echo Database: localhost:%DB_PORT% / %POSTGRES_DB% / %POSTGRES_USER%
+echo Redis:    localhost:%REDIS_PORT%
 echo ==========================================
 
 if not defined NO_OPEN (

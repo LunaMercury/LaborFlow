@@ -10,11 +10,15 @@ modules:
   java: backend-core/** (Spring Boot accounts, attendance, scheduling, history, Redis cache/lock policy, and core business rules)
   rust: backend-fast/** (Rust latency-sensitive upload, realtime fan-out, and streaming paths)
   mobile: mobile/** (Android Kotlin field client, token storage, capture, and background transfer)
-  data: docker-compose.yaml (local PostgreSQL and Redis runtime dependencies)
+  data: database/** and docker-compose*.yaml (Flyway-managed PostgreSQL migrations plus local/production runtime dependencies)
+  deployment: Dockerfile, docker-compose.prod.yaml, run-linux.sh, stop-linux.sh, run-windows.bat, stop-windows.bat
 contracts:
   - Local health endpoints are web http://localhost:5580, backend-core http://localhost:5581/api/health, backend-fast http://localhost:5582/health, and Android debug build.
-  - Local PostgreSQL uses localhost:55432, database laborflow_db, and temporary dev credentials admin/admin until .env is introduced.
-  - Local Redis uses localhost:56379, container laborflow_redis, and temporary dev password admin until .env is introduced.
+  - Local PostgreSQL uses localhost:55432, database laborflow_db, and temporary dev defaults that can be overridden by .env.
+  - Local Redis uses localhost:56379, container laborflow_redis, and temporary dev defaults that can be overridden by .env.
+  - Production deployments must use docker-compose.prod.yaml or equivalent infrastructure with secrets injected outside Git.
+  - Ubuntu/Linux verification scripts live beside Windows scripts under .skills and must remain path-relative.
+  - PostgreSQL schema changes must be added under database/migrations and applied by backend-core Flyway packaging.
   - PostgreSQL is the source of truth for personal data, attendance records, schedules, workflow history, and audit trails.
   - Redis is limited to short-lived cache, rate limit counters, idempotency keys, distributed locks, and realtime fan-out support.
   - Redis keys and values must not contain raw personal data, passwords, provider secrets, or long-lived audit records.

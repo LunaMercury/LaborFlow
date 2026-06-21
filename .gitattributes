@@ -2,3 +2,8 @@
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 *.sh text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+Dockerfile text eol=lf
+Caddyfile text eol=lf
+.dockerignore text eol=lf

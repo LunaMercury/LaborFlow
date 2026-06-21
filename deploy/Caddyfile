@@ -1,0 +1,25 @@
+{
+    email {$ACME_EMAIL}
+}
+
+{$PUBLIC_DOMAIN:localhost} {
+    encode zstd gzip
+
+    @core path /api/* /actuator/* /core-health
+    handle @core {
+        reverse_proxy backend-core:5581
+    }
+
+    handle_path /fast/* {
+        reverse_proxy backend-fast:5582
+    }
+
+    @fast path /ws*
+    handle @fast {
+        reverse_proxy backend-fast:5582
+    }
+
+    handle {
+        reverse_proxy web:80
+    }
+}

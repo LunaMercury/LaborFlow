@@ -18,12 +18,28 @@ repositories {
 }
 
 dependencies {
+	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	runtimeOnly 'org.flywaydb:flyway-database-postgresql'
 	runtimeOnly 'org.postgresql:postgresql'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('processResources') {
+	from('../database/migrations') {
+		into 'db/migration'
+		filter { String line ->
+			def trimmed = line.trim()
+			trimmed.equalsIgnoreCase('BEGIN;') || trimmed.equalsIgnoreCase('COMMIT;') ? null : line
+		}
+		rename { fileName ->
+			def match = fileName =~ /^(\d{3})_(.+)\.sql$/
+			match.matches() ? "V${match[0][1]}__${match[0][2]}.sql" : fileName
+		}
+	}
 }
 
 tasks.named('test') {

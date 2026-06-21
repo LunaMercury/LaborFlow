@@ -1,6 +1,12 @@
 # Database Migrations
 
-Run migration files against local PostgreSQL in order.
+Migration files are the source of truth for the PostgreSQL schema.
+`backend-core` uses Flyway and copies these files into `classpath:db/migration` during the Gradle `processResources` task.
+
+The checked-in files keep the simple ordered name format (`001_...sql`).
+During build they are packaged as Flyway migrations (`V001__...sql`).
+
+Manual execution is only for local troubleshooting.
 
 Local connection:
 

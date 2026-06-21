@@ -19,6 +19,19 @@ redis:
     - "Confirm Redis usage is limited to cache, rate limit counters, idempotency keys, distributed locks, and realtime fan-out support."
     - "Confirm TTL, key namespace, invalidation, fallback, and no-raw-PII rules are documented before adding Redis-backed features."
 
+deployment:
+  verifierChecks:
+    - "Confirm Windows scripts remain in run-windows.bat/stop-windows.bat and Linux scripts remain in run-linux.sh/stop-linux.sh."
+    - "Confirm production compose and Dockerfiles do not hardcode real secrets."
+    - "Confirm public traffic enters through the edge reverse proxy and production HTTPS/domain settings are environment-driven."
+    - "Confirm Linux shell scripts use repo-relative paths and LF line endings."
+    - "Confirm .env.example contains placeholders only and real .env files stay ignored."
+
+data:
+  verifierChecks:
+    - "Confirm schema changes are added under database/migrations and packaged through backend-core Flyway resources."
+    - "Confirm migrations avoid raw plaintext secrets and document sensitive encrypted/hash columns."
+
 enterprise:
   verifierChecks:
     - "Confirm backend-core feature packages use api/application/dto/dao layers and shared infrastructure stays under common."

@@ -1,0 +1,16 @@
+.git
+.agents
+.codex
+.run
+.gradle
+.gradle-user-home
+.cargo-target
+**/build
+**/target
+**/dist
+**/node_modules
+**/.env
+**/.env.local
+*.log
+local.properties
+mobile/local.properties
