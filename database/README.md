@@ -49,5 +49,8 @@ Application accounts are split into accounts and roles:
 - `app_account`: login identity with bcrypt password hash and optional link to `labor_agency_owner`.
 - `app_role`: role definitions such as `ADMIN` and `LABOR_AGENCY_OWNER`.
 - `app_account_role`: many-to-many account role assignment.
+- `app_identity_provider`: enabled social login providers such as `GOOGLE`, `NAVER`, and `KAKAO`.
+- `app_account_social_identity`: external provider identities linked to `app_account`.
 
 Seed accounts are for local development only. Passwords are stored as bcrypt hashes, never plaintext.
+Social provider subject and email values should be normalized and stored as hash/encrypted fields, not plaintext.
