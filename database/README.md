@@ -46,6 +46,8 @@ Worker records are split into central identity and agency-private views:
 - `worker`: central worker identity with shared canonical fields.
 - `worker_sensitive_profile`: central encrypted sensitive fields. `phone_hash` is unique when present, so one normalized phone number maps to one worker UUID.
 - `labor_agency_worker_profile`: per-agency private worker profile. Local name, nickname, phone copy, pickup location, and private memo are visible only to the owning agency owner.
+- `work_type`: shared work type dictionary such as garlic harvest or garlic sorting.
+- `labor_agency_worker_work_skill`: per-agency worker skill rating by work type. Ratings are 0 to 3 stars and belong to the agency-private worker profile, not the central worker identity.
 
 Application APIs must read agency-facing worker lists from `labor_agency_worker_profile`.
 Central `worker` canonical fields are for identity merge and internal moderation; they must not expose another agency owner's private input.
