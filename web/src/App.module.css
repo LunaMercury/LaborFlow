@@ -382,7 +382,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.workerFormGrid .formField:last-child {
+.fullWidthField {
   grid-column: 1 / -1;
 }
 
@@ -608,20 +608,76 @@
   font-weight: 800;
 }
 
-.formField input {
+.requiredMark {
+  color: #d92d20;
+}
+
+.formField input,
+.formField textarea {
   background: #fbfcfe;
   border: 1px solid #c8d4e0;
   border-radius: 8px;
   color: #17202a;
-  min-height: 48px;
   padding: 0 14px;
   width: 100%;
 }
 
-.formField input:focus {
+.formField input {
+  min-height: 48px;
+}
+
+.formField textarea {
+  min-height: 92px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.formField input:focus,
+.formField textarea:focus {
   border-color: #176b5d;
   box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
   outline: 0;
+}
+
+.genderButtonGroup {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+  min-height: 48px;
+}
+
+.genderButton {
+  align-items: center;
+  appearance: none;
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #2f3f50;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  height: 40px;
+  justify-content: center;
+  min-width: 48px;
+  padding: 0 14px;
+}
+
+.genderButton:hover {
+  border-color: #176b5d;
+  cursor: pointer;
+}
+
+.activeGenderButton {
+  background: #176b5d;
+  border-color: #176b5d;
+  color: #ffffff;
+}
+
+.genderValueText {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .loginOptionsRow {

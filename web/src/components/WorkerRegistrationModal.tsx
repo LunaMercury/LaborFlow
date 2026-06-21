@@ -6,7 +6,10 @@ type WorkerRegistrationModalProps = {
   onClose: () => void;
 };
 
+type GenderValue = "M" | "F" | "N";
+
 export function WorkerRegistrationModal({ onClose }: WorkerRegistrationModalProps) {
+  const [gender, setGender] = useState<GenderValue>("N");
   const [ratings, setRatings] = useState<Record<string, number>>(() =>
     Object.fromEntries(workTypeOptions.map((workType) => [workType.code, 0])),
   );
@@ -14,6 +17,10 @@ export function WorkerRegistrationModal({ onClose }: WorkerRegistrationModalProp
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onClose();
+  };
+
+  const toggleGender = (nextGender: Exclude<GenderValue, "N">) => {
+    setGender((currentGender) => (currentGender === nextGender ? "N" : nextGender));
   };
 
   return (
@@ -35,25 +42,67 @@ export function WorkerRegistrationModal({ onClose }: WorkerRegistrationModalProp
             type="button"
             onClick={onClose}
           >
-            ×
+            X
           </button>
         </div>
 
         <form className={styles.workerRegistrationForm} onSubmit={handleSubmit}>
           <div className={styles.workerFormGrid}>
             <label className={styles.formField}>
-              <span>이름</span>
-              <input name="workerName" placeholder="이름을 입력하세요" type="text" />
+              <span>
+                이름 <strong className={styles.requiredMark}>*</strong>
+              </span>
+              <input name="workerName" placeholder="이름을 입력하세요" required type="text" />
             </label>
 
             <label className={styles.formField}>
-              <span>전화번호</span>
-              <input name="workerPhone" placeholder="010-0000-0000" type="tel" />
+              <span>
+                전화번호 <strong className={styles.requiredMark}>*</strong>
+              </span>
+              <input name="workerPhone" placeholder="010-0000-0000" required type="tel" />
+            </label>
+
+            <label className={styles.formField}>
+              <span>나이</span>
+              <input max="150" min="0" name="age" placeholder="나이" type="number" />
             </label>
 
             <label className={styles.formField}>
               <span>승차장소</span>
               <input name="pickupLocation" placeholder="승차장소를 입력하세요" type="text" />
+            </label>
+
+            <div className={styles.formField}>
+              <span>성별</span>
+              <input name="gender" type="hidden" value={gender} />
+              <div className={styles.genderButtonGroup} aria-label="성별 선택">
+                <button
+                  aria-pressed={gender === "M"}
+                  className={`${styles.genderButton} ${
+                    gender === "M" ? styles.activeGenderButton : ""
+                  }`}
+                  type="button"
+                  onClick={() => toggleGender("M")}
+                >
+                  남
+                </button>
+                <button
+                  aria-pressed={gender === "F"}
+                  className={`${styles.genderButton} ${
+                    gender === "F" ? styles.activeGenderButton : ""
+                  }`}
+                  type="button"
+                  onClick={() => toggleGender("F")}
+                >
+                  여
+                </button>
+                <span className={styles.genderValueText}>값: {gender}</span>
+              </div>
+            </div>
+
+            <label className={`${styles.formField} ${styles.fullWidthField}`}>
+              <span>메모</span>
+              <textarea name="memo" placeholder="작업자 메모를 입력하세요" rows={3} />
             </label>
           </div>
 
