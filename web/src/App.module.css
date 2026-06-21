@@ -372,12 +372,16 @@
 .workerRegistrationForm {
   align-items: stretch;
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
   gap: 22px;
-  justify-content: center;
+  justify-content: flex-start;
+}
+
+.modalScrollArea {
+  flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding-right: 4px;
 }
 
