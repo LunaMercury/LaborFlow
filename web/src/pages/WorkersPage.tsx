@@ -1,7 +1,11 @@
+import { useState } from "react";
 import styles from "../App.module.css";
+import { WorkerRegistrationModal } from "../components/WorkerRegistrationModal";
 import { workerRows } from "../data/workerRows";
 
 export function WorkersPage() {
+  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
+
   return (
     <main className={styles.tableMainContent}>
       <section className={styles.workersPanel} aria-labelledby="workers-title">
@@ -15,7 +19,11 @@ export function WorkersPage() {
             </div>
             <h1 id="workers-title">작업자 목록</h1>
           </div>
-          <button className={styles.registerWorkerButton} type="button">
+          <button
+            className={styles.registerWorkerButton}
+            type="button"
+            onClick={() => setIsRegistrationModalOpen(true)}
+          >
             인력 등록 +
           </button>
         </div>
@@ -43,6 +51,9 @@ export function WorkersPage() {
           </table>
         </div>
       </section>
+      {isRegistrationModalOpen ? (
+        <WorkerRegistrationModal onClose={() => setIsRegistrationModalOpen(false)} />
+      ) : null}
     </main>
   );
 }
