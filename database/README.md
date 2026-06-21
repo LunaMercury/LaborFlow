@@ -43,3 +43,11 @@ Worker records are split into central identity and agency-private views:
 
 Application APIs must read agency-facing worker lists from `labor_agency_worker_profile`.
 Central `worker` canonical fields are for identity merge and internal moderation; they must not expose another agency owner's private input.
+
+Application accounts are split into accounts and roles:
+
+- `app_account`: login identity with bcrypt password hash and optional link to `labor_agency_owner`.
+- `app_role`: role definitions such as `ADMIN` and `LABOR_AGENCY_OWNER`.
+- `app_account_role`: many-to-many account role assignment.
+
+Seed accounts are for local development only. Passwords are stored as bcrypt hashes, never plaintext.
