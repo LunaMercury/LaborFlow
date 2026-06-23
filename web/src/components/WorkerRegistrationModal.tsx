@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import styles from "../App.module.css";
 import { workTypeOptions } from "../data/workTypeOptions";
+import { formatKoreanPhoneNumber } from "../utils/phoneNumber";
 
 type WorkerRegistrationModalProps = {
   onClose: () => void;
@@ -13,6 +14,7 @@ export function WorkerRegistrationModal({
 }: WorkerRegistrationModalProps) {
   const registrationFormId = "worker-registration-form";
   const [gender, setGender] = useState<GenderValue>("N");
+  const [workerPhone, setWorkerPhone] = useState("");
   const [ratings, setRatings] = useState<Record<string, number>>(() =>
     Object.fromEntries(workTypeOptions.map((workType) => [workType.code, 0])),
   );
@@ -92,10 +94,16 @@ export function WorkerRegistrationModal({
                   전화번호 <strong className={styles.requiredMark}>*</strong>
                 </span>
                 <input
+                  inputMode="numeric"
+                  maxLength={13}
                   name="workerPhone"
                   placeholder="010-0000-0000"
                   required
                   type="tel"
+                  value={workerPhone}
+                  onChange={(event) =>
+                    setWorkerPhone(formatKoreanPhoneNumber(event.target.value))
+                  }
                 />
               </label>
 

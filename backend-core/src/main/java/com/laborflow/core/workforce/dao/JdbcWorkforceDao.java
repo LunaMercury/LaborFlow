@@ -28,8 +28,8 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 p.uuid AS profile_uuid,
                 COALESCE(p.local_name, w.canonical_name, '이름 없음') AS display_name,
                 p.local_nickname,
-                p.local_phone_encrypted,
-                p.pickup_location
+                COALESCE(p.local_phone_encrypted, '') AS local_phone_encrypted,
+                COALESCE(p.pickup_location, '') AS pickup_location
             FROM public.labor_agency_worker_profile p
             JOIN public.app_account a ON a.labor_agency_owner_uuid = p.agency_owner_uuid
             LEFT JOIN public.worker w ON w.uuid = p.worker_uuid
@@ -91,6 +91,69 @@ public class JdbcWorkforceDao implements WorkforceDao {
         );
 
         return count != null && count > 0;
+    }
+
+    @Override
+    public void updateWorkerIdentity(UUID workerProfileUuid, String name, String nickname) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_profile
+            SET local_name = ?,
+                local_nickname = ?
+            WHERE uuid = ?
+            """,
+            name,
+            nickname,
+            workerProfileUuid
+        );
+    }
+
+    @Override
+    public boolean localPhoneExistsForOtherProfile(String loginId, UUID workerProfileUuid, String phoneHashSource) {
+        Integer count = jdbcTemplate.queryForObject(
+            """
+            SELECT count(*)
+            FROM public.labor_agency_worker_profile p
+            JOIN public.app_account a ON a.labor_agency_owner_uuid = p.agency_owner_uuid
+            WHERE a.login_id = ?
+                AND p.uuid <> ?
+                AND p.local_phone_hash = encode(digest(?, 'sha256'), 'hex')
+            """,
+            Integer.class,
+            loginId,
+            workerProfileUuid,
+            phoneHashSource
+        );
+
+        return count != null && count > 0;
+    }
+
+    @Override
+    public void updateWorkerPhone(UUID workerProfileUuid, String phone, String phoneHashSource) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_profile
+            SET local_phone_encrypted = ?,
+                local_phone_hash = encode(digest(?, 'sha256'), 'hex')
+            WHERE uuid = ?
+            """,
+            phone,
+            phoneHashSource,
+            workerProfileUuid
+        );
+    }
+
+    @Override
+    public void updateWorkerPickupLocation(UUID workerProfileUuid, String pickupLocation) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_profile
+            SET pickup_location = ?
+            WHERE uuid = ?
+            """,
+            pickupLocation,
+            workerProfileUuid
+        );
     }
 
     @Override

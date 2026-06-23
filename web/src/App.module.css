@@ -338,6 +338,134 @@
   padding-left: 8px;
 }
 
+.editableCell {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-content: center;
+  min-height: 44px;
+  position: relative;
+  width: 100%;
+}
+
+.editableCellText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cellEditButton {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: #a8b3bf;
+  display: flex;
+  font-size: 15px;
+  font-weight: 900;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  width: 28px;
+}
+
+.cellEditButton:hover {
+  background: #edf2f6;
+  color: #687789;
+  cursor: pointer;
+}
+
+.cellEditPopover {
+  align-items: flex-end;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  box-shadow: 0 14px 30px rgba(23, 32, 42, 0.14);
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  min-width: 260px;
+  padding: 10px;
+  position: fixed;
+  z-index: 130;
+}
+
+.nameEditFields {
+  align-items: stretch;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.nicknameEditRow {
+  align-items: center;
+  color: #687789;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-content: center;
+}
+
+.cellEditInput {
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  min-height: 36px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.cellEditInput:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
+.cellEditActions {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.cellEditConfirmButton,
+.cellEditCancelButton {
+  align-items: center;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  display: flex;
+  font-size: 15px;
+  font-weight: 900;
+  height: 30px;
+  justify-content: center;
+  line-height: 1;
+  width: 30px;
+}
+
+.cellEditConfirmButton {
+  background: #176b5d;
+  color: #ffffff;
+}
+
+.cellEditCancelButton {
+  background: #edf2f6;
+  color: #4f5d6b;
+}
+
+.cellEditConfirmButton:hover,
+.cellEditCancelButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
 .workerTable th:nth-child(1),
 .workerTable td:nth-child(1) {
   width: 18%;

@@ -1,6 +1,9 @@
 package com.laborflow.core.workforce.api;
 
 import com.laborflow.core.workforce.application.WorkforceService;
+import com.laborflow.core.workforce.dto.UpdateWorkerIdentityRequest;
+import com.laborflow.core.workforce.dto.UpdateWorkerPhoneRequest;
+import com.laborflow.core.workforce.dto.UpdateWorkerPickupLocationRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerWorkTypesRequest;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerListResponse;
@@ -8,6 +11,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +35,36 @@ public class WorkforceController {
     @GetMapping("/work-types")
     public List<WorkTypeResponse> getWorkTypes() {
         return workforceService.getWorkTypes();
+    }
+
+    @PatchMapping("/worker-profiles/{profileUuid}/identity")
+    public WorkerListResponse updateWorkerIdentity(
+        @PathVariable UUID profileUuid,
+        @RequestParam(defaultValue = "test") String loginId,
+        @RequestBody UpdateWorkerIdentityRequest request
+    ) {
+        workforceService.updateWorkerIdentity(loginId, profileUuid, request.name(), request.nickname());
+        return workforceService.getWorkers(loginId);
+    }
+
+    @PatchMapping("/worker-profiles/{profileUuid}/phone")
+    public WorkerListResponse updateWorkerPhone(
+        @PathVariable UUID profileUuid,
+        @RequestParam(defaultValue = "test") String loginId,
+        @RequestBody UpdateWorkerPhoneRequest request
+    ) {
+        workforceService.updateWorkerPhone(loginId, profileUuid, request.phone());
+        return workforceService.getWorkers(loginId);
+    }
+
+    @PatchMapping("/worker-profiles/{profileUuid}/pickup-location")
+    public WorkerListResponse updateWorkerPickupLocation(
+        @PathVariable UUID profileUuid,
+        @RequestParam(defaultValue = "test") String loginId,
+        @RequestBody UpdateWorkerPickupLocationRequest request
+    ) {
+        workforceService.updateWorkerPickupLocation(loginId, profileUuid, request.pickupLocation());
+        return workforceService.getWorkers(loginId);
     }
 
     @PutMapping("/worker-profiles/{profileUuid}/work-types")

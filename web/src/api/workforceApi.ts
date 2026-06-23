@@ -53,3 +53,85 @@ export async function updateWorkerWorkTypes(
   const body = (await response.json()) as WorkerListResponse;
   return body.workers;
 }
+
+async function parseErrorMessage(response: Response, fallbackMessage: string) {
+  try {
+    const body = (await response.json()) as { message?: string };
+    return body.message || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+}
+
+export async function updateWorkerIdentity(
+  loginId: string,
+  profileUuid: string,
+  name: string,
+  nickname: string,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/worker-profiles/${profileUuid}/identity?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify({ name, nickname }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "이름 정보를 저장하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
+}
+
+export async function updateWorkerPhone(
+  loginId: string,
+  profileUuid: string,
+  phone: string,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/worker-profiles/${profileUuid}/phone?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify({ phone }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "전화번호를 저장하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
+}
+
+export async function updateWorkerPickupLocation(
+  loginId: string,
+  profileUuid: string,
+  pickupLocation: string,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/worker-profiles/${profileUuid}/pickup-location?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify({ pickupLocation }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "승차장소를 저장하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
+}

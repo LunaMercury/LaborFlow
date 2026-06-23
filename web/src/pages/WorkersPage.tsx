@@ -2,13 +2,18 @@ import { useEffect, useState } from "react";
 import {
   fetchWorkers,
   fetchWorkTypes,
+  updateWorkerIdentity as saveWorkerIdentity,
+  updateWorkerPhone as saveWorkerPhone,
+  updateWorkerPickupLocation as saveWorkerPickupLocation,
   updateWorkerWorkTypes as saveWorkerWorkTypes,
 } from "../api/workforceApi";
 import styles from "../App.module.css";
+import { EditableTextCell, EditableWorkerNameCell } from "../components/WorkerEditableCells";
 import { WorkerRegistrationModal } from "../components/WorkerRegistrationModal";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
 import { workTypeOptions as fallbackWorkTypeOptions } from "../data/workTypeOptions";
 import { workerRows } from "../data/workerRows";
+import { formatKoreanPhoneNumber } from "../utils/phoneNumber";
 
 type WorkersPageProps = {
   loginId: string;
@@ -73,6 +78,69 @@ export function WorkersPage({ loginId }: WorkersPageProps) {
     }
   };
 
+  const updateWorkerIdentity = async (workerIndex: number, name: string, nickname: string) => {
+    const worker = workers[workerIndex];
+    if (!worker.profileUuid) {
+      setWorkers((currentWorkers) =>
+        currentWorkers.map((currentWorker, index) =>
+          index === workerIndex ? { ...currentWorker, name, nickname } : currentWorker,
+        ),
+      );
+      setStatusMessage("DB 작업자 프로필이 없어 화면에만 반영했습니다.");
+      return;
+    }
+
+    try {
+      setWorkers(await saveWorkerIdentity(loginId, worker.profileUuid, name, nickname));
+      setStatusMessage("이름 정보를 DB에 저장했습니다.");
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "이름 정보를 저장하지 못했습니다.");
+      throw error;
+    }
+  };
+
+  const updateWorkerPhone = async (workerIndex: number, phone: string) => {
+    const worker = workers[workerIndex];
+    if (!worker.profileUuid) {
+      setWorkers((currentWorkers) =>
+        currentWorkers.map((currentWorker, index) =>
+          index === workerIndex ? { ...currentWorker, phone } : currentWorker,
+        ),
+      );
+      setStatusMessage("DB 작업자 프로필이 없어 화면에만 반영했습니다.");
+      return;
+    }
+
+    try {
+      setWorkers(await saveWorkerPhone(loginId, worker.profileUuid, phone));
+      setStatusMessage("전화번호를 DB에 저장했습니다.");
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "전화번호를 저장하지 못했습니다.");
+      throw error;
+    }
+  };
+
+  const updateWorkerPickupLocation = async (workerIndex: number, pickupLocation: string) => {
+    const worker = workers[workerIndex];
+    if (!worker.profileUuid) {
+      setWorkers((currentWorkers) =>
+        currentWorkers.map((currentWorker, index) =>
+          index === workerIndex ? { ...currentWorker, pickupLocation } : currentWorker,
+        ),
+      );
+      setStatusMessage("DB 작업자 프로필이 없어 화면에만 반영했습니다.");
+      return;
+    }
+
+    try {
+      setWorkers(await saveWorkerPickupLocation(loginId, worker.profileUuid, pickupLocation));
+      setStatusMessage("승차장소를 DB에 저장했습니다.");
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "승차장소를 저장하지 못했습니다.");
+      throw error;
+    }
+  };
+
   return (
     <main className={styles.tableMainContent}>
       <section className={styles.workersPanel} aria-labelledby="workers-title">
@@ -112,14 +180,24 @@ export function WorkersPage({ loginId }: WorkersPageProps) {
               {workers.map((worker, workerIndex) => (
                 <tr key={worker.profileUuid ?? `${worker.name}-${worker.phone}-${workerIndex}`}>
                   <td>
-                    <div className={styles.workerNameCell}>
-                      <span className={styles.workerLocalName}>{worker.name}</span>
-                      {worker.nickname ? (
-                        <span className={styles.workerNickname}>- {worker.nickname}</span>
-                      ) : null}
-                    </div>
+                    <EditableWorkerNameCell
+                      name={worker.name}
+                      nickname={worker.nickname}
+                      onSave={(name, nickname) =>
+                        updateWorkerIdentity(workerIndex, name, nickname)
+                      }
+                    />
                   </td>
-                  <td>{worker.phone}</td>
+                  <td>
+                    <EditableTextCell
+                      ariaLabel="전화번호"
+                      formatValue={formatKoreanPhoneNumber}
+                      inputMode="numeric"
+                      maxLength={13}
+                      value={worker.phone}
+                      onSave={(phone) => updateWorkerPhone(workerIndex, phone)}
+                    />
+                  </td>
                   <td className={styles.workTypeTableCell}>
                     <WorkerWorkTypeCell
                       selectedCodes={worker.workTypeCodes}
@@ -129,7 +207,15 @@ export function WorkersPage({ loginId }: WorkersPageProps) {
                       }
                     />
                   </td>
-                  <td>{worker.pickupLocation}</td>
+                  <td>
+                    <EditableTextCell
+                      ariaLabel="승차장소"
+                      value={worker.pickupLocation}
+                      onSave={(pickupLocation) =>
+                        updateWorkerPickupLocation(workerIndex, pickupLocation)
+                      }
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
