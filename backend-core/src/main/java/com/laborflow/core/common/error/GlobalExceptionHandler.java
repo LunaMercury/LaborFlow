@@ -1,6 +1,7 @@
 package com.laborflow.core.common.error;
 
 import com.laborflow.core.workforce.application.DuplicateWorkerPhoneException;
+import com.laborflow.core.workforce.application.InvalidWorkerPhoneException;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,19 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(InvalidWorkerPhoneException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidWorkerPhoneException(
+        InvalidWorkerPhoneException exception
+    ) {
+        ApiErrorResponse response = new ApiErrorResponse(
+            "INVALID_WORKER_PHONE",
+            exception.getMessage(),
+            Instant.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

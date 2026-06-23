@@ -7,6 +7,16 @@ type WorkerListResponse = {
   workers: WorkerRow[];
 };
 
+export type CreateWorkerPayload = {
+  age: number | null;
+  gender: string;
+  localName: string;
+  memo: string;
+  phone: string;
+  pickupLocation: string;
+  workerName: string;
+};
+
 export async function fetchWorkers(loginId: string): Promise<WorkerRow[]> {
   const response = await fetch(
     `${apiBaseUrl}/api/workforce/workers?loginId=${encodeURIComponent(loginId)}`,
@@ -61,6 +71,29 @@ async function parseErrorMessage(response: Response, fallbackMessage: string) {
   } catch {
     return fallbackMessage;
   }
+}
+
+export async function createWorker(
+  loginId: string,
+  payload: CreateWorkerPayload,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/workers?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "작업자를 등록하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
 }
 
 export async function updateWorkerIdentity(

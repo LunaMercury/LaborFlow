@@ -3,6 +3,7 @@ package com.laborflow.core.workforce.dao;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerResponse;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface WorkforceDao {
@@ -10,7 +11,28 @@ public interface WorkforceDao {
 
     List<WorkTypeResponse> findActiveWorkTypes();
 
+    Optional<UUID> findAgencyOwnerUuidByLoginId(String loginId);
+
+    Optional<UUID> findWorkerUuidByPhoneHashSource(String phoneHashSource);
+
     boolean workerProfileBelongsToLoginId(String loginId, UUID workerProfileUuid);
+
+    boolean agencyWorkerProfileExists(UUID agencyOwnerUuid, UUID workerUuid);
+
+    UUID insertWorker(String canonicalName, String gender, Integer age);
+
+    void upsertWorkerSensitiveProfile(UUID workerUuid, String phone, String phoneHashSource);
+
+    void insertWorkerProfile(
+        UUID agencyOwnerUuid,
+        UUID workerUuid,
+        String localName,
+        String localNickname,
+        String phone,
+        String phoneHashSource,
+        String pickupLocation,
+        String privateMemo
+    );
 
     void updateWorkerIdentity(UUID workerProfileUuid, String name, String nickname);
 

@@ -223,7 +223,14 @@ export function WorkersPage({ loginId }: WorkersPageProps) {
         </div>
       </section>
       {isRegistrationModalOpen ? (
-        <WorkerRegistrationModal onClose={() => setIsRegistrationModalOpen(false)} />
+        <WorkerRegistrationModal
+          loginId={loginId}
+          onClose={() => setIsRegistrationModalOpen(false)}
+          onRegistered={(nextWorkers) => {
+            setWorkers(nextWorkers);
+            setStatusMessage("작업자를 DB에 등록했습니다.");
+          }}
+        />
       ) : null}
     </main>
   );

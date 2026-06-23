@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -77,6 +78,38 @@ public class JdbcWorkforceDao implements WorkforceDao {
     }
 
     @Override
+    public Optional<UUID> findAgencyOwnerUuidByLoginId(String loginId) {
+        List<UUID> ownerUuids = jdbcTemplate.query(
+            """
+            SELECT labor_agency_owner_uuid
+            FROM public.app_account
+            WHERE login_id = ?
+                AND labor_agency_owner_uuid IS NOT NULL
+                AND status = 'ACTIVE'
+            """,
+            (resultSet, rowNumber) -> resultSet.getObject("labor_agency_owner_uuid", UUID.class),
+            loginId
+        );
+
+        return ownerUuids.stream().findFirst();
+    }
+
+    @Override
+    public Optional<UUID> findWorkerUuidByPhoneHashSource(String phoneHashSource) {
+        List<UUID> workerUuids = jdbcTemplate.query(
+            """
+            SELECT worker_uuid
+            FROM public.worker_sensitive_profile
+            WHERE phone_hash = encode(digest(?, 'sha256'), 'hex')
+            """,
+            (resultSet, rowNumber) -> resultSet.getObject("worker_uuid", UUID.class),
+            phoneHashSource
+        );
+
+        return workerUuids.stream().findFirst();
+    }
+
+    @Override
     public boolean workerProfileBelongsToLoginId(String loginId, UUID workerProfileUuid) {
         Integer count = jdbcTemplate.queryForObject(
             """
@@ -91,6 +124,97 @@ public class JdbcWorkforceDao implements WorkforceDao {
         );
 
         return count != null && count > 0;
+    }
+
+    @Override
+    public boolean agencyWorkerProfileExists(UUID agencyOwnerUuid, UUID workerUuid) {
+        Integer count = jdbcTemplate.queryForObject(
+            """
+            SELECT count(*)
+            FROM public.labor_agency_worker_profile
+            WHERE agency_owner_uuid = ? AND worker_uuid = ?
+            """,
+            Integer.class,
+            agencyOwnerUuid,
+            workerUuid
+        );
+
+        return count != null && count > 0;
+    }
+
+    @Override
+    public UUID insertWorker(String canonicalName, String gender, Integer age) {
+        return jdbcTemplate.queryForObject(
+            """
+            INSERT INTO public.worker (
+                canonical_name,
+                gender,
+                age
+            )
+            VALUES (?, ?, ?)
+            RETURNING uuid
+            """,
+            UUID.class,
+            canonicalName,
+            gender,
+            age
+        );
+    }
+
+    @Override
+    public void upsertWorkerSensitiveProfile(UUID workerUuid, String phone, String phoneHashSource) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.worker_sensitive_profile (
+                worker_uuid,
+                phone_encrypted,
+                phone_hash
+            )
+            VALUES (?, ?, encode(digest(?, 'sha256'), 'hex'))
+            ON CONFLICT (worker_uuid) DO UPDATE
+            SET phone_encrypted = EXCLUDED.phone_encrypted,
+                phone_hash = EXCLUDED.phone_hash
+            """,
+            workerUuid,
+            phone,
+            phoneHashSource
+        );
+    }
+
+    @Override
+    public void insertWorkerProfile(
+        UUID agencyOwnerUuid,
+        UUID workerUuid,
+        String localName,
+        String localNickname,
+        String phone,
+        String phoneHashSource,
+        String pickupLocation,
+        String privateMemo
+    ) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.labor_agency_worker_profile (
+                agency_owner_uuid,
+                worker_uuid,
+                local_name,
+                local_nickname,
+                local_phone_encrypted,
+                local_phone_hash,
+                pickup_location,
+                private_memo
+            )
+            VALUES (?, ?, ?, ?, ?, encode(digest(?, 'sha256'), 'hex'), ?, ?)
+            """,
+            agencyOwnerUuid,
+            workerUuid,
+            localName,
+            localNickname,
+            phone,
+            phoneHashSource,
+            pickupLocation,
+            privateMemo
+        );
     }
 
     @Override

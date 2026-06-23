@@ -1,10 +1,12 @@
 package com.laborflow.core.workforce.application;
 
 import com.laborflow.core.workforce.dao.WorkforceDao;
+import com.laborflow.core.workforce.dto.CreateWorkerRequest;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerListResponse;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,45 @@ public class WorkforceService {
     }
 
     @Transactional
+    public void createWorker(String loginId, CreateWorkerRequest request) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        UUID agencyOwnerUuid = workforceDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
+        String localName = normalizeRequiredText(request.localName());
+        String canonicalName = Optional.ofNullable(normalizeOptionalText(request.workerName()))
+            .orElse(localName);
+        String phoneHashSource = normalizePhoneHashSource(request.phone());
+        String formattedPhone = formatPhone(phoneHashSource);
+        String gender = normalizeGender(request.gender());
+        Integer age = normalizeAge(request.age());
+        String pickupLocation = normalizeOptionalText(request.pickupLocation());
+        String privateMemo = normalizeOptionalText(request.memo());
+
+        if (workforceDao.localPhoneExistsForOtherProfile(normalizedLoginId, new UUID(0L, 0L), phoneHashSource)) {
+            throw new DuplicateWorkerPhoneException();
+        }
+
+        UUID workerUuid = workforceDao.findWorkerUuidByPhoneHashSource(phoneHashSource)
+            .orElseGet(() -> workforceDao.insertWorker(canonicalName, gender, age));
+
+        if (workforceDao.agencyWorkerProfileExists(agencyOwnerUuid, workerUuid)) {
+            throw new DuplicateWorkerPhoneException();
+        }
+
+        workforceDao.upsertWorkerSensitiveProfile(workerUuid, formattedPhone, phoneHashSource);
+        workforceDao.insertWorkerProfile(
+            agencyOwnerUuid,
+            workerUuid,
+            localName,
+            null,
+            formattedPhone,
+            phoneHashSource,
+            pickupLocation,
+            privateMemo
+        );
+    }
+
+    @Transactional
     public void updateWorkerIdentity(String loginId, UUID workerProfileUuid, String name, String nickname) {
         String normalizedLoginId = normalizeLoginId(loginId);
         ensureWorkerProfileBelongsToLoginId(normalizedLoginId, workerProfileUuid);
@@ -42,16 +83,13 @@ public class WorkforceService {
         ensureWorkerProfileBelongsToLoginId(normalizedLoginId, workerProfileUuid);
 
         String normalizedPhone = normalizeRequiredText(phone);
-        String normalizedPhoneHashSource = normalizedPhone.replaceAll("\\D", "");
-        if (normalizedPhoneHashSource.isBlank()) {
-            throw new IllegalArgumentException("Phone is required.");
-        }
+        String normalizedPhoneHashSource = normalizePhoneHashSource(normalizedPhone);
 
         if (workforceDao.localPhoneExistsForOtherProfile(normalizedLoginId, workerProfileUuid, normalizedPhoneHashSource)) {
             throw new DuplicateWorkerPhoneException();
         }
 
-        workforceDao.updateWorkerPhone(workerProfileUuid, normalizedPhone, normalizedPhoneHashSource);
+        workforceDao.updateWorkerPhone(workerProfileUuid, formatPhone(normalizedPhoneHashSource), normalizedPhoneHashSource);
     }
 
     @Transactional
@@ -92,6 +130,43 @@ public class WorkforceService {
         }
 
         return value.trim();
+    }
+
+    private String normalizePhoneHashSource(String phone) {
+        String phoneHashSource = normalizeRequiredText(phone).replaceAll("\\D", "");
+        if (phoneHashSource.length() != 11) {
+            throw new InvalidWorkerPhoneException();
+        }
+
+        return phoneHashSource;
+    }
+
+    private String formatPhone(String phoneHashSource) {
+        return "%s-%s-%s".formatted(
+            phoneHashSource.substring(0, 3),
+            phoneHashSource.substring(3, 7),
+            phoneHashSource.substring(7)
+        );
+    }
+
+    private String normalizeGender(String gender) {
+        return switch (gender == null ? "N" : gender.trim().toUpperCase()) {
+            case "M", "MALE" -> "MALE";
+            case "F", "FEMALE" -> "FEMALE";
+            default -> "UNKNOWN";
+        };
+    }
+
+    private Integer normalizeAge(Integer age) {
+        if (age == null) {
+            return null;
+        }
+
+        if (age < 0 || age > 150) {
+            throw new IllegalArgumentException("Age is invalid.");
+        }
+
+        return age;
     }
 
     private String normalizeLoginId(String loginId) {

@@ -1,6 +1,7 @@
 package com.laborflow.core.workforce.api;
 
 import com.laborflow.core.workforce.application.WorkforceService;
+import com.laborflow.core.workforce.dto.CreateWorkerRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerIdentityRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerPhoneRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerPickupLocationRequest;
@@ -12,6 +13,7 @@ import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,6 +37,15 @@ public class WorkforceController {
     @GetMapping("/work-types")
     public List<WorkTypeResponse> getWorkTypes() {
         return workforceService.getWorkTypes();
+    }
+
+    @PostMapping("/workers")
+    public WorkerListResponse createWorker(
+        @RequestParam(defaultValue = "test") String loginId,
+        @RequestBody CreateWorkerRequest request
+    ) {
+        workforceService.createWorker(loginId, request);
+        return workforceService.getWorkers(loginId);
     }
 
     @PatchMapping("/worker-profiles/{profileUuid}/identity")

@@ -1,5 +1,9 @@
+export function getPhoneDigits(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 11);
+}
+
 export function formatKoreanPhoneNumber(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
+  const digits = getPhoneDigits(value);
 
   if (digits.length <= 3) {
     return digits;

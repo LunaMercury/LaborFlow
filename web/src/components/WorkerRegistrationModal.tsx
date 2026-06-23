@@ -1,27 +1,68 @@
 import { useState, type FormEvent } from "react";
 import styles from "../App.module.css";
+import { createWorker } from "../api/workforceApi";
 import { workTypeOptions } from "../data/workTypeOptions";
-import { formatKoreanPhoneNumber } from "../utils/phoneNumber";
+import type { WorkerRow } from "../data/workerRows";
+import { formatKoreanPhoneNumber, getPhoneDigits } from "../utils/phoneNumber";
 
 type WorkerRegistrationModalProps = {
+  loginId: string;
   onClose: () => void;
+  onRegistered: (workers: WorkerRow[]) => void;
 };
 
 type GenderValue = "M" | "F" | "N";
 
 export function WorkerRegistrationModal({
+  loginId,
   onClose,
+  onRegistered,
 }: WorkerRegistrationModalProps) {
   const registrationFormId = "worker-registration-form";
   const [gender, setGender] = useState<GenderValue>("N");
   const [workerPhone, setWorkerPhone] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [ratings, setRatings] = useState<Record<string, number>>(() =>
     Object.fromEntries(workTypeOptions.map((workType) => [workType.code, 0])),
   );
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onClose();
+
+    const phoneDigits = getPhoneDigits(workerPhone);
+    if (phoneDigits.length !== 11) {
+      window.alert("전화번호는 숫자 11자리로 입력해주세요.");
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const localName = getFormString(formData, "localName");
+    if (!localName) {
+      window.alert("호칭을 입력해주세요.");
+      return;
+    }
+
+    const ageText = getFormString(formData, "age");
+    const age = ageText ? Number(ageText) : null;
+
+    setIsSubmitting(true);
+    try {
+      const workers = await createWorker(loginId, {
+        age,
+        gender,
+        localName,
+        memo: getFormString(formData, "memo"),
+        phone: formatKoreanPhoneNumber(workerPhone),
+        pickupLocation: getFormString(formData, "pickupLocation"),
+        workerName: getFormString(formData, "workerName"),
+      });
+      onRegistered(workers);
+      onClose();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "작업자를 등록하지 못했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleGender = (nextGender: Exclude<GenderValue, "N">) => {
@@ -46,6 +87,7 @@ export function WorkerRegistrationModal({
           <div className={styles.modalHeaderActions}>
             <button
               className={styles.primaryActionButton}
+              disabled={isSubmitting}
               form={registrationFormId}
               type="submit"
             >
@@ -53,6 +95,7 @@ export function WorkerRegistrationModal({
             </button>
             <button
               className={styles.secondaryActionButton}
+              disabled={isSubmitting}
               type="button"
               onClick={onClose}
             >
@@ -208,4 +251,10 @@ export function WorkerRegistrationModal({
       </section>
     </div>
   );
+}
+
+function getFormString(formData: FormData, key: string): string {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value.trim() : "";
 }
