@@ -37,8 +37,8 @@ export default function App() {
     setCurrentPath(path);
   };
 
-  const handleLogin = (rememberLogin: boolean) => {
-    saveDemoSession(rememberLogin);
+  const handleLogin = (rememberLogin: boolean, loginId: string) => {
+    saveDemoSession(rememberLogin, loginId);
     setIsLoggedIn(true);
     navigateTo(currentPath === "/login" ? "/" : currentPath);
   };
@@ -66,7 +66,7 @@ export default function App() {
       {shouldShowLoginPage ? (
         <LoginPage onLogin={handleLogin} />
       ) : isLoggedIn && isWorkersPage ? (
-        <WorkersPage />
+        <WorkersPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isServicePage ? (
         <ServicePage path={currentPath} />
       ) : (

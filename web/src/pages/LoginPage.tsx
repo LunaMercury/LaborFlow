@@ -3,7 +3,7 @@ import styles from "../App.module.css";
 import { socialLoginOptions } from "../data/socialLoginOptions";
 
 type LoginPageProps = {
-  onLogin: (rememberLogin: boolean) => void;
+  onLogin: (rememberLogin: boolean, loginId: string) => void;
 };
 
 const socialLoginButtonClasses = {
@@ -16,7 +16,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    onLogin(formData.get("rememberLogin") === "on");
+    const loginId = String(formData.get("loginId") || "test").trim() || "test";
+    onLogin(formData.get("rememberLogin") === "on", loginId);
   };
 
   return (
@@ -73,7 +74,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               className={`${styles.socialLoginButton} ${socialLoginButtonClasses[option.provider]}`}
               type="button"
               key={option.label}
-              onClick={() => onLogin(true)}
+              onClick={() => onLogin(true, "test")}
             >
               <span>{option.label}</span>
             </button>

@@ -11,6 +11,7 @@ type GenderValue = "M" | "F" | "N";
 export function WorkerRegistrationModal({
   onClose,
 }: WorkerRegistrationModalProps) {
+  const registrationFormId = "worker-registration-form";
   const [gender, setGender] = useState<GenderValue>("N");
   const [ratings, setRatings] = useState<Record<string, number>>(() =>
     Object.fromEntries(workTypeOptions.map((workType) => [workType.code, 0])),
@@ -40,27 +41,48 @@ export function WorkerRegistrationModal({
             <p className={styles.sectionLabel}>인력 등록</p>
             <h2 id="worker-registration-title">작업자 정보 입력</h2>
           </div>
-          <button
-            aria-label="인력 등록 닫기"
-            className={styles.modalCloseButton}
-            type="button"
-            onClick={onClose}
-          >
-            X
-          </button>
+          <div className={styles.modalHeaderActions}>
+            <button
+              className={styles.primaryActionButton}
+              form={registrationFormId}
+              type="submit"
+            >
+              등록
+            </button>
+            <button
+              className={styles.secondaryActionButton}
+              type="button"
+              onClick={onClose}
+            >
+              취소
+            </button>
+          </div>
         </div>
 
         <div className={styles.modalScrollArea}>
-          <form className={styles.workerRegistrationForm} onSubmit={handleSubmit}>
+          <form
+            className={styles.workerRegistrationForm}
+            id={registrationFormId}
+            onSubmit={handleSubmit}
+          >
             <div className={styles.workerFormGrid}>
               <label className={styles.formField}>
                 <span>
-                  이름 <strong className={styles.requiredMark}>*</strong>
+                  호칭 <strong className={styles.requiredMark}>*</strong>
                 </span>
                 <input
-                  name="workerName"
-                  placeholder="이름을 입력하세요"
+                  name="localName"
+                  placeholder="호칭을 입력하세요"
                   required
+                  type="text"
+                />
+              </label>
+
+              <label className={styles.formField}>
+                <span>이름</span>
+                <input
+                  name="workerName"
+                  placeholder="실명을 입력하세요"
                   type="text"
                 />
               </label>
@@ -172,19 +194,6 @@ export function WorkerRegistrationModal({
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className={styles.modalActions}>
-              <button
-                className={styles.secondaryActionButton}
-                type="button"
-                onClick={onClose}
-              >
-                취소
-              </button>
-              <button className={styles.primaryActionButton} type="submit">
-                등록
-              </button>
             </div>
           </form>
         </div>

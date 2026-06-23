@@ -4,12 +4,13 @@ const rememberedSessionDurationMs = 30 * 24 * 60 * 60 * 1000;
 
 export type DemoSession = {
   status: "active";
+  loginId: string;
   rememberLogin: boolean;
   issuedAt: string;
   expiresAt: string;
 };
 
-export function createDemoSession(rememberLogin: boolean): DemoSession {
+export function createDemoSession(rememberLogin: boolean, loginId = "test"): DemoSession {
   const now = Date.now();
   const duration = rememberLogin
     ? rememberedSessionDurationMs
@@ -17,6 +18,7 @@ export function createDemoSession(rememberLogin: boolean): DemoSession {
 
   return {
     status: "active",
+    loginId,
     rememberLogin,
     issuedAt: new Date(now).toISOString(),
     expiresAt: new Date(now + duration).toISOString(),
@@ -46,10 +48,10 @@ export function readDemoSession(): DemoSession | null {
   }
 }
 
-export function saveDemoSession(rememberLogin: boolean) {
+export function saveDemoSession(rememberLogin: boolean, loginId = "test") {
   window.localStorage.setItem(
     sessionKey,
-    JSON.stringify(createDemoSession(rememberLogin)),
+    JSON.stringify(createDemoSession(rememberLogin, loginId)),
   );
 }
 
