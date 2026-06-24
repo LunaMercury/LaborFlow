@@ -5,6 +5,7 @@ import com.laborflow.core.workforce.dto.CreateWorkerRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerIdentityRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerPhoneRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerPickupLocationRequest;
+import com.laborflow.core.workforce.dto.UpdateWorkerGenderRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerWorkTypesRequest;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerListResponse;
@@ -75,6 +76,16 @@ public class WorkforceController {
         @RequestBody UpdateWorkerPickupLocationRequest request
     ) {
         workforceService.updateWorkerPickupLocation(loginId, profileUuid, request.pickupLocation());
+        return workforceService.getWorkers(loginId);
+    }
+
+    @PatchMapping("/worker-profiles/{profileUuid}/gender")
+    public WorkerListResponse updateWorkerGender(
+        @PathVariable UUID profileUuid,
+        @RequestParam(defaultValue = "test") String loginId,
+        @RequestBody UpdateWorkerGenderRequest request
+    ) {
+        workforceService.updateWorkerGender(loginId, profileUuid, request.gender());
         return workforceService.getWorkers(loginId);
     }
 

@@ -30,6 +30,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 COALESCE(p.local_name, w.canonical_name, '') AS display_name,
                 p.local_nickname,
                 COALESCE(p.local_phone_encrypted, '') AS local_phone_encrypted,
+                w.gender,
                 COALESCE(p.pickup_location, '') AS pickup_location
             FROM public.labor_agency_worker_profile p
             JOIN public.app_account a ON a.labor_agency_owner_uuid = p.agency_owner_uuid
@@ -55,6 +56,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 worker.name(),
                 worker.nickname(),
                 worker.phone(),
+                worker.gender(),
                 worker.pickupLocation(),
                 workTypeCodesByProfileUuid.getOrDefault(worker.profileUuid(), List.of())
             ))
@@ -281,6 +283,21 @@ public class JdbcWorkforceDao implements WorkforceDao {
     }
 
     @Override
+    public void updateWorkerGender(UUID workerProfileUuid, String gender) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.worker w
+            SET gender = ?
+            FROM public.labor_agency_worker_profile p
+            WHERE p.worker_uuid = w.uuid
+                AND p.uuid = ?
+            """,
+            gender,
+            workerProfileUuid
+        );
+    }
+
+    @Override
     public void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes) {
         jdbcTemplate.update(
             "DELETE FROM public.labor_agency_worker_work_skill WHERE worker_profile_uuid = ?",
@@ -339,6 +356,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             resultSet.getString("display_name"),
             resultSet.getString("local_nickname"),
             resultSet.getString("local_phone_encrypted"),
+            resultSet.getString("gender"),
             resultSet.getString("pickup_location")
         );
     }
@@ -348,6 +366,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
         String name,
         String nickname,
         String phone,
+        String gender,
         String pickupLocation
     ) {
     }

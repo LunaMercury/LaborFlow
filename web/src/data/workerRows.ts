@@ -3,6 +3,7 @@ export type WorkerRow = {
   name: string;
   nickname?: string;
   phone: string;
+  gender?: string;
   workTypeCodes: string[];
   pickupLocation: string;
 };
@@ -12,18 +13,21 @@ export const workerRows: WorkerRow[] = [
     name: "홍길순",
     nickname: "앞산 아줌마",
     phone: "010-1234-5678",
+    gender: "FEMALE",
     workTypeCodes: ["garlic_harvesting", "garlic_sorting", "garlic_tonbag"],
     pickupLocation: "남부 정류장",
   },
   {
     name: "김철수",
     phone: "010-9876-5432",
+    gender: "MALE",
     workTypeCodes: [],
     pickupLocation: "동문 주차장",
   },
   {
     name: "박영희",
     phone: "010-2468-1357",
+    gender: "FEMALE",
     workTypeCodes: [],
     pickupLocation: "중앙시장",
   },

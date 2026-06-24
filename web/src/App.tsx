@@ -6,6 +6,7 @@ import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { ServicePage } from "./pages/ServicePage";
 import { WorkersPage } from "./pages/WorkersPage";
+import { WorkSchedulePage } from "./pages/WorkSchedulePage";
 import {
   clearDemoSession,
   readDemoSession,
@@ -51,8 +52,14 @@ export default function App() {
 
   const isProtectedServicePath = Object.hasOwn(servicePages, currentPath);
   const isWorkersPage = currentPath === "/workers";
+  const isWorkSchedulePage = currentPath === "/work-schedule";
   const shouldShowLoginPage =
-    !isLoggedIn && (currentPath === "/login" || isProtectedServicePath || isWorkersPage);
+    !isLoggedIn && (
+      currentPath === "/login" ||
+      isProtectedServicePath ||
+      isWorkersPage ||
+      isWorkSchedulePage
+    );
   const isServicePage = isLoggedIn && isProtectedServicePath;
 
   return (
@@ -67,6 +74,8 @@ export default function App() {
         <LoginPage onLogin={handleLogin} />
       ) : isLoggedIn && isWorkersPage ? (
         <WorkersPage loginId={readDemoSession()?.loginId ?? "test"} />
+      ) : isLoggedIn && isWorkSchedulePage ? (
+        <WorkSchedulePage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isServicePage ? (
         <ServicePage path={currentPath} />
       ) : (

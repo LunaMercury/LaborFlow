@@ -8,6 +8,7 @@ public record WorkerResponse(
     String name,
     String nickname,
     String phone,
+    String gender,
     String pickupLocation,
     List<String> workTypeCodes
 ) {

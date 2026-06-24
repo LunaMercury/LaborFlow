@@ -42,5 +42,7 @@ public interface WorkforceDao {
 
     void updateWorkerPickupLocation(UUID workerProfileUuid, String pickupLocation);
 
+    void updateWorkerGender(UUID workerProfileUuid, String gender);
+
     void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes);
 }

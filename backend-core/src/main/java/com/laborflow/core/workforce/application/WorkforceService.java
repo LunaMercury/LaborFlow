@@ -108,6 +108,14 @@ public class WorkforceService {
     }
 
     @Transactional
+    public void updateWorkerGender(String loginId, UUID workerProfileUuid, String gender) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        ensureWorkerProfileBelongsToLoginId(normalizedLoginId, workerProfileUuid);
+
+        workforceDao.updateWorkerGender(workerProfileUuid, normalizeGender(gender));
+    }
+
+    @Transactional
     public void updateWorkerWorkTypes(String loginId, UUID workerProfileUuid, List<String> workTypeCodes) {
         String normalizedLoginId = normalizeLoginId(loginId);
         ensureWorkerProfileBelongsToLoginId(normalizedLoginId, workerProfileUuid);

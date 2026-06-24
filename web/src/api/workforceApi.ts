@@ -168,3 +168,27 @@ export async function updateWorkerPickupLocation(
   const body = (await response.json()) as WorkerListResponse;
   return body.workers;
 }
+
+export async function updateWorkerGender(
+  loginId: string,
+  profileUuid: string,
+  gender: string,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/worker-profiles/${profileUuid}/gender?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify({ gender }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "성별을 저장하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
+}

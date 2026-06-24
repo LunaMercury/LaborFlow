@@ -1,0 +1,1510 @@
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import {
+  fetchScheduleTasks,
+  updateScheduleTask,
+  type ScheduleAssignment,
+  type ScheduleTask,
+} from "../api/scheduleApi";
+import {
+  fetchWorkers,
+  fetchWorkTypes,
+  updateWorkerGender as saveWorkerGender,
+  updateWorkerIdentity as saveWorkerIdentity,
+  updateWorkerPickupLocation as saveWorkerPickupLocation,
+  updateWorkerWorkTypes as saveWorkerWorkTypes,
+} from "../api/workforceApi";
+import styles from "../App.module.css";
+import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
+import type { WorkerRow } from "../data/workerRows";
+import {
+  workTypeOptions as fallbackWorkTypeOptions,
+  type WorkTypeOption,
+} from "../data/workTypeOptions";
+
+type WorkSchedulePageProps = {
+  loginId: string;
+};
+
+type AssignmentArea = "men" | "women";
+
+type TaskAssignments = {
+  men: string[];
+  women: string[];
+};
+
+type RequiredWorkerCount = {
+  men: number;
+  women: number;
+};
+
+type EditingRequiredCount = {
+  area: AssignmentArea;
+  taskId: string;
+  value: string;
+};
+
+type EditingTaskMemo = {
+  taskId: string;
+  value: string;
+};
+
+type DraggingWorkerState = {
+  workerId: string;
+};
+
+type EditingWorkerDraft = {
+  gender: string;
+  name: string;
+  nickname: string;
+  pickupLocation: string;
+  workerId: string;
+};
+
+type TaskDetailDraft = {
+  address: string;
+  title: string;
+  workTypeCodes: string[];
+};
+
+function getTodayInputValue() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getWorkerDisplayName(worker: WorkerRow) {
+  const name = worker.name.trim();
+  const nickname = worker.nickname?.trim() ?? "";
+
+  return name || nickname || "이름 없음";
+}
+
+function getWorkerId(worker: WorkerRow) {
+  return worker.profileUuid ?? `${worker.phone}-${getWorkerDisplayName(worker)}`;
+}
+
+function getWorkerGenderLabel(gender?: string) {
+  const normalizedGender = gender?.trim().toUpperCase();
+
+  if (normalizedGender === "MALE" || normalizedGender === "M") {
+    return "남";
+  }
+
+  if (normalizedGender === "FEMALE" || normalizedGender === "F") {
+    return "여";
+  }
+
+  return "미정";
+}
+
+function normalizeSearchText(value: string) {
+  return value.trim().toLocaleLowerCase("ko-KR");
+}
+
+function getWorkTypeNames(codes: string[], workTypes: WorkTypeOption[]) {
+  return codes
+    .map((code) => workTypes.find((workType) => workType.code === code)?.name)
+    .filter((name): name is string => Boolean(name));
+}
+
+function workerMatchesFilters(
+  worker: WorkerRow,
+  workTypes: WorkTypeOption[],
+  filters: string[],
+) {
+  const normalizedFilters = filters.map(normalizeSearchText).filter(Boolean);
+
+  if (normalizedFilters.length === 0) {
+    return true;
+  }
+
+  return normalizedFilters.some((filterText) =>
+    worker.workTypeCodes.some((code) => {
+      const workType = workTypes.find((option) => option.code === code);
+      return (
+        normalizeSearchText(code).includes(filterText) ||
+        normalizeSearchText(workType?.name ?? "").includes(filterText)
+      );
+    }),
+  );
+}
+
+function createAssignmentDrafts(
+  tasks: ScheduleTask[],
+): Record<string, TaskAssignments> {
+  return Object.fromEntries(
+    tasks.map((task) => [
+      task.id,
+      {
+        men: task.assignments
+          .filter((assignment) => assignment.area === "men")
+          .map((assignment) => assignment.workerProfileUuid),
+        women: task.assignments
+          .filter((assignment) => assignment.area === "women")
+          .map((assignment) => assignment.workerProfileUuid),
+      },
+    ]),
+  );
+}
+
+function createRequiredCountDrafts(
+  tasks: ScheduleTask[],
+): Record<string, RequiredWorkerCount> {
+  return Object.fromEntries(
+    tasks.map((task) => [
+      task.id,
+      {
+        men: task.requiredMen,
+        women: task.requiredWomen,
+      },
+    ]),
+  );
+}
+
+function createMemoDrafts(tasks: ScheduleTask[]): Record<string, string> {
+  return Object.fromEntries(tasks.map((task) => [task.id, task.memo]));
+}
+
+function createTaskDetailDrafts(
+  tasks: ScheduleTask[],
+): Record<string, TaskDetailDraft> {
+  return Object.fromEntries(
+    tasks.map((task) => [
+      task.id,
+      {
+        address: task.address,
+        title: task.title,
+        workTypeCodes: task.workTypeCodes,
+      },
+    ]),
+  );
+}
+
+function toScheduleAssignments(
+  taskAssignments: TaskAssignments,
+): ScheduleAssignment[] {
+  return [
+    ...taskAssignments.men.map((workerProfileUuid) => ({
+      area: "men" as const,
+      workerProfileUuid,
+    })),
+    ...taskAssignments.women.map((workerProfileUuid) => ({
+      area: "women" as const,
+      workerProfileUuid,
+    })),
+  ];
+}
+
+export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
+  const [selectedDate, setSelectedDate] = useState(getTodayInputValue);
+  const [filterDraft, setFilterDraft] = useState("");
+  const [workFilters, setWorkFilters] = useState<string[]>([]);
+  const [workers, setWorkers] = useState<WorkerRow[]>([]);
+  const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
+  const [tasks, setTasks] = useState<ScheduleTask[]>([]);
+  const [persistedTasks, setPersistedTasks] = useState<ScheduleTask[]>([]);
+  const [assignedWorkerIdsByTaskId, setAssignedWorkerIdsByTaskId] = useState<
+    Record<string, TaskAssignments>
+  >({});
+  const [requiredCountsByTaskId, setRequiredCountsByTaskId] = useState<
+    Record<string, RequiredWorkerCount>
+  >({});
+  const [memoByTaskId, setMemoByTaskId] = useState<Record<string, string>>({});
+  const [taskDetailDraftsByTaskId, setTaskDetailDraftsByTaskId] = useState<
+    Record<string, TaskDetailDraft>
+  >({});
+  const [draggingWorker, setDraggingWorker] =
+    useState<DraggingWorkerState | null>(null);
+  const [editingRequiredCount, setEditingRequiredCount] =
+    useState<EditingRequiredCount | null>(null);
+  const [editingTaskMemo, setEditingTaskMemo] =
+    useState<EditingTaskMemo | null>(null);
+  const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
+  const [editingWorkerDraft, setEditingWorkerDraft] =
+    useState<EditingWorkerDraft | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [savingWorkerId, setSavingWorkerId] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState("");
+  const dragPreviewRef = useRef<HTMLDivElement | null>(null);
+  const dragFrameRef = useRef<number | null>(null);
+  const dragPointRef = useRef({ x: 0, y: 0 });
+  const draggingWorkerId = draggingWorker?.workerId ?? null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    Promise.all([
+      fetchWorkers(loginId),
+      fetchWorkTypes(),
+      fetchScheduleTasks(loginId, selectedDate),
+    ])
+      .then(([nextWorkers, nextWorkTypes, nextTasks]) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setWorkers(nextWorkers);
+        setWorkTypes(nextWorkTypes);
+        setTasks(nextTasks);
+        setPersistedTasks(nextTasks);
+        setAssignedWorkerIdsByTaskId(createAssignmentDrafts(nextTasks));
+        setRequiredCountsByTaskId(createRequiredCountDrafts(nextTasks));
+        setMemoByTaskId(createMemoDrafts(nextTasks));
+        setTaskDetailDraftsByTaskId(createTaskDetailDrafts(nextTasks));
+        setEditingRequiredCount(null);
+        setEditingTaskMemo(null);
+        setEditingTaskId(null);
+        setStatusMessage("");
+      })
+      .catch(() => {
+        if (isMounted) {
+          setWorkers([]);
+          setTasks([]);
+          setPersistedTasks([]);
+          setAssignedWorkerIdsByTaskId({});
+          setRequiredCountsByTaskId({});
+          setMemoByTaskId({});
+          setTaskDetailDraftsByTaskId({});
+          setStatusMessage("작업 일정 데이터를 불러오지 못했습니다.");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [loginId, selectedDate]);
+
+  const assignedWorkerIds = useMemo(
+    () =>
+      new Set(
+        Object.values(assignedWorkerIdsByTaskId).flatMap((assignment) => [
+          ...assignment.men,
+          ...assignment.women,
+        ]),
+      ),
+    [assignedWorkerIdsByTaskId],
+  );
+
+  const workerGroups = useMemo(() => {
+    const matchingWorkers: WorkerRow[] = [];
+    const otherWorkers: WorkerRow[] = [];
+    const availableWorkers = workers.filter((worker) => {
+      return !assignedWorkerIds.has(getWorkerId(worker));
+    });
+
+    for (const worker of availableWorkers) {
+      if (workerMatchesFilters(worker, workTypes, workFilters)) {
+        matchingWorkers.push(worker);
+      } else {
+        otherWorkers.push(worker);
+      }
+    }
+
+    return { matchingWorkers, otherWorkers };
+  }, [assignedWorkerIds, workFilters, workTypes, workers]);
+
+  const addWorkFilter = () => {
+    const nextFilter = filterDraft.trim();
+    if (!nextFilter) {
+      return;
+    }
+
+    setWorkFilters((currentFilters) =>
+      currentFilters.some(
+        (currentFilter) =>
+          normalizeSearchText(currentFilter) ===
+          normalizeSearchText(nextFilter),
+      )
+        ? currentFilters
+        : [...currentFilters, nextFilter],
+    );
+    setFilterDraft("");
+  };
+
+  const removeWorkFilter = (filter: string) => {
+    setWorkFilters((currentFilters) =>
+      currentFilters.filter((currentFilter) => currentFilter !== filter),
+    );
+  };
+
+  const getRequiredCounts = (task: ScheduleTask) =>
+    requiredCountsByTaskId[task.id] ?? {
+      men: task.requiredMen,
+      women: task.requiredWomen,
+    };
+
+  const getTaskDetailDraft = (task: ScheduleTask) =>
+    taskDetailDraftsByTaskId[task.id] ?? {
+      address: task.address,
+      title: task.title,
+      workTypeCodes: task.workTypeCodes,
+    };
+
+  const hasTaskDraftChanges = (task: ScheduleTask) => {
+    const persistedTask =
+      persistedTasks.find((currentTask) => currentTask.id === task.id) ?? task;
+    const assignments = assignedWorkerIdsByTaskId[task.id] ?? {
+      men: [],
+      women: [],
+    };
+    const persistedAssignments = createAssignmentDrafts([persistedTask])[
+      persistedTask.id
+    ] ?? { men: [], women: [] };
+    const requiredCounts = getRequiredCounts(task);
+    const detailDraft = getTaskDetailDraft(task);
+
+    return (
+      assignments.men.join("|") !== persistedAssignments.men.join("|") ||
+      assignments.women.join("|") !== persistedAssignments.women.join("|") ||
+      requiredCounts.men !== persistedTask.requiredMen ||
+      requiredCounts.women !== persistedTask.requiredWomen ||
+      (memoByTaskId[task.id] ?? task.memo) !== persistedTask.memo ||
+      detailDraft.title !== persistedTask.title ||
+      detailDraft.address !== persistedTask.address ||
+      detailDraft.workTypeCodes.join("|") !== persistedTask.workTypeCodes.join("|")
+    );
+  };
+
+  const updateRequiredCount = (
+    task: ScheduleTask,
+    targetArea: AssignmentArea,
+    nextValue: string,
+  ) => {
+    const normalizedValue = Math.max(0, Number(nextValue) || 0);
+
+    setRequiredCountsByTaskId((currentCounts) => {
+      const currentTaskCounts = currentCounts[task.id] ?? {
+        men: task.requiredMen,
+        women: task.requiredWomen,
+      };
+
+      return {
+        ...currentCounts,
+        [task.id]: {
+          ...currentTaskCounts,
+          [targetArea]: normalizedValue,
+        },
+      };
+    });
+  };
+
+  const startRequiredCountEdit = (
+    task: ScheduleTask,
+    targetArea: AssignmentArea,
+    currentValue: number,
+  ) => {
+    setEditingRequiredCount({
+      area: targetArea,
+      taskId: task.id,
+      value: String(currentValue),
+    });
+  };
+
+  const confirmRequiredCountEdit = (task: ScheduleTask) => {
+    if (!editingRequiredCount || editingRequiredCount.taskId !== task.id) {
+      return;
+    }
+
+    updateRequiredCount(
+      task,
+      editingRequiredCount.area,
+      editingRequiredCount.value,
+    );
+    setEditingRequiredCount(null);
+  };
+
+  const startTaskMemoEdit = (task: ScheduleTask) => {
+    setEditingTaskMemo({
+      taskId: task.id,
+      value: memoByTaskId[task.id] ?? task.memo,
+    });
+  };
+
+  const confirmTaskMemoEdit = () => {
+    if (!editingTaskMemo) {
+      return;
+    }
+
+    setMemoByTaskId((currentMemos) => ({
+      ...currentMemos,
+      [editingTaskMemo.taskId]: editingTaskMemo.value.trim(),
+    }));
+    setEditingTaskMemo(null);
+  };
+
+  const applyTaskDraft = async (task: ScheduleTask) => {
+    const taskAssignments = assignedWorkerIdsByTaskId[task.id] ?? {
+      men: [],
+      women: [],
+    };
+    const requiredCounts = getRequiredCounts(task);
+    const detailDraft = getTaskDetailDraft(task);
+
+    setSavingTaskId(task.id);
+    setStatusMessage("");
+
+    try {
+      const savedTask = await updateScheduleTask(
+        loginId,
+        selectedDate,
+        task.id,
+        {
+          address: detailDraft.address,
+          assignments: toScheduleAssignments(taskAssignments),
+          memo: memoByTaskId[task.id] ?? task.memo,
+          requiredMen: requiredCounts.men,
+          requiredWomen: requiredCounts.women,
+          title: detailDraft.title,
+          workTypeCodes: detailDraft.workTypeCodes,
+        },
+      );
+
+      setTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask.id === savedTask.id ? savedTask : currentTask,
+        ),
+      );
+      setPersistedTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask.id === savedTask.id ? savedTask : currentTask,
+        ),
+      );
+      setAssignedWorkerIdsByTaskId((currentAssignments) => ({
+        ...currentAssignments,
+        [savedTask.id]: createAssignmentDrafts([savedTask])[savedTask.id],
+      }));
+      setRequiredCountsByTaskId((currentCounts) => ({
+        ...currentCounts,
+        [savedTask.id]: createRequiredCountDrafts([savedTask])[savedTask.id],
+      }));
+      setMemoByTaskId((currentMemos) => ({
+        ...currentMemos,
+        [savedTask.id]: savedTask.memo,
+      }));
+      setTaskDetailDraftsByTaskId((currentDrafts) => ({
+        ...currentDrafts,
+        [savedTask.id]: createTaskDetailDrafts([savedTask])[savedTask.id],
+      }));
+      setEditingTaskId((currentTaskId) =>
+        currentTaskId === savedTask.id ? null : currentTaskId,
+      );
+      setStatusMessage("작업 일정이 저장되었습니다.");
+    } catch (error) {
+      setStatusMessage(
+        error instanceof Error
+          ? error.message
+          : "작업 일정을 저장하지 못했습니다.",
+      );
+    } finally {
+      setSavingTaskId(null);
+    }
+  };
+
+  const resetTaskDraft = (taskId: string) => {
+    const persistedTask = persistedTasks.find((task) => task.id === taskId);
+    if (!persistedTask) {
+      return;
+    }
+
+    setAssignedWorkerIdsByTaskId((currentAssignments) => ({
+      ...currentAssignments,
+      [taskId]: createAssignmentDrafts([persistedTask])[taskId],
+    }));
+    setRequiredCountsByTaskId((currentCounts) => ({
+      ...currentCounts,
+      [taskId]: createRequiredCountDrafts([persistedTask])[taskId],
+    }));
+    setMemoByTaskId((currentMemos) => ({
+      ...currentMemos,
+      [taskId]: persistedTask.memo,
+    }));
+    setTaskDetailDraftsByTaskId((currentDrafts) => ({
+      ...currentDrafts,
+      [taskId]: createTaskDetailDrafts([persistedTask])[taskId],
+    }));
+    setEditingRequiredCount(null);
+    setEditingTaskMemo((currentMemo) =>
+      currentMemo?.taskId === taskId ? null : currentMemo,
+    );
+    setEditingTaskId((currentTaskId) =>
+      currentTaskId === taskId ? null : currentTaskId,
+    );
+    setStatusMessage("마지막 저장 상태로 되돌렸습니다.");
+  };
+
+  const openWorkerEditor = (worker: WorkerRow) => {
+    setEditingWorkerDraft({
+      gender: worker.gender ?? "UNKNOWN",
+      name: worker.name,
+      nickname: worker.nickname ?? "",
+      pickupLocation: worker.pickupLocation,
+      workerId: getWorkerId(worker),
+    });
+  };
+
+  const closeWorkerEditor = () => {
+    setEditingWorkerDraft(null);
+  };
+
+  const saveWorkerEditor = async () => {
+    if (!editingWorkerDraft) {
+      return;
+    }
+
+    const worker = workers.find((currentWorker) => getWorkerId(currentWorker) === editingWorkerDraft.workerId);
+    if (!worker) {
+      closeWorkerEditor();
+      return;
+    }
+
+    if (!editingWorkerDraft.name.trim() && !editingWorkerDraft.nickname.trim()) {
+      window.alert("이름 또는 호칭 중 하나를 입력해주세요.");
+      return;
+    }
+
+    if (!worker.profileUuid) {
+      setWorkers((currentWorkers) =>
+        currentWorkers.map((currentWorker) =>
+          getWorkerId(currentWorker) === editingWorkerDraft.workerId
+            ? {
+                ...currentWorker,
+                gender: editingWorkerDraft.gender,
+                name: editingWorkerDraft.name,
+                nickname: editingWorkerDraft.nickname,
+                pickupLocation: editingWorkerDraft.pickupLocation,
+              }
+            : currentWorker,
+        ),
+      );
+      setStatusMessage("DB 작업자 프로필이 없어 화면에만 반영했습니다.");
+      closeWorkerEditor();
+      return;
+    }
+
+    setSavingWorkerId(editingWorkerDraft.workerId);
+    setStatusMessage("");
+
+    try {
+      let savedWorkers = workers;
+
+      if (
+        worker.name !== editingWorkerDraft.name ||
+        (worker.nickname ?? "") !== editingWorkerDraft.nickname
+      ) {
+        savedWorkers = await saveWorkerIdentity(
+          loginId,
+          worker.profileUuid,
+          editingWorkerDraft.name,
+          editingWorkerDraft.nickname,
+        );
+      }
+
+      if (worker.pickupLocation !== editingWorkerDraft.pickupLocation) {
+        savedWorkers = await saveWorkerPickupLocation(
+          loginId,
+          worker.profileUuid,
+          editingWorkerDraft.pickupLocation,
+        );
+      }
+
+      if ((worker.gender ?? "UNKNOWN") !== editingWorkerDraft.gender) {
+        savedWorkers = await saveWorkerGender(
+          loginId,
+          worker.profileUuid,
+          editingWorkerDraft.gender,
+        );
+      }
+
+      setWorkers(savedWorkers);
+      setStatusMessage("작업자 정보를 DB에 저장했습니다.");
+      closeWorkerEditor();
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "작업자 정보를 저장하지 못했습니다.");
+    } finally {
+      setSavingWorkerId(null);
+    }
+  };
+
+  const updateWorkerWorkTypes = async (worker: WorkerRow, nextWorkTypeCodes: string[]) => {
+    const workerId = getWorkerId(worker);
+    const previousWorkers = workers;
+
+    setWorkers((currentWorkers) =>
+      currentWorkers.map((currentWorker) =>
+        getWorkerId(currentWorker) === workerId
+          ? { ...currentWorker, workTypeCodes: nextWorkTypeCodes }
+          : currentWorker,
+      ),
+    );
+
+    if (!worker.profileUuid) {
+      setStatusMessage("DB 작업자 프로필이 없어 화면에만 반영했습니다.");
+      return;
+    }
+
+    try {
+      setWorkers(await saveWorkerWorkTypes(loginId, worker.profileUuid, nextWorkTypeCodes));
+      setStatusMessage("가능한 작업을 DB에 저장했습니다.");
+    } catch {
+      setWorkers(previousWorkers);
+      setStatusMessage("가능한 작업 저장에 실패했습니다.");
+    }
+  };
+
+  const handleWorkerDrop = (
+    taskId: string,
+    targetArea: AssignmentArea,
+    workerId: string,
+  ) => {
+    setAssignedWorkerIdsByTaskId((currentAssignments) => {
+      const nextAssignments = Object.fromEntries(
+        Object.entries(currentAssignments).map(
+          ([currentTaskId, assignment]) => [
+            currentTaskId,
+            {
+              men: assignment.men.filter(
+                (assignedWorkerId) => assignedWorkerId !== workerId,
+              ),
+              women: assignment.women.filter(
+                (assignedWorkerId) => assignedWorkerId !== workerId,
+              ),
+            },
+          ],
+        ),
+      );
+      const taskAssignments = nextAssignments[taskId] ?? { men: [], women: [] };
+      const targetWorkerIds = taskAssignments[targetArea];
+
+      return {
+        ...nextAssignments,
+        [taskId]: {
+          ...taskAssignments,
+          [targetArea]: targetWorkerIds.includes(workerId)
+            ? targetWorkerIds
+            : [...targetWorkerIds, workerId],
+        },
+      };
+    });
+  };
+
+  const removeAssignedWorker = (taskId: string, workerId: string) => {
+    setAssignedWorkerIdsByTaskId((currentAssignments) => ({
+      ...currentAssignments,
+      [taskId]: {
+        men: (currentAssignments[taskId]?.men ?? []).filter(
+          (assignedWorkerId) => assignedWorkerId !== workerId,
+        ),
+        women: (currentAssignments[taskId]?.women ?? []).filter(
+          (assignedWorkerId) => assignedWorkerId !== workerId,
+        ),
+      },
+    }));
+  };
+
+  const releaseAssignedWorker = (workerId: string) => {
+    setAssignedWorkerIdsByTaskId((currentAssignments) =>
+      Object.fromEntries(
+        Object.entries(currentAssignments).map(([taskId, assignment]) => [
+          taskId,
+          {
+            men: assignment.men.filter(
+              (assignedWorkerId) => assignedWorkerId !== workerId,
+            ),
+            women: assignment.women.filter(
+              (assignedWorkerId) => assignedWorkerId !== workerId,
+            ),
+          },
+        ]),
+      ),
+    );
+  };
+
+  const getWorkersByIds = (workerIds: string[]) =>
+    workerIds
+      .map((workerId) =>
+        workers.find(
+          (worker) => getWorkerId(worker) === workerId,
+        ),
+      )
+      .filter((worker): worker is WorkerRow => Boolean(worker));
+
+  const moveDragPreview = (clientX: number, clientY: number) => {
+    dragPointRef.current = { x: clientX, y: clientY };
+
+    if (dragFrameRef.current !== null) {
+      return;
+    }
+
+    dragFrameRef.current = window.requestAnimationFrame(() => {
+      dragFrameRef.current = null;
+      const previewElement = dragPreviewRef.current;
+
+      if (!previewElement) {
+        return;
+      }
+
+      previewElement.style.transform = `translate3d(${dragPointRef.current.x + 12}px, ${
+        dragPointRef.current.y + 12
+      }px, 0)`;
+    });
+  };
+
+  useEffect(() => {
+    if (!draggingWorker) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      event.preventDefault();
+      moveDragPreview(event.clientX, event.clientY);
+    };
+
+    const handlePointerEnd = (event: PointerEvent) => {
+      const targetElement = document.elementFromPoint(
+        event.clientX,
+        event.clientY,
+      );
+
+      if (targetElement instanceof Element) {
+        const dropZone = targetElement.closest<HTMLElement>(
+          "[data-schedule-drop-task-id][data-schedule-drop-area]",
+        );
+
+        if (
+          dropZone?.dataset.scheduleDropTaskId &&
+          dropZone.dataset.scheduleDropArea
+        ) {
+          handleWorkerDrop(
+            dropZone.dataset.scheduleDropTaskId,
+            dropZone.dataset.scheduleDropArea as AssignmentArea,
+            draggingWorker.workerId,
+          );
+        } else if (targetElement.closest("[data-worker-return-zone='true']")) {
+          releaseAssignedWorker(draggingWorker.workerId);
+        }
+      }
+
+      setDraggingWorker(null);
+    };
+
+    document.addEventListener("pointermove", handlePointerMove, {
+      passive: false,
+    });
+    document.addEventListener("pointerup", handlePointerEnd);
+    document.addEventListener("pointercancel", handlePointerEnd);
+
+    return () => {
+      if (dragFrameRef.current !== null) {
+        window.cancelAnimationFrame(dragFrameRef.current);
+        dragFrameRef.current = null;
+      }
+
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerEnd);
+      document.removeEventListener("pointercancel", handlePointerEnd);
+    };
+  }, [draggingWorker]);
+
+  const startWorkerDrag = (
+    workerId: string,
+    event: ReactPointerEvent<HTMLElement>,
+  ) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    moveDragPreview(event.clientX, event.clientY);
+    setDraggingWorker({
+      workerId,
+    });
+  };
+
+  const renderWorkerToken = (
+    worker: WorkerRow,
+    variant: "list" | "assigned",
+  ) => {
+    const workerId = getWorkerId(worker);
+    const workerWorkTypeNames = getWorkTypeNames(
+      worker.workTypeCodes,
+      workTypes,
+    );
+    const trimmedName = worker.name.trim();
+    const trimmedNickname = worker.nickname?.trim() ?? "";
+    const identityText =
+      trimmedName && trimmedNickname
+        ? `${trimmedName} - ${trimmedNickname}`
+        : trimmedName || trimmedNickname || "이름 없음";
+    const firstLineWorkTypes = workerWorkTypeNames.slice(0, 3);
+    const secondLineWorkTypes = workerWorkTypeNames.slice(3, 6);
+    const genderLabel = getWorkerGenderLabel(worker.gender);
+    const genderClassName =
+      genderLabel === "남"
+        ? styles.scheduleWorkerGenderMale
+        : genderLabel === "여"
+          ? styles.scheduleWorkerGenderFemale
+          : styles.scheduleWorkerGenderUnknown;
+    const isEditingWorker = editingWorkerDraft?.workerId === workerId;
+    const isSavingWorker = savingWorkerId === workerId;
+    const pickupLocationClassName = worker.pickupLocation
+      ? styles.scheduleWorkerMeta
+      : `${styles.scheduleWorkerMeta} ${styles.emptyPickupLocation}`;
+
+    return (
+      <div
+        className={`${styles.scheduleWorkerToken} ${
+          draggingWorkerId === workerId ? styles.draggingWorkerToken : ""
+        } ${variant === "assigned" ? styles.droppedWorkerToken : ""}`}
+        draggable={false}
+        key={workerId}
+        role="button"
+        tabIndex={0}
+        onPointerDown={(event) => startWorkerDrag(workerId, event)}
+      >
+        {variant === "assigned" ? (
+          <>
+            <span className={styles.scheduleWorkerName}>{identityText}</span>
+            <span className={pickupLocationClassName}>
+              {worker.pickupLocation || "승차장소 없음"}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className={styles.scheduleWorkerTokenLine}>
+              <span className={styles.scheduleWorkerName}>{identityText}</span>
+              <span className={styles.scheduleWorkerWorkTypes}>
+                {firstLineWorkTypes.length > 0
+                  ? firstLineWorkTypes.join(", ")
+                  : "가능한 작업 없음"}
+              </span>
+              <span
+                className={`${styles.scheduleWorkerGender} ${genderClassName}`}
+              >
+                {genderLabel}
+              </span>
+            </span>
+            <span className={styles.scheduleWorkerTokenLine}>
+              <span className={pickupLocationClassName}>
+                {worker.pickupLocation || "승차장소 없음"}
+              </span>
+              <span className={styles.scheduleWorkerWorkTypes}>
+                {secondLineWorkTypes.join(", ")}
+              </span>
+              <button
+                aria-label={`${getWorkerDisplayName(worker)} 수정`}
+                className={styles.scheduleWorkerInlineEditButton}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openWorkerEditor(worker);
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                수정
+              </button>
+            </span>
+            {isEditingWorker ? (
+              <div
+                className={styles.scheduleWorkerQuickEditor}
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                <div className={styles.scheduleWorkerQuickFields}>
+                  <label>
+                    <span>이름</span>
+                    <input
+                      value={editingWorkerDraft.name}
+                      onChange={(event) =>
+                        setEditingWorkerDraft({
+                          ...editingWorkerDraft,
+                          name: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>호칭</span>
+                    <input
+                      value={editingWorkerDraft.nickname}
+                      onChange={(event) =>
+                        setEditingWorkerDraft({
+                          ...editingWorkerDraft,
+                          nickname: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>승차장소</span>
+                    <input
+                      value={editingWorkerDraft.pickupLocation}
+                      onChange={(event) =>
+                        setEditingWorkerDraft({
+                          ...editingWorkerDraft,
+                          pickupLocation: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+                <div className={styles.scheduleWorkerGenderEditor}>
+                  <span>성별</span>
+                  <div>
+                    {[
+                      { label: "남", value: "MALE" },
+                      { label: "여", value: "FEMALE" },
+                      { label: "미정", value: "UNKNOWN" },
+                    ].map((option) => (
+                      <button
+                        className={
+                          editingWorkerDraft.gender === option.value
+                            ? styles.scheduleWorkerGenderOptionActive
+                            : styles.scheduleWorkerGenderOption
+                        }
+                        key={option.value}
+                        type="button"
+                        onClick={() =>
+                          setEditingWorkerDraft({
+                            ...editingWorkerDraft,
+                            gender: option.value,
+                          })
+                        }
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className={styles.scheduleWorkerQuickWorkTypes}>
+                  <span>가능한 작업</span>
+                  <WorkerWorkTypeCell
+                    selectedCodes={worker.workTypeCodes}
+                    workTypeOptions={workTypes}
+                    onChange={(nextWorkTypeCodes) =>
+                      updateWorkerWorkTypes(worker, nextWorkTypeCodes)
+                    }
+                  />
+                </div>
+                <div className={styles.scheduleWorkerQuickActions}>
+                  <button
+                    className={styles.inlineConfirmButton}
+                    disabled={isSavingWorker}
+                    type="button"
+                    onClick={saveWorkerEditor}
+                  >
+                    ✓
+                  </button>
+                  <button
+                    className={styles.inlineCancelButton}
+                    disabled={isSavingWorker}
+                    type="button"
+                    onClick={closeWorkerEditor}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const draggingWorkerRow = draggingWorker
+    ? workers.find(
+        (worker) => getWorkerId(worker) === draggingWorker.workerId,
+      )
+    : null;
+
+  return (
+    <main className={styles.mainContent}>
+      <section className={styles.workSchedulePanel} aria-label="작업 일정">
+        <div className={styles.scheduleDateBar}>
+          <label className={styles.scheduleDateField}>
+            <span>작업일</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+            />
+          </label>
+          {statusMessage ? (
+            <p className={styles.scheduleStatusMessage}>{statusMessage}</p>
+          ) : null}
+        </div>
+
+        <div className={styles.workScheduleSplit}>
+          <section
+            className={`${styles.scheduleColumn} ${
+              draggingWorkerId ? styles.activeWorkerReturnZone : ""
+            }`}
+            aria-label="작업자 목록"
+            data-worker-return-zone="true"
+          >
+            <div className={styles.scheduleColumnHeader}>
+              <div className={styles.scheduleWorkerHeaderContent}>
+                <p className={styles.sectionLabel}>작업자 목록</p>
+                <div className={styles.scheduleFilterBox}>
+                  <input
+                    aria-label="작업 필터"
+                    placeholder="입력 후 Enter"
+                    value={filterDraft}
+                    onChange={(event) => setFilterDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter") {
+                        return;
+                      }
+
+                      event.preventDefault();
+                      addWorkFilter();
+                    }}
+                  />
+                  <button type="button" onClick={addWorkFilter}>
+                    +
+                  </button>
+                </div>
+                {workFilters.length > 0 ? (
+                  <div className={styles.scheduleFilterChipList}>
+                    {workFilters.map((filter) => (
+                      <button
+                        className={styles.scheduleFilterChip}
+                        key={filter}
+                        type="button"
+                        onClick={() => removeWorkFilter(filter)}
+                      >
+                        {filter} -
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <span className={styles.scheduleCountBadge}>
+                {workers.length}명
+              </span>
+            </div>
+
+            <div className={styles.scheduleWorkerList}>
+              <div className={styles.scheduleWorkerGroup}>
+                <div className={styles.scheduleGroupTitle}>
+                  <strong>
+                    {workFilters.length > 0
+                      ? "필터에 맞는 작업자"
+                      : "전체 작업자"}
+                  </strong>
+                  <span>{workerGroups.matchingWorkers.length}명</span>
+                </div>
+                {workerGroups.matchingWorkers.length > 0 ? (
+                  workerGroups.matchingWorkers.map((worker) =>
+                    renderWorkerToken(worker, "list"),
+                  )
+                ) : (
+                  <p className={styles.scheduleEmptyText}>
+                    조건에 맞는 작업자가 없습니다.
+                  </p>
+                )}
+              </div>
+
+              {workFilters.length > 0 ? (
+                <div className={styles.scheduleWorkerGroup}>
+                  <div className={styles.scheduleGroupDivider} />
+                  <div className={styles.scheduleGroupTitle}>
+                    <strong>그 외 작업자</strong>
+                    <span>{workerGroups.otherWorkers.length}명</span>
+                  </div>
+                  {workerGroups.otherWorkers.length > 0 ? (
+                    workerGroups.otherWorkers.map((worker) =>
+                      renderWorkerToken(worker, "list"),
+                    )
+                  ) : (
+                    <p className={styles.scheduleEmptyText}>
+                      추가로 표시할 작업자가 없습니다.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          <section className={styles.scheduleColumn} aria-label="작업 목록">
+            <div className={styles.scheduleColumnHeader}>
+              <div>
+                <p className={styles.sectionLabel}>작업 목록</p>
+                <h2>{selectedDate} 작업</h2>
+              </div>
+              <span className={styles.scheduleCountBadge}>
+                {tasks.length}건
+              </span>
+            </div>
+
+            <div className={styles.scheduleTaskList}>
+              {tasks.length === 0 ? (
+                <p className={styles.scheduleEmptyText}>
+                  선택한 날짜에 등록된 작업이 없습니다.
+                </p>
+              ) : null}
+              {tasks.map((task) => {
+                const taskAssignments = assignedWorkerIdsByTaskId[task.id] ?? {
+                  men: [],
+                  women: [],
+                };
+                const assignedMenWorkers = getWorkersByIds(taskAssignments.men);
+                const assignedWomenWorkers = getWorkersByIds(
+                  taskAssignments.women,
+                );
+                const requiredCounts = getRequiredCounts(task);
+                const taskMemo = memoByTaskId[task.id] ?? task.memo;
+                const taskDetailDraft = getTaskDetailDraft(task);
+                const taskWorkTypeNames = getWorkTypeNames(
+                  taskDetailDraft.workTypeCodes,
+                  workTypes,
+                );
+                const isEditingTask = editingTaskId === task.id;
+                const canApplyTask = hasTaskDraftChanges(task);
+                const cancelTaskEdit = () => {
+                  const persistedTask =
+                    persistedTasks.find(
+                      (currentTask) => currentTask.id === task.id,
+                    ) ?? task;
+
+                  setTaskDetailDraftsByTaskId((currentDrafts) => ({
+                    ...currentDrafts,
+                    [task.id]: createTaskDetailDrafts([persistedTask])[task.id],
+                  }));
+                  setEditingTaskId(null);
+                };
+
+                const renderRequiredCount = (
+                  area: AssignmentArea,
+                  label: string,
+                  assignedCount: number,
+                  requiredCount: number,
+                ) => {
+                  const isEditing =
+                    editingRequiredCount?.taskId === task.id &&
+                    editingRequiredCount.area === area;
+
+                  if (isEditing) {
+                    return (
+                      <div className={styles.scheduleRequiredCountEditor}>
+                        <span>
+                          {label} {assignedCount}/
+                        </span>
+                        <input
+                          aria-label={`${task.title} ${label} 필요 인원`}
+                          min="0"
+                          type="number"
+                          value={editingRequiredCount.value}
+                          onChange={(event) =>
+                            setEditingRequiredCount({
+                              ...editingRequiredCount,
+                              value: event.target.value,
+                            })
+                          }
+                        />
+                        <button
+                          aria-label={`${label} 필요 인원 저장`}
+                          className={styles.inlineConfirmButton}
+                          type="button"
+                          onClick={() => confirmRequiredCountEdit(task)}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          aria-label={`${label} 필요 인원 취소`}
+                          className={styles.inlineCancelButton}
+                          type="button"
+                          onClick={() => setEditingRequiredCount(null)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <button
+                      className={styles.scheduleRequiredCountButton}
+                      type="button"
+                      onClick={() =>
+                        startRequiredCountEdit(task, area, requiredCount)
+                      }
+                    >
+                      {label} {assignedCount}/{requiredCount}
+                    </button>
+                  );
+                };
+
+                const renderDropArea = (
+                  targetArea: AssignmentArea,
+                  label: string,
+                  assignedWorkers: WorkerRow[],
+                ) => (
+                  <div
+                    className={`${styles.scheduleDropZone} ${
+                      draggingWorkerId ? styles.activeScheduleDropZone : ""
+                    }`}
+                    data-schedule-drop-area={targetArea}
+                    data-schedule-drop-task-id={task.id}
+                  >
+                    <div className={styles.scheduleDropZoneTitle}>{label}</div>
+                    {assignedWorkers.length > 0 ? (
+                      assignedWorkers.map((worker) => {
+                        const workerId = getWorkerId(worker);
+
+                        return (
+                          <div
+                            className={styles.assignedWorkerRow}
+                            key={workerId}
+                          >
+                            {renderWorkerToken(worker, "assigned")}
+                            <button
+                              aria-label={`${getWorkerDisplayName(worker)} 배정 해제`}
+                              className={styles.removeAssignedWorkerButton}
+                              type="button"
+                              onClick={() =>
+                                removeAssignedWorker(task.id, workerId)
+                              }
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className={styles.scheduleDropHint}>
+                        이 영역으로 드래그
+                      </p>
+                    )}
+                  </div>
+                );
+
+                return (
+                  <div className={styles.scheduleTaskCard} key={task.id}>
+                    <div className={styles.scheduleTaskHeader}>
+                      <div>
+                        {isEditingTask ? (
+                          <div className={styles.scheduleTaskInlineEditor}>
+                            <label>
+                              <span>작업 내용</span>
+                              <input
+                                value={taskDetailDraft.title}
+                                onChange={(event) =>
+                                  setTaskDetailDraftsByTaskId((currentDrafts) => ({
+                                    ...currentDrafts,
+                                    [task.id]: {
+                                      ...taskDetailDraft,
+                                      title: event.target.value,
+                                    },
+                                  }))
+                                }
+                              />
+                            </label>
+                            <label>
+                              <span>농장 주소</span>
+                              <input
+                                value={taskDetailDraft.address}
+                                onChange={(event) =>
+                                  setTaskDetailDraftsByTaskId((currentDrafts) => ({
+                                    ...currentDrafts,
+                                    [task.id]: {
+                                      ...taskDetailDraft,
+                                      address: event.target.value,
+                                    },
+                                  }))
+                                }
+                              />
+                            </label>
+                          </div>
+                        ) : (
+                          <>
+                            <h3>
+                              {taskDetailDraft.title} <span>/ {task.ownerName}</span>
+                            </h3>
+                            <p>
+                              {task.siteName} · {taskDetailDraft.address}
+                            </p>
+                          </>
+                        )}
+                        {task.timeRange ? (
+                          <span className={styles.scheduleTaskTime}>
+                            {task.timeRange}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className={styles.scheduleTaskActions}>
+                        <button
+                          aria-label={`${task.title} 일정 저장`}
+                          className={styles.scheduleTaskApplyButton}
+                          disabled={savingTaskId === task.id || !canApplyTask}
+                          type="button"
+                          onClick={() => applyTaskDraft(task)}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          aria-label={`${task.title} 일정 되돌리기`}
+                          className={styles.scheduleTaskResetButton}
+                          disabled={savingTaskId === task.id}
+                          type="button"
+                          onClick={() => resetTaskDraft(task.id)}
+                        >
+                          ↻
+                        </button>
+                        {isEditingTask ? (
+                          <div className={styles.scheduleTaskEditActions}>
+                            <button
+                              aria-label={`${task.title} 작업 수정 적용`}
+                              className={styles.inlineConfirmButton}
+                              type="button"
+                              onClick={() => setEditingTaskId(null)}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              aria-label={`${task.title} 작업 수정 취소`}
+                              className={styles.inlineCancelButton}
+                              type="button"
+                              onClick={cancelTaskEdit}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            aria-label={`${task.title} 작업 수정`}
+                            className={styles.scheduleTaskEditButton}
+                            type="button"
+                            onClick={() => setEditingTaskId(task.id)}
+                          >
+                            ✎
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className={styles.scheduleTaskMeta}>
+                      {renderRequiredCount(
+                        "men",
+                        "남",
+                        assignedMenWorkers.length,
+                        requiredCounts.men,
+                      )}
+                      {renderRequiredCount(
+                        "women",
+                        "여",
+                        assignedWomenWorkers.length,
+                        requiredCounts.women,
+                      )}
+                      {isEditingTask ? (
+                        <div className={styles.scheduleTaskWorkTypeEditor}>
+                          <WorkerWorkTypeCell
+                            selectedCodes={taskDetailDraft.workTypeCodes}
+                            workTypeOptions={workTypes}
+                            onChange={(nextWorkTypeCodes) =>
+                              setTaskDetailDraftsByTaskId((currentDrafts) => ({
+                                ...currentDrafts,
+                                [task.id]: {
+                                  ...taskDetailDraft,
+                                  workTypeCodes: nextWorkTypeCodes,
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <span>{taskWorkTypeNames.join(", ")}</span>
+                      )}
+                    </div>
+
+                    <div className={styles.scheduleDropZoneGrid}>
+                      {renderDropArea("men", "남자 작업자", assignedMenWorkers)}
+                      {renderDropArea(
+                        "women",
+                        "여자 작업자",
+                        assignedWomenWorkers,
+                      )}
+                    </div>
+
+                    <div className={styles.scheduleTaskMemo}>
+                      {editingTaskMemo?.taskId === task.id ? (
+                        <>
+                          <textarea
+                            aria-label={`${task.title} 메모`}
+                            value={editingTaskMemo.value}
+                            onChange={(event) =>
+                              setEditingTaskMemo({
+                                ...editingTaskMemo,
+                                value: event.target.value,
+                              })
+                            }
+                          />
+                          <div className={styles.scheduleMemoActions}>
+                            <button
+                              aria-label="메모 저장"
+                              className={styles.inlineConfirmButton}
+                              type="button"
+                              onClick={confirmTaskMemoEdit}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              aria-label="메모 취소"
+                              className={styles.inlineCancelButton}
+                              type="button"
+                              onClick={() => setEditingTaskMemo(null)}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span>{taskMemo || "메모 없음"}</span>
+                          <button
+                            aria-label={`${task.title} 메모 수정`}
+                            className={styles.scheduleMemoEditButton}
+                            type="button"
+                            onClick={() => startTaskMemoEdit(task)}
+                          >
+                            ✎
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+        {draggingWorker && draggingWorkerRow ? (
+          <div
+            className={styles.scheduleDragPreview}
+            ref={dragPreviewRef}
+            style={{
+              transform: `translate3d(${dragPointRef.current.x + 12}px, ${
+                dragPointRef.current.y + 12
+              }px, 0)`,
+            }}
+          >
+            <span className={styles.scheduleWorkerName}>
+              {getWorkerDisplayName(draggingWorkerRow)}
+            </span>
+            <span className={styles.scheduleWorkerMeta}>
+              {draggingWorkerRow.pickupLocation || "승차장소 없음"}
+            </span>
+          </div>
+        ) : null}
+      </section>
+    </main>
+  );
+}
