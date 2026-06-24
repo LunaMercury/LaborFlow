@@ -1,0 +1,1083 @@
+.sectionLabel {
+  color: #176b5d;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+.workSchedulePanel {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  justify-content: flex-start;
+  max-width: 1320px;
+  width: 100%;
+}
+
+.scheduleDateBar {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  box-shadow: 0 12px 26px rgba(23, 32, 42, 0.06);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  justify-content: center;
+  min-height: 58px;
+  padding: 10px 14px;
+  width: 100%;
+}
+
+.scheduleDateHeading {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.scheduleDateHeading .sectionLabel {
+  margin: 0 0 8px;
+}
+
+.scheduleDateHeading h1 {
+  font-size: 26px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.scheduleDateField {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+}
+
+.scheduleDateField span,
+.scheduleFilterField span {
+  color: #2f3f50;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.scheduleDateField input,
+.scheduleFilterField input {
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  min-height: 35px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.scheduleDateField input:focus,
+.scheduleFilterField input:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
+.scheduleStatusMessage {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 800;
+  justify-self: end;
+  margin: 0;
+}
+
+.workScheduleSplit {
+  align-items: stretch;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);
+  justify-content: center;
+  width: 100%;
+}
+
+.scheduleColumn {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 620px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.activeWorkerReturnZone {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.1);
+}
+
+.scheduleColumnHeader {
+  align-items: flex-start;
+  border-bottom: 1px solid #d9e2ec;
+  display: flex;
+  justify-content: space-between;
+  min-height: 74px;
+  padding: 14px 18px;
+}
+
+.scheduleColumnHeader .sectionLabel {
+  margin: 0 0 6px;
+}
+
+.scheduleColumnHeader h2 {
+  font-size: 20px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.scheduleCountBadge {
+  align-items: center;
+  background: #edf2f6;
+  border-radius: 999px;
+  color: #2f3f50;
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+}
+
+.scheduleWorkerHeaderContent {
+  align-items: stretch;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.scheduleWorkerHeaderContent .sectionLabel {
+  margin: 0;
+}
+
+.scheduleFilterBox {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-content: center;
+  width: 100%;
+}
+
+.scheduleFilterBox input {
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  min-height: 35px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.scheduleFilterBox input:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
+.scheduleFilterBox button {
+  align-items: center;
+  appearance: none;
+  background: #176b5d;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  display: flex;
+  font-size: 17px;
+  font-weight: 900;
+  height: 32px;
+  justify-content: center;
+  line-height: 1;
+  width: 32px;
+}
+
+.scheduleFilterBox button:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+.scheduleFilterChipList {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.scheduleFilterChip {
+  align-items: center;
+  appearance: none;
+  background: #f4f8f7;
+  border: 1px solid #b8d2ca;
+  border-radius: 999px;
+  color: #1f463f;
+  display: flex;
+  font-size: 12px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.scheduleFilterChip:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+.scheduleFilterField {
+  align-items: stretch;
+  border-bottom: 1px solid #edf2f6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  padding: 14px 18px;
+}
+
+.scheduleWorkerList,
+.scheduleTaskList {
+  align-items: stretch;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.scheduleWorkerGroup {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.scheduleGroupTitle {
+  align-items: center;
+  color: #4f5d6b;
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: space-between;
+}
+
+.scheduleGroupTitle span {
+  color: #687789;
+}
+
+.scheduleGroupDivider {
+  background: #d9e2ec;
+  height: 12px;
+  margin: 2px 0 4px;
+  opacity: 0.75;
+  width: 100%;
+}
+
+.scheduleWorkerToken {
+  align-items: stretch;
+  appearance: none;
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: #17202a;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+  min-height: 58px;
+  min-width: 100px;
+  padding: 9px 12px;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    opacity 140ms ease,
+    transform 140ms ease;
+  user-select: none;
+  width: 100%;
+}
+
+.scheduleWorkerToken:hover {
+  border-color: #176b5d;
+  cursor: grab;
+}
+
+.scheduleWorkerToken:active {
+  cursor: grabbing;
+}
+
+.assignedWorkerToken {
+  background: #edf2f6;
+  opacity: 0.72;
+}
+
+.draggingWorkerToken {
+  border-color: #176b5d;
+  box-shadow: 0 10px 24px rgba(23, 107, 93, 0.18);
+  opacity: 0.35;
+  transform: scale(0.98);
+}
+
+.droppedWorkerToken {
+  animation: scheduleTokenDrop 180ms ease-out;
+  background: #ffffff;
+  cursor: default;
+  gap: 3px;
+  min-height: 48px;
+  min-width: 100px;
+  padding: 8px 10px;
+}
+
+.droppedWorkerToken:hover {
+  cursor: default;
+}
+
+.scheduleWorkerTokenLine {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(86px, 0.75fr) minmax(0, 1.2fr) auto;
+  justify-content: center;
+  min-width: 0;
+}
+
+.scheduleWorkerName {
+  color: #17202a;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scheduleWorkerMeta,
+.scheduleWorkerWorkTypes {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scheduleWorkerGender {
+  font-size: 13px;
+  font-weight: 900;
+  justify-self: end;
+  line-height: 1.2;
+  min-width: 24px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.scheduleWorkerGenderMale {
+  color: #2f6fbb;
+}
+
+.scheduleWorkerGenderFemale {
+  color: #c45672;
+}
+
+.scheduleWorkerGenderUnknown {
+  color: #8a96a3;
+}
+
+.emptyPickupLocation {
+  color: #a8b3bf;
+}
+
+.scheduleWorkerInlineEditButton {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #9aa7b4;
+  font-size: 12px;
+  font-weight: 900;
+  justify-self: end;
+  line-height: 1.2;
+  padding: 0;
+  text-align: right;
+}
+
+.scheduleWorkerInlineEditButton:hover {
+  color: #176b5d;
+  cursor: pointer;
+}
+
+.scheduleWorkerQuickEditor {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(23, 32, 42, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  margin-top: 6px;
+  padding: 10px;
+}
+
+.scheduleWorkerQuickFields {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.scheduleWorkerQuickFields label,
+.scheduleWorkerGenderEditor,
+.scheduleWorkerQuickWorkTypes {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.scheduleWorkerQuickFields span,
+.scheduleWorkerGenderEditor > span,
+.scheduleWorkerQuickWorkTypes > span {
+  color: #687789;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.scheduleWorkerQuickFields input {
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 32px;
+  min-width: 0;
+  padding: 0 9px;
+  width: 100%;
+}
+
+.scheduleWorkerQuickFields input:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.12);
+  outline: 0;
+}
+
+.scheduleWorkerGenderEditor > div {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.scheduleWorkerGenderOption,
+.scheduleWorkerGenderOptionActive {
+  align-items: center;
+  appearance: none;
+  border: 1px solid #c8d4e0;
+  border-radius: 999px;
+  display: flex;
+  font-size: 12px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.scheduleWorkerGenderOption {
+  background: #fbfcfe;
+  color: #687789;
+}
+
+.scheduleWorkerGenderOptionActive {
+  background: #eef6f4;
+  border-color: #176b5d;
+  color: #176b5d;
+}
+
+.scheduleWorkerGenderOption:hover,
+.scheduleWorkerGenderOptionActive:hover {
+  cursor: pointer;
+  filter: brightness(0.98);
+}
+
+.scheduleWorkerQuickWorkTypes [class*="workTypeEditor"] {
+  background: #fbfcfe;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  padding: 7px;
+}
+
+.scheduleWorkerQuickActions {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.scheduleEmptyText {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 800;
+  margin: 12px 0;
+}
+
+.scheduleTaskCard {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  padding: 14px;
+}
+
+.scheduleTaskCard:hover {
+  border-color: #9bb7ca;
+}
+
+.scheduleTaskHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.scheduleTaskHeader h3 {
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+
+.scheduleTaskHeader h3 span {
+  color: #4f5d6b;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.scheduleTaskHeader p {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.scheduleTaskTime {
+  color: #176b5d;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  margin-top: 7px;
+}
+
+.scheduleTaskActions {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.scheduleTaskApplyButton,
+.scheduleTaskResetButton {
+  align-items: center;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 900;
+  height: 32px;
+  justify-content: center;
+  line-height: 1;
+  width: 32px;
+}
+
+.scheduleTaskApplyButton {
+  background: #176b5d;
+  color: #ffffff;
+}
+
+.scheduleTaskResetButton {
+  background: #edf2f6;
+  color: #4f5d6b;
+}
+
+.scheduleTaskApplyButton:hover,
+.scheduleTaskResetButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+.scheduleTaskApplyButton:disabled,
+.scheduleTaskResetButton:disabled {
+  opacity: 0.6;
+}
+
+.scheduleTaskApplyButton:disabled {
+  background: #edf2f6;
+  color: #a8b3bf;
+  cursor: default;
+}
+
+.scheduleTaskResetButton:disabled {
+  cursor: wait;
+}
+
+.scheduleTaskEditButton {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: #a8b3bf;
+  display: flex;
+  font-size: 15px;
+  font-weight: 900;
+  height: 32px;
+  justify-content: center;
+  line-height: 1;
+  width: 32px;
+}
+
+.scheduleTaskEditButton:hover {
+  background: #edf2f6;
+  color: #687789;
+  cursor: pointer;
+}
+
+.scheduleTaskEditActions {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+.scheduleTaskInlineEditor {
+  align-items: stretch;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: center;
+  min-width: min(340px, 100%);
+}
+
+.scheduleTaskInlineEditor label {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.scheduleTaskInlineEditor span {
+  color: #687789;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.scheduleTaskInlineEditor input {
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 34px;
+  min-width: 0;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.scheduleTaskInlineEditor input:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.12);
+  outline: 0;
+}
+
+.scheduleTaskHeader > span {
+  color: #176b5d;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.scheduleTaskMeta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.scheduleTaskMeta span {
+  background: #f4f8f7;
+  border: 1px solid #b8d2ca;
+  border-radius: 999px;
+  color: #1f463f;
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 28px;
+  padding: 5px 10px;
+}
+
+.scheduleTaskWorkTypeEditor {
+  align-items: center;
+  display: flex;
+  justify-content: flex-start;
+  min-width: min(320px, 100%);
+}
+
+.scheduleTaskWorkTypeEditor [class*="workTypeEditor"] {
+  background: #fbfcfe;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  padding: 7px;
+  width: 100%;
+}
+
+.scheduleRequiredCountButton,
+.scheduleRequiredCountEditor {
+  align-items: center;
+  appearance: none;
+  background: #f4f8f7;
+  border: 1px solid #b8d2ca;
+  border-radius: 999px;
+  color: #1f463f;
+  display: flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 4px;
+  justify-content: center;
+  min-height: 28px;
+  padding: 3px 10px;
+}
+
+.scheduleRequiredCountButton:hover {
+  border-color: #176b5d;
+  cursor: pointer;
+}
+
+.scheduleRequiredCountEditor span {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: #1f463f;
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 0;
+  padding: 0;
+}
+
+.scheduleRequiredCountEditor input {
+  appearance: textfield;
+  background: #ffffff;
+  border: 1px solid #b8d2ca;
+  border-radius: 999px;
+  color: #17202a;
+  font-size: 12px;
+  font-weight: 900;
+  height: 22px;
+  padding: 0 3px;
+  text-align: center;
+  width: 36px;
+}
+
+.scheduleRequiredCountEditor input::-webkit-inner-spin-button,
+.scheduleRequiredCountEditor input::-webkit-outer-spin-button {
+  margin: 0;
+}
+
+.scheduleRequiredCountEditor input:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 2px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
+.inlineConfirmButton,
+.inlineCancelButton {
+  align-items: center;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  height: 24px;
+  justify-content: center;
+  line-height: 1;
+  width: 24px;
+}
+
+.inlineConfirmButton {
+  background: #176b5d;
+  color: #ffffff;
+}
+
+.inlineCancelButton {
+  background: #edf2f6;
+  color: #4f5d6b;
+}
+
+.inlineConfirmButton:hover,
+.inlineCancelButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+.scheduleDropZoneGrid {
+  align-items: stretch;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  justify-content: center;
+  width: 100%;
+}
+
+.scheduleDropZone {
+  align-items: stretch;
+  background: #f8fafc;
+  border: 1px dashed #aebdcb;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+  min-height: 112px;
+  padding: 10px;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.scheduleDropZoneTitle {
+  color: #4f5d6b;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+
+.activeScheduleDropZone {
+  background: #eef6f4;
+  border-color: #176b5d;
+  box-shadow: inset 0 0 0 1px rgba(23, 107, 93, 0.18);
+}
+
+.scheduleDropHint {
+  align-items: center;
+  color: #687789;
+  display: flex;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: center;
+  margin: 0;
+  min-height: 88px;
+}
+
+.assignedWorkerRow {
+  align-items: center;
+  animation: scheduleTokenDrop 180ms ease-out;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-content: center;
+  min-width: 0;
+}
+
+.removeAssignedWorkerButton {
+  align-items: center;
+  appearance: none;
+  background: #edf2f6;
+  border: 0;
+  border-radius: 999px;
+  color: #4f5d6b;
+  display: flex;
+  font-size: 18px;
+  font-weight: 900;
+  height: 30px;
+  justify-content: center;
+  line-height: 1;
+  width: 30px;
+}
+
+.removeAssignedWorkerButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+.scheduleTaskMemo {
+  align-items: center;
+  color: #4f5d6b;
+  display: flex;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+  justify-content: space-between;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.scheduleDragPreview {
+  align-items: flex-start;
+  background: #ffffff;
+  border: 1px solid #176b5d;
+  border-radius: 8px;
+  box-shadow: 0 18px 38px rgba(23, 107, 93, 0.24);
+  contain: layout paint;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  left: 0;
+  min-height: 50px;
+  min-width: 170px;
+  padding: 9px 12px;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  transform: translate3d(12px, 12px, 0);
+  will-change: transform;
+  width: 220px;
+  z-index: 300;
+}
+
+.scheduleTaskMemo span {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+}
+
+.scheduleTaskMemo textarea {
+  flex: 1;
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  min-height: 68px;
+  padding: 10px 12px;
+  resize: vertical;
+  width: 100%;
+}
+
+.scheduleTaskMemo textarea:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
+.scheduleMemoEditButton {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: #a8b3bf;
+  display: flex;
+  font-size: 15px;
+  font-weight: 900;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  width: 28px;
+}
+
+.scheduleMemoEditButton:hover {
+  background: #edf2f6;
+  color: #687789;
+  cursor: pointer;
+}
+
+.scheduleMemoActions {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+@keyframes scheduleTokenLift {
+  from {
+    transform: translateY(0) scale(0.99);
+  }
+
+  to {
+    transform: translateY(-3px) scale(1.01);
+  }
+}
+
+@keyframes scheduleTokenDrop {
+  from {
+    opacity: 0.58;
+    transform: translateY(-5px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes schedulePreviewFloat {
+  from {
+    transform: translate(12px, 12px) scale(1);
+  }
+
+  to {
+    transform: translate(12px, 9px) scale(1.015);
+  }
+}
+
+@media (max-width: 720px) {
+  .scheduleDateBar {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .scheduleStatusMessage {
+    justify-self: start;
+  }
+
+  .workScheduleSplit {
+    grid-template-columns: 1fr;
+  }
+
+  .scheduleColumn {
+    min-height: 520px;
+  }
+
+  .scheduleTaskHeader {
+    flex-direction: column;
+  }
+
+  .scheduleDropZoneGrid {
+    grid-template-columns: 1fr;
+  }
+}

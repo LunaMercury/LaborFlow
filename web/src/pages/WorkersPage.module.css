@@ -1,0 +1,172 @@
+.sectionLabel {
+  color: #176b5d;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+.workersPanel {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 1120px;
+  width: 100%;
+}
+
+.workersPageHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  width: 100%;
+}
+
+.workersHeading {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.workersMetaRow {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.workersMetaRow .sectionLabel {
+  margin: 0;
+}
+
+.workersHeading h1 {
+  font-size: 32px;
+  line-height: 1.22;
+  margin: 0;
+}
+
+.workersCountText {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.workersStatusMessage {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 800;
+  margin: 6px 0 0;
+}
+
+.registerWorkerButton {
+  align-items: center;
+  background: #176b5d;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 18px;
+}
+
+.registerWorkerButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+.workerTableFrame {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  width: 100%;
+}
+
+.workerTable {
+  border-collapse: collapse;
+  min-width: 720px;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.workerTable th,
+.workerTable td {
+  border: 1px solid #d9e2ec;
+  font-size: 14px;
+  height: 44px;
+  padding: 0 14px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.workerTable th {
+  background: #edf2f6;
+  color: #2f3f50;
+  font-weight: 900;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.workerTable td {
+  background: #ffffff;
+  color: #17202a;
+}
+
+.workerTable tbody tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.workerTable tbody tr:hover td {
+  background: #eef6f4;
+}
+
+.workerTable th:nth-child(1),
+.workerTable td:nth-child(1) {
+  width: 18%;
+}
+
+.workerTable th:nth-child(2),
+.workerTable td:nth-child(2) {
+  width: 20%;
+}
+
+.workerTable th:nth-child(3),
+.workerTable td:nth-child(3) {
+  width: 40%;
+}
+
+.workerTable th:nth-child(4),
+.workerTable td:nth-child(4) {
+  width: 22%;
+}
+
+.workTypeTableCell {
+  padding: 0px 12px;
+  vertical-align: top;
+}
+
+@media (max-width: 720px) {
+  .workersPageHeader {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+  .workersMetaRow {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+  .registerWorkerButton {
+      justify-content: flex-start;
+    }
+}

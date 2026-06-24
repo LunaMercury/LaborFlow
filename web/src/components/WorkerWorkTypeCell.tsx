@@ -6,7 +6,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import styles from "../App.module.css";
+import styles from "./WorkerWorkTypeCell.module.css";
 import type { WorkTypeOption } from "../data/workTypeOptions";
 
 type WorkerWorkTypeCellProps = {

@@ -6,7 +6,7 @@ import {
   type HTMLAttributes,
   type RefObject,
 } from "react";
-import styles from "../App.module.css";
+import styles from "./WorkerEditableCells.module.css";
 
 type EditableWorkerNameCellProps = {
   name: string;

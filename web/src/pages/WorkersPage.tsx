@@ -7,13 +7,16 @@ import {
   updateWorkerPickupLocation as saveWorkerPickupLocation,
   updateWorkerWorkTypes as saveWorkerWorkTypes,
 } from "../api/workforceApi";
-import styles from "../App.module.css";
+import appStyles from "../App.module.css";
 import { EditableTextCell, EditableWorkerNameCell } from "../components/WorkerEditableCells";
 import { WorkerRegistrationModal } from "../components/WorkerRegistrationModal";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
 import { workTypeOptions as fallbackWorkTypeOptions } from "../data/workTypeOptions";
 import type { WorkerRow } from "../data/workerRows";
 import { formatKoreanPhoneNumber } from "../utils/phoneNumber";
+import workersStyles from "./WorkersPage.module.css";
+
+const styles = { ...appStyles, ...workersStyles };
 
 type WorkersPageProps = {
   loginId: string;

@@ -19,13 +19,16 @@ import {
   updateWorkerPickupLocation as saveWorkerPickupLocation,
   updateWorkerWorkTypes as saveWorkerWorkTypes,
 } from "../api/workforceApi";
-import styles from "../App.module.css";
+import appStyles from "../App.module.css";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
 import type { WorkerRow } from "../data/workerRows";
 import {
   workTypeOptions as fallbackWorkTypeOptions,
   type WorkTypeOption,
 } from "../data/workTypeOptions";
+import scheduleStyles from "./WorkSchedulePage.module.css";
+
+const styles = { ...appStyles, ...scheduleStyles };
 
 type WorkSchedulePageProps = {
   loginId: string;

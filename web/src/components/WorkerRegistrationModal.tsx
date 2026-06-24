@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import styles from "../App.module.css";
+import styles from "./WorkerRegistrationModal.module.css";
 import { createWorker } from "../api/workforceApi";
 import { workTypeOptions } from "../data/workTypeOptions";
 import type { WorkerRow } from "../data/workerRows";
