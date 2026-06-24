@@ -28,6 +28,10 @@ export function EditableWorkerNameCell({
   nickname,
   onSave,
 }: EditableWorkerNameCellProps) {
+  const trimmedName = name.trim();
+  const trimmedNickname = nickname?.trim() ?? "";
+  const displayName = trimmedName || trimmedNickname || "-";
+  const shouldShowNickname = Boolean(trimmedName && trimmedNickname);
   const [isEditing, setIsEditing] = useState(false);
   const [draftName, setDraftName] = useState(name);
   const [draftNickname, setDraftNickname] = useState(nickname ?? "");
@@ -62,8 +66,10 @@ export function EditableWorkerNameCell({
   return (
     <div className={styles.editableCell}>
       <div className={styles.workerNameCell}>
-        <span className={styles.workerLocalName}>{name}</span>
-        {nickname ? <span className={styles.workerNickname}>- {nickname}</span> : null}
+        <span className={styles.workerLocalName}>{displayName}</span>
+        {shouldShowNickname ? (
+          <span className={styles.workerNickname}>- {trimmedNickname}</span>
+        ) : null}
       </div>
       <EditButton buttonRef={anchorRef} label="이름 수정" onClick={openEditor} />
 
