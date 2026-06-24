@@ -27,7 +27,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             """
             SELECT
                 p.uuid AS profile_uuid,
-                COALESCE(p.local_name, w.canonical_name, '이름 없음') AS display_name,
+                COALESCE(p.local_name, w.canonical_name, '') AS display_name,
                 p.local_nickname,
                 COALESCE(p.local_phone_encrypted, '') AS local_phone_encrypted,
                 COALESCE(p.pickup_location, '') AS pickup_location
@@ -35,7 +35,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             JOIN public.app_account a ON a.labor_agency_owner_uuid = p.agency_owner_uuid
             LEFT JOIN public.worker w ON w.uuid = p.worker_uuid
             WHERE a.login_id = ?
-            ORDER BY display_name, p.created_at
+            ORDER BY COALESCE(NULLIF(p.local_name, ''), NULLIF(p.local_nickname, ''), w.canonical_name, ''), p.created_at
             """,
             (resultSet, rowNumber) -> mapWorkerProjection(resultSet),
             loginId

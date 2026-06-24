@@ -6,7 +6,6 @@ import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerListResponse;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -33,9 +32,13 @@ public class WorkforceService {
         String normalizedLoginId = normalizeLoginId(loginId);
         UUID agencyOwnerUuid = workforceDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
             .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
-        String localName = normalizeRequiredText(request.localName());
-        String canonicalName = Optional.ofNullable(normalizeOptionalText(request.workerName()))
-            .orElse(localName);
+        String localNickname = normalizeOptionalText(request.localNickname());
+        String canonicalName = normalizeOptionalText(request.workerName());
+        if (canonicalName == null && localNickname == null) {
+            throw new IllegalArgumentException("Worker identity is required.");
+        }
+
+        String localName = canonicalName;
         String phoneHashSource = normalizePhoneHashSource(request.phone());
         String formattedPhone = formatPhone(phoneHashSource);
         String gender = normalizeGender(request.gender());
@@ -59,7 +62,7 @@ public class WorkforceService {
             agencyOwnerUuid,
             workerUuid,
             localName,
-            null,
+            localNickname,
             formattedPhone,
             phoneHashSource,
             pickupLocation,
@@ -72,8 +75,12 @@ public class WorkforceService {
         String normalizedLoginId = normalizeLoginId(loginId);
         ensureWorkerProfileBelongsToLoginId(normalizedLoginId, workerProfileUuid);
 
-        String normalizedName = normalizeRequiredText(name);
+        String normalizedName = normalizeOptionalText(name);
         String normalizedNickname = normalizeOptionalText(nickname);
+        if (normalizedName == null && normalizedNickname == null) {
+            throw new IllegalArgumentException("Worker identity is required.");
+        }
+
         workforceDao.updateWorkerIdentity(workerProfileUuid, normalizedName, normalizedNickname);
     }
 

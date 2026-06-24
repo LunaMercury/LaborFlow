@@ -10,7 +10,7 @@ type WorkerListResponse = {
 export type CreateWorkerPayload = {
   age: number | null;
   gender: string;
-  localName: string;
+  localNickname: string;
   memo: string;
   phone: string;
   pickupLocation: string;

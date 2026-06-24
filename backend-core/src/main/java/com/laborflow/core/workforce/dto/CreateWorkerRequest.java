@@ -1,7 +1,7 @@
 package com.laborflow.core.workforce.dto;
 
 public record CreateWorkerRequest(
-    String localName,
+    String localNickname,
     String workerName,
     String phone,
     Integer age,

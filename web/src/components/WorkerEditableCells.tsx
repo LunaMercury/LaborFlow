@@ -45,8 +45,8 @@ export function EditableWorkerNameCell({
   };
 
   const saveEditor = async () => {
-    if (!draftName.trim()) {
-      window.alert("호칭을 입력해주세요.");
+    if (!draftName.trim() && !draftNickname.trim()) {
+      window.alert("이름 또는 호칭 중 하나를 입력해주세요.");
       return;
     }
 
@@ -71,18 +71,18 @@ export function EditableWorkerNameCell({
         <div className={styles.cellEditPopover} ref={popoverRef} style={popoverStyle}>
           <div className={styles.nameEditFields}>
             <input
-              aria-label="호칭"
+              aria-label="이름"
               className={styles.cellEditInput}
-              placeholder="호칭"
+              placeholder="이름"
               value={draftName}
               onChange={(event) => setDraftName(event.target.value)}
             />
             <div className={styles.nicknameEditRow}>
               <span>-</span>
               <input
-                aria-label="닉네임"
+                aria-label="호칭"
                 className={styles.cellEditInput}
-                placeholder="닉네임"
+                placeholder="호칭"
                 value={draftNickname}
                 onChange={(event) => setDraftNickname(event.target.value)}
               />

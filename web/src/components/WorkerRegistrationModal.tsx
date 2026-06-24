@@ -36,9 +36,10 @@ export function WorkerRegistrationModal({
     }
 
     const formData = new FormData(event.currentTarget);
-    const localName = getFormString(formData, "localName");
-    if (!localName) {
-      window.alert("호칭을 입력해주세요.");
+    const localNickname = getFormString(formData, "localNickname");
+    const workerName = getFormString(formData, "workerName");
+    if (!workerName && !localNickname) {
+      window.alert("이름 또는 호칭 중 하나를 입력해주세요.");
       return;
     }
 
@@ -50,11 +51,11 @@ export function WorkerRegistrationModal({
       const workers = await createWorker(loginId, {
         age,
         gender,
-        localName,
+        localNickname,
         memo: getFormString(formData, "memo"),
         phone: formatKoreanPhoneNumber(workerPhone),
         pickupLocation: getFormString(formData, "pickupLocation"),
-        workerName: getFormString(formData, "workerName"),
+        workerName,
       });
       onRegistered(workers);
       onClose();
@@ -112,13 +113,10 @@ export function WorkerRegistrationModal({
           >
             <div className={styles.workerFormGrid}>
               <label className={styles.formField}>
-                <span>
-                  호칭 <strong className={styles.requiredMark}>*</strong>
-                </span>
+                <span>호칭</span>
                 <input
-                  name="localName"
+                  name="localNickname"
                   placeholder="호칭을 입력하세요"
-                  required
                   type="text"
                 />
               </label>
