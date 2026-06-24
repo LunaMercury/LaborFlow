@@ -12,7 +12,7 @@ import { EditableTextCell, EditableWorkerNameCell } from "../components/WorkerEd
 import { WorkerRegistrationModal } from "../components/WorkerRegistrationModal";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
 import { workTypeOptions as fallbackWorkTypeOptions } from "../data/workTypeOptions";
-import { workerRows } from "../data/workerRows";
+import type { WorkerRow } from "../data/workerRows";
 import { formatKoreanPhoneNumber } from "../utils/phoneNumber";
 
 type WorkersPageProps = {
@@ -21,7 +21,7 @@ type WorkersPageProps = {
 
 export function WorkersPage({ loginId }: WorkersPageProps) {
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
-  const [workers, setWorkers] = useState(workerRows);
+  const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
   const [statusMessage, setStatusMessage] = useState("");
 
@@ -40,7 +40,8 @@ export function WorkersPage({ loginId }: WorkersPageProps) {
       })
       .catch(() => {
         if (isMounted) {
-          setStatusMessage("DB 데이터를 불러오지 못해 임시 목록을 표시합니다.");
+          setWorkers([]);
+          setStatusMessage("DB 데이터를 불러오지 못했습니다.");
         }
       });
 
