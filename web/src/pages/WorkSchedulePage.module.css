@@ -163,11 +163,15 @@
 
 .scheduleFilterBox {
   align-items: center;
-  display: grid;
+  display: flex;
   gap: 8px;
   grid-template-columns: minmax(0, 1fr) auto;
   justify-content: center;
   width: 100%;
+}
+
+.scheduleNameSearchBox {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .scheduleFilterBox input {
@@ -175,8 +179,9 @@
   border: 1px solid #c8d4e0;
   border-radius: 8px;
   color: #17202a;
-  min-height: 35px;
-  padding: 0 10px;
+  font-size: 14px;
+  min-height: 25px;
+  padding: 0 9px;
   width: 100%;
 }
 
@@ -194,12 +199,12 @@
   border-radius: 999px;
   color: #ffffff;
   display: flex;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 900;
-  height: 32px;
+  height: 25px;
   justify-content: center;
   line-height: 1;
-  width: 32px;
+  width: 25px;
 }
 
 .scheduleFilterBox button:hover {
@@ -243,6 +248,18 @@
   gap: 8px;
   justify-content: center;
   padding: 14px 18px;
+}
+
+.scheduleWorkerFilterPanel {
+  align-items: stretch;
+  background: #fbfcfe;
+  border: 1px solid #edf2f6;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  padding: 8px;
 }
 
 .scheduleWorkerList,
@@ -550,6 +567,10 @@
   gap: 12px;
   justify-content: flex-start;
   padding: 14px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 180ms ease,
+    padding 180ms ease;
 }
 
 .scheduleTaskCard:hover {
@@ -561,6 +582,10 @@
   display: flex;
   gap: 12px;
   justify-content: space-between;
+}
+
+.scheduleTaskHeaderContent {
+  min-width: 0;
 }
 
 .scheduleTaskHeader h3 {
@@ -595,14 +620,15 @@
 .scheduleTaskActions {
   align-items: center;
   display: flex;
-  flex-direction: column;
   flex-shrink: 0;
   gap: 6px;
-  justify-content: flex-start;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .scheduleTaskApplyButton,
-.scheduleTaskResetButton {
+.scheduleTaskResetButton,
+.scheduleTaskCollapseButton {
   align-items: center;
   appearance: none;
   border: 0;
@@ -627,8 +653,15 @@
   color: #4f5d6b;
 }
 
+.scheduleTaskCollapseButton {
+  background: #f4f8f7;
+  border: 1px solid #b8d2ca;
+  color: #176b5d;
+}
+
 .scheduleTaskApplyButton:hover,
-.scheduleTaskResetButton:hover {
+.scheduleTaskResetButton:hover,
+.scheduleTaskCollapseButton:hover {
   cursor: pointer;
   filter: brightness(0.97);
 }
@@ -673,7 +706,6 @@
 .scheduleTaskEditActions {
   align-items: center;
   display: flex;
-  flex-direction: column;
   gap: 6px;
   justify-content: center;
 }
@@ -857,7 +889,25 @@
   gap: 10px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   justify-content: center;
+  max-height: 640px;
+  overflow: hidden;
+  transition:
+    max-height 220ms ease,
+    opacity 180ms ease,
+    transform 220ms ease;
   width: 100%;
+}
+
+.expandedScheduleDropZoneGrid {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.collapsedScheduleDropZoneGrid {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
 }
 
 .scheduleDropZone {

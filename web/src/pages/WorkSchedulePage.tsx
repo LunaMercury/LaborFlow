@@ -52,11 +52,6 @@ type EditingRequiredCount = {
   value: string;
 };
 
-type EditingTaskMemo = {
-  taskId: string;
-  value: string;
-};
-
 type DraggingWorkerState = {
   workerId: string;
 };
@@ -73,6 +68,13 @@ type TaskDetailDraft = {
   address: string;
   title: string;
   workTypeCodes: string[];
+};
+
+type TaskMemoEditorProps = {
+  ariaLabel: string;
+  initialValue: string;
+  onCancel: () => void;
+  onConfirm: (value: string) => void;
 };
 
 function getTodayInputValue() {
@@ -207,8 +209,50 @@ function toScheduleAssignments(
   ];
 }
 
+function TaskMemoEditor({
+  ariaLabel,
+  initialValue,
+  onCancel,
+  onConfirm,
+}: TaskMemoEditorProps) {
+  const [draft, setDraft] = useState(initialValue);
+
+  useEffect(() => {
+    setDraft(initialValue);
+  }, [initialValue]);
+
+  return (
+    <>
+      <textarea
+        aria-label={ariaLabel}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+      />
+      <div className={styles.scheduleMemoActions}>
+        <button
+          aria-label="메모 저장"
+          className={styles.inlineConfirmButton}
+          type="button"
+          onClick={() => onConfirm(draft)}
+        >
+          ✓
+        </button>
+        <button
+          aria-label="메모 취소"
+          className={styles.inlineCancelButton}
+          type="button"
+          onClick={onCancel}
+        >
+          ×
+        </button>
+      </div>
+    </>
+  );
+}
+
 export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const [selectedDate, setSelectedDate] = useState(getTodayInputValue);
+  const [workerSearchDraft, setWorkerSearchDraft] = useState("");
   const [filterDraft, setFilterDraft] = useState("");
   const [workFilters, setWorkFilters] = useState<string[]>([]);
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
@@ -229,12 +273,16 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     useState<DraggingWorkerState | null>(null);
   const [editingRequiredCount, setEditingRequiredCount] =
     useState<EditingRequiredCount | null>(null);
-  const [editingTaskMemo, setEditingTaskMemo] =
-    useState<EditingTaskMemo | null>(null);
+  const [editingTaskMemoId, setEditingTaskMemoId] = useState<string | null>(
+    null,
+  );
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
   const [editingWorkerDraft, setEditingWorkerDraft] =
     useState<EditingWorkerDraft | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [collapsedTaskIds, setCollapsedTaskIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [savingWorkerId, setSavingWorkerId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const dragPreviewRef = useRef<HTMLDivElement | null>(null);
@@ -264,8 +312,9 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         setMemoByTaskId(createMemoDrafts(nextTasks));
         setTaskDetailDraftsByTaskId(createTaskDetailDrafts(nextTasks));
         setEditingRequiredCount(null);
-        setEditingTaskMemo(null);
+        setEditingTaskMemoId(null);
         setEditingTaskId(null);
+        setCollapsedTaskIds(new Set());
         setStatusMessage("");
       })
       .catch(() => {
@@ -300,8 +349,21 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const workerGroups = useMemo(() => {
     const matchingWorkers: WorkerRow[] = [];
     const otherWorkers: WorkerRow[] = [];
+    const normalizedWorkerSearch = normalizeSearchText(workerSearchDraft);
     const availableWorkers = workers.filter((worker) => {
-      return !assignedWorkerIds.has(getWorkerId(worker));
+      if (assignedWorkerIds.has(getWorkerId(worker))) {
+        return false;
+      }
+
+      if (!normalizedWorkerSearch) {
+        return true;
+      }
+
+      return [
+        worker.name,
+        worker.nickname ?? "",
+        getWorkerDisplayName(worker),
+      ].some((name) => normalizeSearchText(name).includes(normalizedWorkerSearch));
     });
 
     for (const worker of availableWorkers) {
@@ -313,7 +375,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     }
 
     return { matchingWorkers, otherWorkers };
-  }, [assignedWorkerIds, workFilters, workTypes, workers]);
+  }, [assignedWorkerIds, workFilters, workTypes, workerSearchDraft, workers]);
 
   const addWorkFilter = () => {
     const nextFilter = filterDraft.trim();
@@ -337,6 +399,20 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     setWorkFilters((currentFilters) =>
       currentFilters.filter((currentFilter) => currentFilter !== filter),
     );
+  };
+
+  const toggleTaskCollapse = (taskId: string) => {
+    setCollapsedTaskIds((currentTaskIds) => {
+      const nextTaskIds = new Set(currentTaskIds);
+
+      if (nextTaskIds.has(taskId)) {
+        nextTaskIds.delete(taskId);
+      } else {
+        nextTaskIds.add(taskId);
+      }
+
+      return nextTaskIds;
+    });
   };
 
   const getRequiredCounts = (task: ScheduleTask) =>
@@ -426,22 +502,19 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   };
 
   const startTaskMemoEdit = (task: ScheduleTask) => {
-    setEditingTaskMemo({
-      taskId: task.id,
-      value: memoByTaskId[task.id] ?? task.memo,
-    });
+    setEditingTaskMemoId(task.id);
   };
 
-  const confirmTaskMemoEdit = () => {
-    if (!editingTaskMemo) {
+  const confirmTaskMemoEdit = (value: string) => {
+    if (!editingTaskMemoId) {
       return;
     }
 
     setMemoByTaskId((currentMemos) => ({
       ...currentMemos,
-      [editingTaskMemo.taskId]: editingTaskMemo.value.trim(),
+      [editingTaskMemoId]: value.trim(),
     }));
-    setEditingTaskMemo(null);
+    setEditingTaskMemoId(null);
   };
 
   const applyTaskDraft = async (task: ScheduleTask) => {
@@ -535,8 +608,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       [taskId]: createTaskDetailDrafts([persistedTask])[taskId],
     }));
     setEditingRequiredCount(null);
-    setEditingTaskMemo((currentMemo) =>
-      currentMemo?.taskId === taskId ? null : currentMemo,
+    setEditingTaskMemoId((currentTaskId) =>
+      currentTaskId === taskId ? null : currentTaskId,
     );
     setEditingTaskId((currentTaskId) =>
       currentTaskId === taskId ? null : currentTaskId,
@@ -1056,10 +1129,28 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             <div className={styles.scheduleColumnHeader}>
               <div className={styles.scheduleWorkerHeaderContent}>
                 <p className={styles.sectionLabel}>작업자 목록</p>
+                <div
+                  className={`${styles.scheduleFilterBox} ${styles.scheduleNameSearchBox}`}
+                >
+                  <input
+                    aria-label="작업자 이름 검색"
+                    placeholder="작업자 이름 검색"
+                    value={workerSearchDraft}
+                    onChange={(event) => setWorkerSearchDraft(event.target.value)}
+                  />
+                </div>
+              </div>
+              <span className={styles.scheduleCountBadge}>
+                {workers.length}명
+              </span>
+            </div>
+
+            <div className={styles.scheduleWorkerList}>
+              <div className={styles.scheduleWorkerFilterPanel}>
                 <div className={styles.scheduleFilterBox}>
                   <input
                     aria-label="작업 필터"
-                    placeholder="입력 후 Enter"
+                    placeholder="작업 필터 입력 후 Enter"
                     value={filterDraft}
                     onChange={(event) => setFilterDraft(event.target.value)}
                     onKeyDown={(event) => {
@@ -1071,7 +1162,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                       addWorkFilter();
                     }}
                   />
-                  <button type="button" onClick={addWorkFilter}>
+                  <button
+                    aria-label="작업 필터 추가"
+                    type="button"
+                    onClick={addWorkFilter}
+                  >
                     +
                   </button>
                 </div>
@@ -1090,12 +1185,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                   </div>
                 ) : null}
               </div>
-              <span className={styles.scheduleCountBadge}>
-                {workers.length}명
-              </span>
-            </div>
 
-            <div className={styles.scheduleWorkerList}>
               <div className={styles.scheduleWorkerGroup}>
                 <div className={styles.scheduleGroupTitle}>
                   <strong>
@@ -1171,6 +1261,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                   workTypes,
                 );
                 const isEditingTask = editingTaskId === task.id;
+                const isTaskCollapsed = collapsedTaskIds.has(task.id);
                 const canApplyTask = hasTaskDraftChanges(task);
                 const cancelTaskEdit = () => {
                   const persistedTask =
@@ -1293,7 +1384,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                 return (
                   <div className={styles.scheduleTaskCard} key={task.id}>
                     <div className={styles.scheduleTaskHeader}>
-                      <div>
+                      <div className={styles.scheduleTaskHeaderContent}>
                         {isEditingTask ? (
                           <div className={styles.scheduleTaskInlineEditor}>
                             <label>
@@ -1344,52 +1435,73 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                         ) : null}
                       </div>
                       <div className={styles.scheduleTaskActions}>
-                        <button
-                          aria-label={`${task.title} 일정 저장`}
-                          className={styles.scheduleTaskApplyButton}
-                          disabled={savingTaskId === task.id || !canApplyTask}
-                          type="button"
-                          onClick={() => applyTaskDraft(task)}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          aria-label={`${task.title} 일정 되돌리기`}
-                          className={styles.scheduleTaskResetButton}
-                          disabled={savingTaskId === task.id}
-                          type="button"
-                          onClick={() => resetTaskDraft(task.id)}
-                        >
-                          ↻
-                        </button>
-                        {isEditingTask ? (
-                          <div className={styles.scheduleTaskEditActions}>
+                        {isTaskCollapsed ? (
+                          <button
+                            aria-label={`${task.title} 작업 펼치기`}
+                            className={styles.scheduleTaskCollapseButton}
+                            type="button"
+                            onClick={() => toggleTaskCollapse(task.id)}
+                          >
+                            +
+                          </button>
+                        ) : (
+                          <>
                             <button
-                              aria-label={`${task.title} 작업 수정 적용`}
-                              className={styles.inlineConfirmButton}
+                              aria-label={`${task.title} 일정 저장`}
+                              className={styles.scheduleTaskApplyButton}
+                              disabled={savingTaskId === task.id || !canApplyTask}
                               type="button"
-                              onClick={() => setEditingTaskId(null)}
+                              onClick={() => applyTaskDraft(task)}
                             >
                               ✓
                             </button>
                             <button
-                              aria-label={`${task.title} 작업 수정 취소`}
-                              className={styles.inlineCancelButton}
+                              aria-label={`${task.title} 일정 되돌리기`}
+                              className={styles.scheduleTaskResetButton}
+                              disabled={savingTaskId === task.id}
                               type="button"
-                              onClick={cancelTaskEdit}
+                              onClick={() => resetTaskDraft(task.id)}
                             >
-                              ×
+                              ↻
                             </button>
-                          </div>
-                        ) : (
-                          <button
-                            aria-label={`${task.title} 작업 수정`}
-                            className={styles.scheduleTaskEditButton}
-                            type="button"
-                            onClick={() => setEditingTaskId(task.id)}
-                          >
-                            ✎
-                          </button>
+                            {isEditingTask ? (
+                              <div className={styles.scheduleTaskEditActions}>
+                                <button
+                                  aria-label={`${task.title} 작업 수정 적용`}
+                                  className={styles.inlineConfirmButton}
+                                  type="button"
+                                  onClick={() => setEditingTaskId(null)}
+                                >
+                                  ✓
+                                </button>
+                                <button
+                                  aria-label={`${task.title} 작업 수정 취소`}
+                                  className={styles.inlineCancelButton}
+                                  type="button"
+                                  onClick={cancelTaskEdit}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                aria-label={`${task.title} 작업 수정`}
+                                className={styles.scheduleTaskEditButton}
+                                type="button"
+                                onClick={() => setEditingTaskId(task.id)}
+                              >
+                                ✎
+                              </button>
+                            )}
+                            <button
+                              aria-label={`${task.title} 작업 접기`}
+                              className={styles.scheduleTaskCollapseButton}
+                              type="button"
+                              onClick={() => toggleTaskCollapse(task.id)}
+                            >
+                              -
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -1428,7 +1540,13 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                       )}
                     </div>
 
-                    <div className={styles.scheduleDropZoneGrid}>
+                    <div
+                      className={`${styles.scheduleDropZoneGrid} ${
+                        isTaskCollapsed
+                          ? styles.collapsedScheduleDropZoneGrid
+                          : styles.expandedScheduleDropZoneGrid
+                      }`}
+                    >
                       {renderDropArea("men", "남자 작업자", assignedMenWorkers)}
                       {renderDropArea(
                         "women",
@@ -1438,37 +1556,13 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                     </div>
 
                     <div className={styles.scheduleTaskMemo}>
-                      {editingTaskMemo?.taskId === task.id ? (
-                        <>
-                          <textarea
-                            aria-label={`${task.title} 메모`}
-                            value={editingTaskMemo.value}
-                            onChange={(event) =>
-                              setEditingTaskMemo({
-                                ...editingTaskMemo,
-                                value: event.target.value,
-                              })
-                            }
-                          />
-                          <div className={styles.scheduleMemoActions}>
-                            <button
-                              aria-label="메모 저장"
-                              className={styles.inlineConfirmButton}
-                              type="button"
-                              onClick={confirmTaskMemoEdit}
-                            >
-                              ✓
-                            </button>
-                            <button
-                              aria-label="메모 취소"
-                              className={styles.inlineCancelButton}
-                              type="button"
-                              onClick={() => setEditingTaskMemo(null)}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </>
+                      {editingTaskMemoId === task.id ? (
+                        <TaskMemoEditor
+                          ariaLabel={`${task.title} 메모`}
+                          initialValue={taskMemo}
+                          onCancel={() => setEditingTaskMemoId(null)}
+                          onConfirm={confirmTaskMemoEdit}
+                        />
                       ) : (
                         <>
                           <span>{taskMemo || "메모 없음"}</span>
