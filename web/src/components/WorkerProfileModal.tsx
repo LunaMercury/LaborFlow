@@ -1,33 +1,73 @@
 import { useState, type FormEvent } from "react";
-import styles from "./WorkerRegistrationModal.module.css";
-import { createWorker } from "../api/workforceApi";
-import { workTypeOptions } from "../data/workTypeOptions";
+import {
+  createWorker,
+  updateWorkerProfile,
+} from "../api/workforceApi";
+import type { WorkTypeOption } from "../data/workTypeOptions";
 import type { WorkerRow } from "../data/workerRows";
 import { formatKoreanPhoneNumber, getPhoneDigits } from "../utils/phoneNumber";
+import { WorkerWorkTypeCell } from "./WorkerWorkTypeCell";
+import styles from "./WorkerProfileModal.module.css";
 
-type WorkerRegistrationModalProps = {
+type WorkerProfileModalMode = "create" | "edit";
+
+type WorkerProfileModalProps = {
   loginId: string;
+  mode: WorkerProfileModalMode;
+  worker?: WorkerRow;
+  workTypeOptions: WorkTypeOption[];
   onClose: () => void;
-  onRegistered: (workers: WorkerRow[]) => void;
+  onSaved: (workers: WorkerRow[]) => void;
 };
 
 type GenderValue = "M" | "F" | "N";
 
-export function WorkerRegistrationModal({
+function toFormGender(gender?: string): GenderValue {
+  if (gender === "MALE" || gender === "M") {
+    return "M";
+  }
+
+  if (gender === "FEMALE" || gender === "F") {
+    return "F";
+  }
+
+  return "N";
+}
+
+export function WorkerProfileModal({
   loginId,
+  mode,
+  worker,
+  workTypeOptions,
   onClose,
-  onRegistered,
-}: WorkerRegistrationModalProps) {
-  const registrationFormId = "worker-registration-form";
-  const [gender, setGender] = useState<GenderValue>("N");
-  const [workerPhone, setWorkerPhone] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [ratings, setRatings] = useState<Record<string, number>>(() =>
-    Object.fromEntries(workTypeOptions.map((workType) => [workType.code, 0])),
+  onSaved,
+}: WorkerProfileModalProps) {
+  const formId = `worker-profile-${mode}-form`;
+  const isEditMode = mode === "edit";
+  const [localNickname, setLocalNickname] = useState(worker?.nickname ?? "");
+  const [workerName, setWorkerName] = useState(worker?.name ?? "");
+  const [workerPhone, setWorkerPhone] = useState(worker?.phone ?? "");
+  const [age, setAge] = useState(
+    worker?.age === null || worker?.age === undefined ? "" : String(worker.age),
   );
+  const [gender, setGender] = useState<GenderValue>(toFormGender(worker?.gender));
+  const [pickupLocation, setPickupLocation] = useState(worker?.pickupLocation ?? "");
+  const [memo, setMemo] = useState(worker?.memo ?? "");
+  const [workTypeCodes, setWorkTypeCodes] = useState(worker?.workTypeCodes ?? []);
+  const [workTypeRatings, setWorkTypeRatings] = useState<Record<string, number>>(
+    worker?.workTypeRatings ?? {},
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const normalizedName = workerName.trim();
+    const normalizedNickname = localNickname.trim();
+    if (!normalizedName && !normalizedNickname) {
+      window.alert("이름 또는 호칭 중 하나를 입력해주세요.");
+      return;
+    }
 
     const phoneDigits = getPhoneDigits(workerPhone);
     if (phoneDigits.length !== 11) {
@@ -35,32 +75,43 @@ export function WorkerRegistrationModal({
       return;
     }
 
-    const formData = new FormData(event.currentTarget);
-    const localNickname = getFormString(formData, "localNickname");
-    const workerName = getFormString(formData, "workerName");
-    if (!workerName && !localNickname) {
-      window.alert("이름 또는 호칭 중 하나를 입력해주세요.");
+    const ageValue = age.trim() ? Number(age) : null;
+    if (ageValue !== null && (!Number.isInteger(ageValue) || ageValue < 0 || ageValue > 150)) {
+      window.alert("나이는 0부터 150 사이의 숫자로 입력해주세요.");
       return;
     }
 
-    const ageText = getFormString(formData, "age");
-    const age = ageText ? Number(ageText) : null;
-
     setIsSubmitting(true);
     try {
-      const workers = await createWorker(loginId, {
-        age,
+      const payload = {
+        age: ageValue,
         gender,
-        localNickname,
-        memo: getFormString(formData, "memo"),
+        memo: memo.trim(),
         phone: formatKoreanPhoneNumber(workerPhone),
-        pickupLocation: getFormString(formData, "pickupLocation"),
-        workerName,
-      });
-      onRegistered(workers);
+        pickupLocation: pickupLocation.trim(),
+        workTypeCodes,
+        workTypeRatings,
+      };
+
+      const workers =
+        isEditMode && worker?.profileUuid
+          ? await updateWorkerProfile(loginId, worker.profileUuid, {
+              ...payload,
+              name: normalizedName,
+              nickname: normalizedNickname,
+            })
+          : await createWorker(loginId, {
+              ...payload,
+              localNickname: normalizedNickname,
+              workerName: normalizedName,
+            });
+
+      onSaved(workers);
       onClose();
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "작업자를 등록하지 못했습니다.");
+      window.alert(
+        error instanceof Error ? error.message : "작업자 정보를 저장하지 못했습니다.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -75,24 +126,28 @@ export function WorkerRegistrationModal({
   return (
     <div className={styles.modalBackdrop} role="presentation">
       <section
-        aria-labelledby="worker-registration-title"
+        aria-labelledby="worker-profile-title"
         aria-modal="true"
-        className={styles.workerRegistrationModal}
+        className={styles.workerProfileDialog}
         role="dialog"
       >
         <div className={styles.modalHeader}>
           <div>
-            <p className={styles.sectionLabel}>인력 등록</p>
-            <h2 id="worker-registration-title">작업자 정보 입력</h2>
+            <p className={styles.sectionLabel}>
+              {isEditMode ? "인력 정보 수정" : "인력 등록"}
+            </p>
+            <h2 id="worker-profile-title">
+              {isEditMode ? "작업자 정보 수정" : "작업자 정보 입력"}
+            </h2>
           </div>
           <div className={styles.modalHeaderActions}>
             <button
               className={styles.primaryActionButton}
               disabled={isSubmitting}
-              form={registrationFormId}
+              form={formId}
               type="submit"
             >
-              등록
+              {isEditMode ? "저장" : "등록"}
             </button>
             <button
               className={styles.secondaryActionButton}
@@ -107,26 +162,28 @@ export function WorkerRegistrationModal({
 
         <div className={styles.modalScrollArea}>
           <form
-            className={styles.workerRegistrationForm}
-            id={registrationFormId}
+            className={styles.workerProfileForm}
+            id={formId}
             onSubmit={handleSubmit}
           >
             <div className={styles.workerFormGrid}>
               <label className={styles.formField}>
                 <span>호칭</span>
                 <input
-                  name="localNickname"
                   placeholder="호칭을 입력하세요"
                   type="text"
+                  value={localNickname}
+                  onChange={(event) => setLocalNickname(event.target.value)}
                 />
               </label>
 
               <label className={styles.formField}>
                 <span>이름</span>
                 <input
-                  name="workerName"
                   placeholder="실명을 입력하세요"
                   type="text"
+                  value={workerName}
+                  onChange={(event) => setWorkerName(event.target.value)}
                 />
               </label>
 
@@ -137,7 +194,6 @@ export function WorkerRegistrationModal({
                 <input
                   inputMode="numeric"
                   maxLength={13}
-                  name="workerPhone"
                   placeholder="010-0000-0000"
                   required
                   type="tel"
@@ -153,18 +209,20 @@ export function WorkerRegistrationModal({
                 <input
                   max="150"
                   min="0"
-                  name="age"
                   placeholder="나이"
                   type="number"
+                  value={age}
+                  onChange={(event) => setAge(event.target.value)}
                 />
               </label>
 
               <label className={styles.formField}>
                 <span>승차장소</span>
                 <input
-                  name="pickupLocation"
                   placeholder="승차장소를 입력하세요"
                   type="text"
+                  value={pickupLocation}
+                  onChange={(event) => setPickupLocation(event.target.value)}
                 />
               </label>
 
@@ -198,50 +256,29 @@ export function WorkerRegistrationModal({
               <label className={`${styles.formField} ${styles.fullWidthField}`}>
                 <span>메모</span>
                 <textarea
-                  name="memo"
                   placeholder="작업자 메모를 입력하세요"
                   rows={3}
+                  value={memo}
+                  onChange={(event) => setMemo(event.target.value)}
                 />
               </label>
             </div>
 
             <div className={styles.workSkillSection}>
               <div className={styles.workSkillHeader}>
-                <h3>작업 능력</h3>
-                <p>작업별 별점을 0~3개로 선택합니다.</p>
+                <h3>가능한 작업</h3>
+                <p>작업자를 배치할 때 사용할 작업 속성을 선택합니다.</p>
               </div>
-
-              <div className={styles.workSkillList}>
-                {workTypeOptions.map((workType) => (
-                  <div className={styles.workSkillRow} key={workType.code}>
-                    <span>{workType.name}</span>
-                    <div
-                      className={styles.ratingButtonGroup}
-                      aria-label={`${workType.name} 별점`}
-                    >
-                      {[0, 1, 2, 3].map((rating) => (
-                        <button
-                          aria-pressed={ratings[workType.code] === rating}
-                          className={`${styles.ratingButton} ${
-                            ratings[workType.code] === rating
-                              ? styles.activeRatingButton
-                              : ""
-                          }`}
-                          key={rating}
-                          type="button"
-                          onClick={() =>
-                            setRatings((current) => ({
-                              ...current,
-                              [workType.code]: rating,
-                            }))
-                          }
-                        >
-                          {rating}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+              <div className={styles.workTypeEditorPanel}>
+                <WorkerWorkTypeCell
+                  selectedCodes={workTypeCodes}
+                  selectedRatings={workTypeRatings}
+                  workTypeOptions={workTypeOptions}
+                  onChange={(nextCodes, nextRatings) => {
+                    setWorkTypeCodes(nextCodes);
+                    setWorkTypeRatings(nextRatings);
+                  }}
+                />
               </div>
             </div>
           </form>
@@ -249,10 +286,4 @@ export function WorkerRegistrationModal({
       </section>
     </div>
   );
-}
-
-function getFormString(formData: FormData, key: string): string {
-  const value = formData.get(key);
-
-  return typeof value === "string" ? value.trim() : "";
 }

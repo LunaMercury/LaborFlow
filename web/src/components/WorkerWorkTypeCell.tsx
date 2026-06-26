@@ -11,14 +11,16 @@ import type { WorkTypeOption } from "../data/workTypeOptions";
 
 type WorkerWorkTypeCellProps = {
   selectedCodes: string[];
+  selectedRatings?: Record<string, number>;
   workTypeOptions: WorkTypeOption[];
-  onChange: (nextCodes: string[]) => void;
+  onChange: (nextCodes: string[], nextRatings: Record<string, number>) => void;
 };
 
 const normalizeSearchText = (value: string) => value.trim().toLocaleLowerCase("ko-KR");
 
 export function WorkerWorkTypeCell({
   selectedCodes,
+  selectedRatings = {},
   workTypeOptions,
   onChange,
 }: WorkerWorkTypeCellProps) {
@@ -53,13 +55,25 @@ export function WorkerWorkTypeCell({
   }, [searchTerm, selectedCodes]);
 
   const addWorkType = (workTypeCode: string) => {
-    onChange([...selectedCodes, workTypeCode]);
+    onChange([...selectedCodes, workTypeCode], {
+      ...selectedRatings,
+      [workTypeCode]: selectedRatings[workTypeCode] ?? 0,
+    });
     setSearchTerm("");
     setIsPickerOpen(false);
   };
 
   const removeWorkType = (workTypeCode: string) => {
-    onChange(selectedCodes.filter((selectedCode) => selectedCode !== workTypeCode));
+    const nextRatings = { ...selectedRatings };
+    delete nextRatings[workTypeCode];
+    onChange(selectedCodes.filter((selectedCode) => selectedCode !== workTypeCode), nextRatings);
+  };
+
+  const updateWorkTypeRating = (workTypeCode: string, rating: number) => {
+    onChange(selectedCodes, {
+      ...selectedRatings,
+      [workTypeCode]: Math.max(0, Math.min(5, rating)),
+    });
   };
 
   useLayoutEffect(() => {
@@ -167,6 +181,32 @@ export function WorkerWorkTypeCell({
           selectedWorkTypes.map((workType) => (
             <div className={styles.workTypePillRow} key={workType.code}>
               <span className={styles.workTypePillLabel}>{workType.name}</span>
+              <div
+                aria-label={`${workType.name} 별점`}
+                className={styles.workTypeRatingButtons}
+              >
+                {[1, 2, 3, 4, 5].map((rating) => {
+                  const currentRating = selectedRatings[workType.code] ?? 0;
+
+                  return (
+                    <button
+                      aria-label={`${workType.name} ${rating}점`}
+                      aria-pressed={currentRating === rating}
+                      className={styles.workTypeRatingButton}
+                      key={rating}
+                      type="button"
+                      onClick={() =>
+                        updateWorkTypeRating(
+                          workType.code,
+                          currentRating === rating ? 0 : rating,
+                        )
+                      }
+                    >
+                      {rating <= currentRating ? "★" : "☆"}
+                    </button>
+                  );
+                })}
+              </div>
               <button
                 aria-label={`${workType.name} 삭제`}
                 className={styles.workTypeRemoveButton}

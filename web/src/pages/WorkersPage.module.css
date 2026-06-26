@@ -153,6 +153,15 @@
   vertical-align: top;
 }
 
+.workerPhoneText {
+  color: #2f3f50;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 800;
+  min-height: 44px;
+  align-items: center;
+}
+
 @media (max-width: 720px) {
   .workersPageHeader {
       align-items: flex-start;

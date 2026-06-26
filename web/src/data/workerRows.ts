@@ -3,8 +3,11 @@ export type WorkerRow = {
   name: string;
   nickname?: string;
   phone: string;
+  age?: number | null;
   gender?: string;
+  memo?: string;
   workTypeCodes: string[];
+  workTypeRatings?: Record<string, number>;
   pickupLocation: string;
   teamUuid?: string | null;
   teamName?: string | null;

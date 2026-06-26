@@ -24,18 +24,50 @@
   border-radius: 999px;
   color: #1f463f;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: space-between;
-  max-width: 60%;
+  max-width: 100%;
   min-height: 34px;
   padding: 0 8px 0 14px;
   width: 100%;
 }
 
 .workTypePillLabel {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.workTypeRatingButtons {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 1px;
+  justify-content: center;
+}
+
+.workTypeRatingButton {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: #d59b22;
+  display: flex;
+  font-size: 15px;
+  font-weight: 900;
+  height: 24px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 18px;
+}
+
+.workTypeRatingButton:hover {
+  background: #fff4d7;
+  cursor: pointer;
 }
 
 .workTypeRemoveButton,

@@ -30,7 +30,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 COALESCE(p.local_name, w.canonical_name, '') AS display_name,
                 p.local_nickname,
                 COALESCE(p.local_phone_encrypted, '') AS local_phone_encrypted,
+                w.age,
                 w.gender,
+                COALESCE(p.private_memo, '') AS private_memo,
                 COALESCE(p.pickup_location, '') AS pickup_location,
                 t.uuid AS team_uuid,
                 t.name AS team_name,
@@ -66,6 +68,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
         Map<UUID, List<String>> workTypeCodesByProfileUuid = findWorkTypeCodesByProfileUuid(
             workers.stream().map(WorkerProjection::profileUuid).toList()
         );
+        Map<UUID, Map<String, Integer>> workTypeRatingsByProfileUuid = findWorkTypeRatingsByProfileUuid(
+            workers.stream().map(WorkerProjection::profileUuid).toList()
+        );
 
         return workers.stream()
             .map(worker -> new WorkerResponse(
@@ -73,13 +78,16 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 worker.name(),
                 worker.nickname(),
                 worker.phone(),
+                worker.age(),
                 worker.gender(),
+                worker.memo(),
                 worker.pickupLocation(),
                 worker.teamUuid(),
                 worker.teamName(),
                 worker.teamRole(),
                 worker.teamDisplayOrder(),
-                workTypeCodesByProfileUuid.getOrDefault(worker.profileUuid(), List.of())
+                workTypeCodesByProfileUuid.getOrDefault(worker.profileUuid(), List.of()),
+                workTypeRatingsByProfileUuid.getOrDefault(worker.profileUuid(), Map.of())
             ))
             .toList();
     }
@@ -205,7 +213,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
     }
 
     @Override
-    public void insertWorkerProfile(
+    public UUID insertWorkerProfile(
         UUID agencyOwnerUuid,
         UUID workerUuid,
         String localName,
@@ -215,7 +223,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
         String pickupLocation,
         String privateMemo
     ) {
-        jdbcTemplate.update(
+        return jdbcTemplate.queryForObject(
             """
             INSERT INTO public.labor_agency_worker_profile (
                 agency_owner_uuid,
@@ -228,7 +236,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 private_memo
             )
             VALUES (?, ?, ?, ?, ?, encode(digest(?, 'sha256'), 'hex'), ?, ?)
+            RETURNING uuid
             """,
+            UUID.class,
             agencyOwnerUuid,
             workerUuid,
             localName,
@@ -319,13 +329,50 @@ public class JdbcWorkforceDao implements WorkforceDao {
     }
 
     @Override
-    public void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes) {
+    public void updateWorkerCoreDetails(UUID workerProfileUuid, String gender, Integer age) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.worker w
+            SET gender = ?,
+                age = ?
+            FROM public.labor_agency_worker_profile p
+            WHERE p.worker_uuid = w.uuid
+                AND p.uuid = ?
+            """,
+            gender,
+            age,
+            workerProfileUuid
+        );
+    }
+
+    @Override
+    public void updateWorkerProfileDetails(UUID workerProfileUuid, String pickupLocation, String privateMemo) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_profile
+            SET pickup_location = ?,
+                private_memo = ?
+            WHERE uuid = ?
+            """,
+            pickupLocation,
+            privateMemo,
+            workerProfileUuid
+        );
+    }
+
+    @Override
+    public void replaceWorkerWorkTypes(
+        UUID workerProfileUuid,
+        List<String> workTypeCodes,
+        Map<String, Integer> workTypeRatings
+    ) {
         jdbcTemplate.update(
             "DELETE FROM public.labor_agency_worker_work_skill WHERE worker_profile_uuid = ?",
             workerProfileUuid
         );
 
         for (String workTypeCode : workTypeCodes) {
+            int rating = Optional.ofNullable(workTypeRatings.get(workTypeCode)).orElse(0);
             jdbcTemplate.update(
                 """
                 INSERT INTO public.labor_agency_worker_work_skill (
@@ -333,12 +380,13 @@ public class JdbcWorkforceDao implements WorkforceDao {
                     work_type_uuid,
                     rating
                 )
-                SELECT ?, uuid, 0
+                SELECT ?, uuid, ?
                 FROM public.work_type
                 WHERE code = ? AND status = 'ACTIVE'
                 ON CONFLICT (worker_profile_uuid, work_type_uuid) DO NOTHING
                 """,
                 workerProfileUuid,
+                rating,
                 workTypeCode
             );
         }
@@ -371,13 +419,42 @@ public class JdbcWorkforceDao implements WorkforceDao {
         return workTypeCodesByProfileUuid;
     }
 
+    private Map<UUID, Map<String, Integer>> findWorkTypeRatingsByProfileUuid(List<UUID> profileUuids) {
+        Map<UUID, Map<String, Integer>> workTypeRatingsByProfileUuid = new LinkedHashMap<>();
+
+        for (UUID profileUuid : profileUuids) {
+            workTypeRatingsByProfileUuid.put(profileUuid, new LinkedHashMap<>());
+        }
+
+        String placeholders = String.join(",", profileUuids.stream().map(profileUuid -> "?").toList());
+        jdbcTemplate.query(
+            """
+            SELECT s.worker_profile_uuid, wt.code, s.rating
+            FROM public.labor_agency_worker_work_skill s
+            JOIN public.work_type wt ON wt.uuid = s.work_type_uuid
+            WHERE s.worker_profile_uuid IN (%s)
+            ORDER BY wt.name
+            """.formatted(placeholders),
+            resultSet -> {
+                UUID profileUuid = resultSet.getObject("worker_profile_uuid", UUID.class);
+                workTypeRatingsByProfileUuid.computeIfAbsent(profileUuid, ignored -> new LinkedHashMap<>())
+                    .put(resultSet.getString("code"), resultSet.getInt("rating"));
+            },
+            profileUuids.toArray()
+        );
+
+        return workTypeRatingsByProfileUuid;
+    }
+
     private WorkerProjection mapWorkerProjection(ResultSet resultSet) throws SQLException {
         return new WorkerProjection(
             resultSet.getObject("profile_uuid", UUID.class),
             resultSet.getString("display_name"),
             resultSet.getString("local_nickname"),
             resultSet.getString("local_phone_encrypted"),
+            resultSet.getObject("age", Integer.class),
             resultSet.getString("gender"),
+            resultSet.getString("private_memo"),
             resultSet.getString("pickup_location"),
             resultSet.getObject("team_uuid", UUID.class),
             resultSet.getString("team_name"),
@@ -391,7 +468,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
         String name,
         String nickname,
         String phone,
+        Integer age,
         String gender,
+        String memo,
         String pickupLocation,
         UUID teamUuid,
         String teamName,

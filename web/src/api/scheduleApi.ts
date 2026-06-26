@@ -5,6 +5,7 @@ export type ScheduleAssignmentArea = "men" | "women";
 export type ScheduleAssignment = {
   area: ScheduleAssignmentArea;
   workerProfileUuid: string;
+  workerCount: number;
 };
 
 export type ScheduleTask = {

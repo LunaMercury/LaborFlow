@@ -14,7 +14,21 @@ export type CreateWorkerPayload = {
   memo: string;
   phone: string;
   pickupLocation: string;
+  workTypeCodes: string[];
+  workTypeRatings: Record<string, number>;
   workerName: string;
+};
+
+export type UpdateWorkerProfilePayload = {
+  age: number | null;
+  gender: string;
+  memo: string;
+  name: string;
+  nickname: string;
+  phone: string;
+  pickupLocation: string;
+  workTypeCodes: string[];
+  workTypeRatings: Record<string, number>;
 };
 
 export async function fetchWorkers(loginId: string): Promise<WorkerRow[]> {
@@ -44,11 +58,12 @@ export async function updateWorkerWorkTypes(
   loginId: string,
   profileUuid: string,
   workTypeCodes: string[],
+  workTypeRatings: Record<string, number>,
 ): Promise<WorkerRow[]> {
   const response = await fetch(
     `${apiBaseUrl}/api/workforce/worker-profiles/${profileUuid}/work-types?loginId=${encodeURIComponent(loginId)}`,
     {
-      body: JSON.stringify({ workTypeCodes }),
+      body: JSON.stringify({ workTypeCodes, workTypeRatings }),
       headers: {
         "Content-Type": "application/json",
       },
@@ -115,6 +130,30 @@ export async function updateWorkerIdentity(
 
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response, "이름 정보를 저장하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
+}
+
+export async function updateWorkerProfile(
+  loginId: string,
+  profileUuid: string,
+  payload: UpdateWorkerProfilePayload,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/worker-profiles/${profileUuid}?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "작업자 정보를 저장하지 못했습니다."));
   }
 
   const body = (await response.json()) as WorkerListResponse;

@@ -2,10 +2,12 @@ package com.laborflow.core.workforce.application;
 
 import com.laborflow.core.workforce.dao.WorkforceDao;
 import com.laborflow.core.workforce.dto.CreateWorkerRequest;
+import com.laborflow.core.workforce.dto.UpdateWorkerProfileRequest;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerListResponse;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -58,7 +60,7 @@ public class WorkforceService {
         }
 
         workforceDao.upsertWorkerSensitiveProfile(workerUuid, formattedPhone, phoneHashSource);
-        workforceDao.insertWorkerProfile(
+        UUID workerProfileUuid = workforceDao.insertWorkerProfile(
             agencyOwnerUuid,
             workerUuid,
             localName,
@@ -67,6 +69,49 @@ public class WorkforceService {
             phoneHashSource,
             pickupLocation,
             privateMemo
+        );
+        List<String> workTypeCodes = normalizeWorkTypeCodes(request.workTypeCodes());
+        workforceDao.replaceWorkerWorkTypes(
+            workerProfileUuid,
+            workTypeCodes,
+            normalizeWorkTypeRatings(workTypeCodes, request.workTypeRatings())
+        );
+    }
+
+    @Transactional
+    public void updateWorkerProfile(String loginId, UUID workerProfileUuid, UpdateWorkerProfileRequest request) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        ensureWorkerProfileBelongsToLoginId(normalizedLoginId, workerProfileUuid);
+
+        String normalizedName = normalizeOptionalText(request.name());
+        String normalizedNickname = normalizeOptionalText(request.nickname());
+        if (normalizedName == null && normalizedNickname == null) {
+            throw new IllegalArgumentException("Worker identity is required.");
+        }
+
+        String normalizedPhone = normalizeRequiredText(request.phone());
+        String normalizedPhoneHashSource = normalizePhoneHashSource(normalizedPhone);
+        if (workforceDao.localPhoneExistsForOtherProfile(normalizedLoginId, workerProfileUuid, normalizedPhoneHashSource)) {
+            throw new DuplicateWorkerPhoneException();
+        }
+
+        workforceDao.updateWorkerIdentity(workerProfileUuid, normalizedName, normalizedNickname);
+        workforceDao.updateWorkerPhone(workerProfileUuid, formatPhone(normalizedPhoneHashSource), normalizedPhoneHashSource);
+        workforceDao.updateWorkerCoreDetails(
+            workerProfileUuid,
+            normalizeGender(request.gender()),
+            normalizeAge(request.age())
+        );
+        workforceDao.updateWorkerProfileDetails(
+            workerProfileUuid,
+            normalizeOptionalText(request.pickupLocation()),
+            normalizeOptionalText(request.memo())
+        );
+        List<String> workTypeCodes = normalizeWorkTypeCodes(request.workTypeCodes());
+        workforceDao.replaceWorkerWorkTypes(
+            workerProfileUuid,
+            workTypeCodes,
+            normalizeWorkTypeRatings(workTypeCodes, request.workTypeRatings())
         );
     }
 
@@ -116,12 +161,50 @@ public class WorkforceService {
     }
 
     @Transactional
-    public void updateWorkerWorkTypes(String loginId, UUID workerProfileUuid, List<String> workTypeCodes) {
+    public void updateWorkerWorkTypes(
+        String loginId,
+        UUID workerProfileUuid,
+        List<String> workTypeCodes,
+        Map<String, Integer> workTypeRatings
+    ) {
         String normalizedLoginId = normalizeLoginId(loginId);
         ensureWorkerProfileBelongsToLoginId(normalizedLoginId, workerProfileUuid);
 
+        List<String> normalizedWorkTypeCodes = normalizeWorkTypeCodes(workTypeCodes);
+        workforceDao.replaceWorkerWorkTypes(
+            workerProfileUuid,
+            normalizedWorkTypeCodes,
+            normalizeWorkTypeRatings(normalizedWorkTypeCodes, workTypeRatings)
+        );
+    }
+
+    private List<String> normalizeWorkTypeCodes(List<String> workTypeCodes) {
         Set<String> uniqueWorkTypeCodes = new LinkedHashSet<>(workTypeCodes == null ? List.of() : workTypeCodes);
-        workforceDao.replaceWorkerWorkTypes(workerProfileUuid, uniqueWorkTypeCodes.stream().toList());
+
+        return uniqueWorkTypeCodes.stream()
+            .map(this::normalizeOptionalText)
+            .filter(code -> code != null)
+            .toList();
+    }
+
+    private Map<String, Integer> normalizeWorkTypeRatings(List<String> workTypeCodes, Map<String, Integer> workTypeRatings) {
+        Map<String, Integer> ratings = workTypeRatings == null ? Map.of() : workTypeRatings;
+
+        return workTypeCodes.stream()
+            .collect(java.util.stream.Collectors.toMap(
+                code -> code,
+                code -> normalizeWorkTypeRating(ratings.get(code)),
+                (left, right) -> right,
+                java.util.LinkedHashMap::new
+            ));
+    }
+
+    private int normalizeWorkTypeRating(Integer rating) {
+        if (rating == null) {
+            return 0;
+        }
+
+        return Math.max(0, Math.min(5, rating));
     }
 
     private void ensureWorkerProfileBelongsToLoginId(String loginId, UUID workerProfileUuid) {

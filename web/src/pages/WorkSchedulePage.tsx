@@ -38,7 +38,14 @@ type AssignmentArea = "men" | "women";
 
 type TaskAssignments = {
   men: string[];
+  workerCounts: Record<string, number>;
   women: string[];
+};
+
+type EditingAssignmentCount = {
+  taskId: string;
+  value: string;
+  workerId: string;
 };
 
 type RequiredWorkerCount = {
@@ -104,15 +111,23 @@ function getTodayInputValue() {
   return `${year}-${month}-${day}`;
 }
 
-function getPreviousDateInputValue(value: string) {
+function addDaysToInputValue(value: string, days: number) {
   const date = new Date(`${value}T00:00:00`);
-  date.setDate(date.getDate() - 1);
+  date.setDate(date.getDate() + days);
 
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function getPreviousDateInputValue(value: string) {
+  return addDaysToInputValue(value, -1);
+}
+
+function getNextDateInputValue(value: string) {
+  return addDaysToInputValue(value, 1);
 }
 
 function getWorkerDisplayName(worker: WorkerRow) {
@@ -182,17 +197,27 @@ function createAssignmentDrafts(
   tasks: ScheduleTask[],
 ): Record<string, TaskAssignments> {
   return Object.fromEntries(
-    tasks.map((task) => [
-      task.id,
-      {
-        men: task.assignments
-          .filter((assignment) => assignment.area === "men")
-          .map((assignment) => assignment.workerProfileUuid),
-        women: task.assignments
-          .filter((assignment) => assignment.area === "women")
-          .map((assignment) => assignment.workerProfileUuid),
-      },
-    ]),
+    tasks.map((task) => {
+      const workerCounts = Object.fromEntries(
+        task.assignments.map((assignment) => [
+          assignment.workerProfileUuid,
+          assignment.workerCount || 1,
+        ]),
+      );
+
+      return [
+        task.id,
+        {
+          men: task.assignments
+            .filter((assignment) => assignment.area === "men")
+            .map((assignment) => assignment.workerProfileUuid),
+          workerCounts,
+          women: task.assignments
+            .filter((assignment) => assignment.area === "women")
+            .map((assignment) => assignment.workerProfileUuid),
+        },
+      ];
+    }),
   );
 }
 
@@ -236,12 +261,40 @@ function toScheduleAssignments(
     ...taskAssignments.men.map((workerProfileUuid) => ({
       area: "men" as const,
       workerProfileUuid,
+      workerCount: taskAssignments.workerCounts[workerProfileUuid] ?? 1,
     })),
     ...taskAssignments.women.map((workerProfileUuid) => ({
       area: "women" as const,
       workerProfileUuid,
+      workerCount: taskAssignments.workerCounts[workerProfileUuid] ?? 1,
     })),
   ];
+}
+
+function createEmptyTaskAssignments(): TaskAssignments {
+  return {
+    men: [],
+    workerCounts: {},
+    women: [],
+  };
+}
+
+function sumWorkerCounts(workerIds: string[], taskAssignments: TaskAssignments) {
+  return workerIds.reduce(
+    (totalCount, workerId) =>
+      totalCount + (taskAssignments.workerCounts[workerId] ?? 1),
+    0,
+  );
+}
+
+function serializeTaskAssignments(taskAssignments: TaskAssignments) {
+  return [...taskAssignments.men, ...taskAssignments.women]
+    .map((workerId) => {
+      const area = taskAssignments.men.includes(workerId) ? "men" : "women";
+      return `${area}:${workerId}:${taskAssignments.workerCounts[workerId] ?? 1}`;
+    })
+    .sort()
+    .join("|");
 }
 
 function TaskMemoEditor({
@@ -309,6 +362,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     useState<DraggingWorkerState | null>(null);
   const [editingRequiredCount, setEditingRequiredCount] =
     useState<EditingRequiredCount | null>(null);
+  const [editingAssignmentCount, setEditingAssignmentCount] =
+    useState<EditingAssignmentCount | null>(null);
   const [editingTaskMemoId, setEditingTaskMemoId] = useState<string | null>(
     null,
   );
@@ -475,19 +530,17 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const hasTaskDraftChanges = (task: ScheduleTask) => {
     const persistedTask =
       persistedTasks.find((currentTask) => currentTask.id === task.id) ?? task;
-    const assignments = assignedWorkerIdsByTaskId[task.id] ?? {
-      men: [],
-      women: [],
-    };
+    const assignments =
+      assignedWorkerIdsByTaskId[task.id] ?? createEmptyTaskAssignments();
     const persistedAssignments = createAssignmentDrafts([persistedTask])[
       persistedTask.id
-    ] ?? { men: [], women: [] };
+    ] ?? createEmptyTaskAssignments();
     const requiredCounts = getRequiredCounts(task);
     const detailDraft = getTaskDetailDraft(task);
 
     return (
-      assignments.men.join("|") !== persistedAssignments.men.join("|") ||
-      assignments.women.join("|") !== persistedAssignments.women.join("|") ||
+      serializeTaskAssignments(assignments) !==
+        serializeTaskAssignments(persistedAssignments) ||
       requiredCounts.men !== persistedTask.requiredMen ||
       requiredCounts.women !== persistedTask.requiredWomen ||
       (memoByTaskId[task.id] ?? task.memo) !== persistedTask.memo ||
@@ -563,10 +616,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   };
 
   const applyTaskDraft = async (task: ScheduleTask) => {
-    const taskAssignments = assignedWorkerIdsByTaskId[task.id] ?? {
-      men: [],
-      women: [],
-    };
+    const taskAssignments =
+      assignedWorkerIdsByTaskId[task.id] ?? createEmptyTaskAssignments();
     const requiredCounts = getRequiredCounts(task);
     const detailDraft = getTaskDetailDraft(task);
 
@@ -706,6 +757,17 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
           .filter((assignment) => assignment.area === "men")
           .map((assignment) => assignment.workerProfileUuid)
           .filter((workerId) => !assignedToOtherTasks.has(workerId)),
+        workerCounts: Object.fromEntries(
+          previousTask.assignments
+            .filter(
+              (assignment) =>
+                !assignedToOtherTasks.has(assignment.workerProfileUuid),
+            )
+            .map((assignment) => [
+              assignment.workerProfileUuid,
+              assignment.workerCount || 1,
+            ]),
+        ),
         women: previousTask.assignments
           .filter((assignment) => assignment.area === "women")
           .map((assignment) => assignment.workerProfileUuid)
@@ -842,6 +904,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const updateWorkerWorkTypes = async (
     worker: WorkerRow,
     nextWorkTypeCodes: string[],
+    nextWorkTypeRatings: Record<string, number>,
   ) => {
     const workerId = getWorkerId(worker);
     const previousWorkers = workers;
@@ -849,7 +912,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     setWorkers((currentWorkers) =>
       currentWorkers.map((currentWorker) =>
         getWorkerId(currentWorker) === workerId
-          ? { ...currentWorker, workTypeCodes: nextWorkTypeCodes }
+          ? {
+              ...currentWorker,
+              workTypeCodes: nextWorkTypeCodes,
+              workTypeRatings: nextWorkTypeRatings,
+            }
           : currentWorker,
       ),
     );
@@ -865,6 +932,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
           loginId,
           worker.profileUuid,
           nextWorkTypeCodes,
+          nextWorkTypeRatings,
         ),
       );
       setStatusMessage("가능한 작업을 DB에 저장했습니다.");
@@ -882,6 +950,14 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     const workerIdSet = new Set(workerIds);
 
     setAssignedWorkerIdsByTaskId((currentAssignments) => {
+      const movedWorkerCounts = Object.fromEntries(
+        workerIds.map((workerId) => [
+          workerId,
+          Object.values(currentAssignments).find(
+            (assignment) => assignment.workerCounts[workerId] !== undefined,
+          )?.workerCounts[workerId] ?? 1,
+        ]),
+      );
       const nextAssignments = Object.fromEntries(
         Object.entries(currentAssignments).map(
           ([currentTaskId, assignment]) => [
@@ -890,6 +966,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
               men: assignment.men.filter(
                 (assignedWorkerId) => !workerIdSet.has(assignedWorkerId),
               ),
+              workerCounts: Object.fromEntries(
+                Object.entries(assignment.workerCounts).filter(
+                  ([assignedWorkerId]) => !workerIdSet.has(assignedWorkerId),
+                ),
+              ),
               women: assignment.women.filter(
                 (assignedWorkerId) => !workerIdSet.has(assignedWorkerId),
               ),
@@ -897,13 +978,18 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
           ],
         ),
       );
-      const taskAssignments = nextAssignments[taskId] ?? { men: [], women: [] };
+      const taskAssignments =
+        nextAssignments[taskId] ?? createEmptyTaskAssignments();
       const targetWorkerIds = taskAssignments[targetArea];
 
       return {
         ...nextAssignments,
         [taskId]: {
           ...taskAssignments,
+          workerCounts: {
+            ...taskAssignments.workerCounts,
+            ...movedWorkerCounts,
+          },
           [targetArea]: [
             ...targetWorkerIds,
             ...workerIds.filter(
@@ -921,6 +1007,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       [taskId]: {
         men: (currentAssignments[taskId]?.men ?? []).filter(
           (assignedWorkerId) => assignedWorkerId !== workerId,
+        ),
+        workerCounts: Object.fromEntries(
+          Object.entries(currentAssignments[taskId]?.workerCounts ?? {}).filter(
+            ([assignedWorkerId]) => assignedWorkerId !== workerId,
+          ),
         ),
         women: (currentAssignments[taskId]?.women ?? []).filter(
           (assignedWorkerId) => assignedWorkerId !== workerId,
@@ -940,6 +1031,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             men: assignment.men.filter(
               (assignedWorkerId) => !workerIdSet.has(assignedWorkerId),
             ),
+            workerCounts: Object.fromEntries(
+              Object.entries(assignment.workerCounts).filter(
+                ([assignedWorkerId]) => !workerIdSet.has(assignedWorkerId),
+              ),
+            ),
             women: assignment.women.filter(
               (assignedWorkerId) => !workerIdSet.has(assignedWorkerId),
             ),
@@ -947,6 +1043,48 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         ]),
       ),
     );
+  };
+
+  const startAssignmentCountEdit = (
+    taskId: string,
+    workerId: string,
+    currentValue: number,
+  ) => {
+    setEditingAssignmentCount({
+      taskId,
+      value: String(currentValue),
+      workerId,
+    });
+  };
+
+  const confirmAssignmentCountEdit = () => {
+    if (!editingAssignmentCount) {
+      return;
+    }
+
+    const nextWorkerCount = Number.parseInt(editingAssignmentCount.value, 10);
+    if (!Number.isFinite(nextWorkerCount) || nextWorkerCount < 1) {
+      setEditingAssignmentCount(null);
+      return;
+    }
+
+    setAssignedWorkerIdsByTaskId((currentAssignments) => {
+      const taskAssignments =
+        currentAssignments[editingAssignmentCount.taskId] ??
+        createEmptyTaskAssignments();
+
+      return {
+        ...currentAssignments,
+        [editingAssignmentCount.taskId]: {
+          ...taskAssignments,
+          workerCounts: {
+            ...taskAssignments.workerCounts,
+            [editingAssignmentCount.workerId]: Math.min(nextWorkerCount, 100),
+          },
+        },
+      };
+    });
+    setEditingAssignmentCount(null);
   };
 
   const getWorkersByIds = (workerIds: string[]) =>
@@ -1126,6 +1264,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const renderWorkerToken = (
     worker: WorkerRow,
     variant: "list" | "assigned",
+    assignmentAction?: React.ReactNode,
   ) => {
     const workerId = getWorkerId(worker);
     const workerWorkTypeNames = getWorkTypeNames(
@@ -1165,12 +1304,17 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         onPointerDown={(event) => startWorkerDrag(workerId, event)}
       >
         {variant === "assigned" ? (
-          <>
-            <span className={styles.scheduleWorkerName}>{identityText}</span>
-            <span className={pickupLocationClassName}>
-              {worker.pickupLocation || "승차장소 없음"}
-            </span>
-          </>
+          <div className={styles.assignedWorkerTokenContent}>
+            <div className={styles.assignedWorkerTokenIdentity}>
+              <span className={styles.scheduleWorkerName}>{identityText}</span>
+              <span className={pickupLocationClassName}>
+                {worker.pickupLocation || "승차장소 없음"}
+              </span>
+            </div>
+            <div className={styles.assignedWorkerTokenCount}>
+              {assignmentAction}
+            </div>
+          </div>
         ) : (
           <>
             <span className={styles.scheduleWorkerTokenLine}>
@@ -1281,9 +1425,14 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                   <span>가능한 작업</span>
                   <WorkerWorkTypeCell
                     selectedCodes={worker.workTypeCodes}
+                    selectedRatings={worker.workTypeRatings}
                     workTypeOptions={workTypes}
-                    onChange={(nextWorkTypeCodes) =>
-                      updateWorkerWorkTypes(worker, nextWorkTypeCodes)
+                    onChange={(nextWorkTypeCodes, nextWorkTypeRatings) =>
+                      updateWorkerWorkTypes(
+                        worker,
+                        nextWorkTypeCodes,
+                        nextWorkTypeRatings,
+                      )
                     }
                   />
                 </div>
@@ -1325,7 +1474,9 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       tabIndex={0}
       onPointerDown={(event) => startTeamDrag(team, event)}
     >
-      <div className={styles.scheduleWorkerTeamTitle}>{team.teamName}</div>
+      <div className={styles.scheduleWorkerTeamTitle}>
+        {team.teamName} - {team.workers.length}명
+      </div>
       <div className={styles.scheduleWorkerTeamMembers}>
         {team.workers.map((worker) => renderWorkerToken(worker, "list"))}
       </div>
@@ -1351,11 +1502,31 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
           ) : null}
           <label className={styles.scheduleDateField}>
             <span>작업일</span>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(event) => setSelectedDate(event.target.value)}
-            />
+            <div className={styles.scheduleDateControl}>
+              <button
+                className={styles.scheduleDateMoveButton}
+                type="button"
+                onClick={() =>
+                  setSelectedDate(getPreviousDateInputValue(selectedDate))
+                }
+              >
+                ◀ 어제
+              </button>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(event) => setSelectedDate(event.target.value)}
+              />
+              <button
+                className={styles.scheduleDateMoveButton}
+                type="button"
+                onClick={() =>
+                  setSelectedDate(getNextDateInputValue(selectedDate))
+                }
+              >
+                내일 ▶
+              </button>
+            </div>
           </label>
         </div>
 
@@ -1498,13 +1669,20 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                 </p>
               ) : null}
               {tasks.map((task) => {
-                const taskAssignments = assignedWorkerIdsByTaskId[task.id] ?? {
-                  men: [],
-                  women: [],
-                };
+                const taskAssignments =
+                  assignedWorkerIdsByTaskId[task.id] ??
+                  createEmptyTaskAssignments();
                 const assignedMenWorkers = getWorkersByIds(taskAssignments.men);
                 const assignedWomenWorkers = getWorkersByIds(
                   taskAssignments.women,
+                );
+                const assignedMenCount = sumWorkerCounts(
+                  taskAssignments.men,
+                  taskAssignments,
+                );
+                const assignedWomenCount = sumWorkerCounts(
+                  taskAssignments.women,
+                  taskAssignments,
                 );
                 const requiredCounts = getRequiredCounts(task);
                 const taskMemo = memoByTaskId[task.id] ?? task.memo;
@@ -1606,13 +1784,68 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                     {assignedWorkers.length > 0 ? (
                       assignedWorkers.map((worker) => {
                         const workerId = getWorkerId(worker);
+                        const assignmentAction =
+                          editingAssignmentCount?.taskId === task.id &&
+                          editingAssignmentCount.workerId === workerId ? (
+                            <div
+                              className={styles.assignmentCountEditor}
+                              onPointerDown={(event) => event.stopPropagation()}
+                            >
+                              <input
+                                aria-label={`${getWorkerDisplayName(worker)} 배정 인원`}
+                                max="100"
+                                min="1"
+                                type="number"
+                                value={editingAssignmentCount.value}
+                                onChange={(event) =>
+                                  setEditingAssignmentCount({
+                                    ...editingAssignmentCount,
+                                    value: event.target.value,
+                                  })
+                                }
+                              />
+                              <button
+                                className={styles.inlineConfirmButton}
+                                type="button"
+                                onClick={confirmAssignmentCountEdit}
+                              >
+                                ✓
+                              </button>
+                              <button
+                                className={styles.inlineCancelButton}
+                                type="button"
+                                onClick={() => setEditingAssignmentCount(null)}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              className={styles.assignmentCountButton}
+                              type="button"
+                              onClick={() =>
+                                startAssignmentCountEdit(
+                                  task.id,
+                                  workerId,
+                                  taskAssignments.workerCounts[workerId] ?? 1,
+                                )
+                              }
+                              onPointerDown={(event) => event.stopPropagation()}
+                            >
+                              인원 {taskAssignments.workerCounts[workerId] ?? 1}
+                            </button>
+                          );
 
                         return (
                           <div
                             className={styles.assignedWorkerRow}
                             key={workerId}
                           >
-                            {renderWorkerToken(worker, "assigned")}
+                            {renderWorkerToken(
+                              worker,
+                              "assigned",
+                              assignmentAction,
+                            )}
                             <button
                               aria-label={`${getWorkerDisplayName(worker)} 배정 해제`}
                               className={styles.removeAssignedWorkerButton}
@@ -1773,19 +2006,20 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                       {renderRequiredCount(
                         "men",
                         "남",
-                        assignedMenWorkers.length,
+                        assignedMenCount,
                         requiredCounts.men,
                       )}
                       {renderRequiredCount(
                         "women",
                         "여",
-                        assignedWomenWorkers.length,
+                        assignedWomenCount,
                         requiredCounts.women,
                       )}
                       {isEditingTask ? (
                         <div className={styles.scheduleTaskWorkTypeEditor}>
                           <WorkerWorkTypeCell
                             selectedCodes={taskDetailDraft.workTypeCodes}
+                            selectedRatings={{}}
                             workTypeOptions={workTypes}
                             onChange={(nextWorkTypeCodes) =>
                               setTaskDetailDraftsByTaskId((currentDrafts) => ({

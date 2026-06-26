@@ -54,6 +54,35 @@
   justify-content: center;
 }
 
+.scheduleDateControl {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(150px, 190px) auto;
+}
+
+.scheduleDateMoveButton {
+  align-items: center;
+  appearance: none;
+  background: #f4f8f7;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #2f3f50;
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 35px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.scheduleDateMoveButton:hover {
+  background: #edf6f3;
+  border-color: #9db9b1;
+  cursor: pointer;
+}
+
 .scheduleDateField span,
 .scheduleFilterField span {
   color: #2f3f50;
@@ -469,6 +498,100 @@
 
 .droppedWorkerToken:hover {
   cursor: default;
+}
+
+.assignedWorkerTokenContent {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-content: center;
+  min-width: 0;
+  width: 100%;
+}
+
+.assignedWorkerTokenIdentity {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.assignedWorkerTokenIdentity > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assignedWorkerTokenCount {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+  min-width: max-content;
+}
+
+.droppedWorkerToken .assignmentCountButton {
+  height: 24px;
+  padding: 0 8px;
+}
+
+.assignmentCountButton {
+  align-items: center;
+  appearance: none;
+  background: #f4f8f7;
+  border: 1px solid #b8d2ca;
+  border-radius: 999px;
+  color: #176b5d;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 900;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.assignmentCountButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+.assignmentCountEditor {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 5px;
+  justify-content: center;
+}
+
+.assignmentCountEditor input {
+  appearance: textfield;
+  background: #ffffff;
+  border: 1px solid #b8d2ca;
+  border-radius: 999px;
+  color: #17202a;
+  font-size: 12px;
+  font-weight: 900;
+  height: 26px;
+  padding: 0 4px;
+  text-align: center;
+  width: 44px;
+}
+
+.assignmentCountEditor input::-webkit-inner-spin-button,
+.assignmentCountEditor input::-webkit-outer-spin-button {
+  margin: 0;
+}
+
+.assignmentCountEditor input:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 2px rgba(23, 107, 93, 0.14);
+  outline: 0;
 }
 
 .scheduleWorkerTokenLine {
@@ -1240,6 +1363,14 @@
   .scheduleDateBar {
     align-items: stretch;
     grid-template-columns: 1fr;
+  }
+
+  .scheduleDateControl {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .scheduleDateMoveButton {
+    padding: 0 9px;
   }
 
   .scheduleStatusMessage {

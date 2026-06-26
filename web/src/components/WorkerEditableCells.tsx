@@ -11,7 +11,8 @@ import styles from "./WorkerEditableCells.module.css";
 type EditableWorkerNameCellProps = {
   name: string;
   nickname?: string;
-  onSave: (name: string, nickname: string) => Promise<void>;
+  onOpenProfile?: () => void;
+  onSave?: (name: string, nickname: string) => Promise<void>;
 };
 
 type EditableTextCellProps = {
@@ -26,6 +27,7 @@ type EditableTextCellProps = {
 export function EditableWorkerNameCell({
   name,
   nickname,
+  onOpenProfile,
   onSave,
 }: EditableWorkerNameCellProps) {
   const trimmedName = name.trim();
@@ -49,6 +51,10 @@ export function EditableWorkerNameCell({
   };
 
   const saveEditor = async () => {
+    if (!onSave) {
+      return;
+    }
+
     if (!draftName.trim() && !draftNickname.trim()) {
       window.alert("이름 또는 호칭 중 하나를 입력해주세요.");
       return;
@@ -65,13 +71,28 @@ export function EditableWorkerNameCell({
 
   return (
     <div className={styles.editableCell}>
-      <div className={styles.workerNameCell}>
-        <span className={styles.workerLocalName}>{displayName}</span>
-        {shouldShowNickname ? (
-          <span className={styles.workerNickname}>- {trimmedNickname}</span>
-        ) : null}
-      </div>
-      <EditButton buttonRef={anchorRef} label="이름 수정" onClick={openEditor} />
+      {onOpenProfile ? (
+        <button
+          className={styles.workerNameCellButton}
+          type="button"
+          onClick={onOpenProfile}
+        >
+          <WorkerNameDisplay
+            displayName={displayName}
+            nickname={trimmedNickname}
+            shouldShowNickname={shouldShowNickname}
+          />
+        </button>
+      ) : (
+        <WorkerNameDisplay
+          displayName={displayName}
+          nickname={trimmedNickname}
+          shouldShowNickname={shouldShowNickname}
+        />
+      )}
+      {onSave ? (
+        <EditButton buttonRef={anchorRef} label="이름 수정" onClick={openEditor} />
+      ) : null}
 
       {isEditing ? (
         <div className={styles.cellEditPopover} ref={popoverRef} style={popoverStyle}>
@@ -96,6 +117,25 @@ export function EditableWorkerNameCell({
           </div>
           <CellEditActions disabled={isSaving} onCancel={closeEditor} onSave={saveEditor} />
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+function WorkerNameDisplay({
+  displayName,
+  nickname,
+  shouldShowNickname,
+}: {
+  displayName: string;
+  nickname: string;
+  shouldShowNickname: boolean;
+}) {
+  return (
+    <div className={styles.workerNameCell}>
+      <span className={styles.workerLocalName}>{displayName}</span>
+      {shouldShowNickname ? (
+        <span className={styles.workerNickname}>- {nickname}</span>
       ) : null}
     </div>
   );

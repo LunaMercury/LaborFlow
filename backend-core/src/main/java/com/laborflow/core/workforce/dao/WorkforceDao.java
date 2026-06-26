@@ -3,6 +3,7 @@ package com.laborflow.core.workforce.dao;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerResponse;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,7 +24,7 @@ public interface WorkforceDao {
 
     void upsertWorkerSensitiveProfile(UUID workerUuid, String phone, String phoneHashSource);
 
-    void insertWorkerProfile(
+    UUID insertWorkerProfile(
         UUID agencyOwnerUuid,
         UUID workerUuid,
         String localName,
@@ -44,5 +45,9 @@ public interface WorkforceDao {
 
     void updateWorkerGender(UUID workerProfileUuid, String gender);
 
-    void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes);
+    void updateWorkerCoreDetails(UUID workerProfileUuid, String gender, Integer age);
+
+    void updateWorkerProfileDetails(UUID workerProfileUuid, String pickupLocation, String privateMemo);
+
+    void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes, Map<String, Integer> workTypeRatings);
 }

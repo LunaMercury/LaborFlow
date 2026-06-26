@@ -252,7 +252,8 @@ public class JdbcScheduleDao implements ScheduleDao {
                     worker_profile_uuid,
                     work_date,
                     assignment_area,
-                    schedule_day_uuid
+                    schedule_day_uuid,
+                    worker_count
                 )
                 SELECT
                     ?,
@@ -260,7 +261,8 @@ public class JdbcScheduleDao implements ScheduleDao {
                     ?,
                     d.work_date,
                     ?,
-                    d.uuid
+                    d.uuid,
+                    ?
                 FROM public.work_schedule_day d
                 JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
                 WHERE s.agency_owner_uuid = ?
@@ -269,6 +271,7 @@ public class JdbcScheduleDao implements ScheduleDao {
                 agencyOwnerUuid,
                 assignment.workerProfileUuid(),
                 normalizeAssignmentArea(assignment.area()),
+                assignment.workerCount(),
                 agencyOwnerUuid,
                 scheduleDayUuid
             );
@@ -313,7 +316,7 @@ public class JdbcScheduleDao implements ScheduleDao {
 
         jdbcTemplate.query(
             """
-            SELECT schedule_day_uuid, worker_profile_uuid, assignment_area
+            SELECT schedule_day_uuid, worker_profile_uuid, assignment_area, worker_count
             FROM public.work_schedule_assignment
             WHERE schedule_day_uuid IN (%s)
             ORDER BY created_at
@@ -323,7 +326,8 @@ public class JdbcScheduleDao implements ScheduleDao {
                 assignmentsByScheduleDayUuid.computeIfAbsent(scheduleDayUuid, ignored -> new ArrayList<>())
                     .add(new ScheduleAssignmentResponse(
                         resultSet.getObject("worker_profile_uuid", UUID.class),
-                        denormalizeAssignmentArea(resultSet.getString("assignment_area"))
+                        denormalizeAssignmentArea(resultSet.getString("assignment_area")),
+                        resultSet.getInt("worker_count")
                     ));
             },
             scheduleDayUuids.toArray()

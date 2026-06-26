@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record ScheduleAssignmentResponse(
     UUID workerProfileUuid,
-    String area
+    String area,
+    int workerCount
 ) {
 }

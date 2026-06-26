@@ -4,6 +4,7 @@
   font-weight: 700;
   margin: 0 0 12px;
 }
+
 .modalBackdrop {
   align-items: center;
   background: rgba(23, 32, 42, 0.42);
@@ -15,7 +16,7 @@
   z-index: 100;
 }
 
-.workerRegistrationModal {
+.workerProfileDialog {
   align-items: stretch;
   background: #ffffff;
   border: 1px solid #d9e2ec;
@@ -25,7 +26,7 @@
   flex-direction: column;
   justify-content: flex-start;
   max-height: calc(100vh - 48px);
-  max-width: 620px;
+  max-width: 680px;
   overflow: hidden;
   padding: 28px;
   width: 100%;
@@ -53,7 +54,7 @@
   justify-content: center;
 }
 
-.workerRegistrationForm {
+.workerProfileForm {
   align-items: stretch;
   display: flex;
   flex-direction: column;
@@ -75,8 +76,90 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.formField {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
+}
+
+.formField span {
+  color: #2f3f50;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.formField input,
+.formField textarea {
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  font-size: 14px;
+  min-height: 40px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.formField textarea {
+  min-height: 90px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.formField input:focus,
+.formField textarea:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
+.requiredMark {
+  color: #d0445f;
+}
+
 .fullWidthField {
   grid-column: 1 / -1;
+}
+
+.genderButtonGroup {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+  min-height: 40px;
+}
+
+.genderButton,
+.activeGenderButton {
+  align-items: center;
+  appearance: none;
+  border-radius: 8px;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  height: 36px;
+  justify-content: center;
+  width: 54px;
+}
+
+.genderButton {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  color: #4f5d6b;
+}
+
+.activeGenderButton {
+  background: #176b5d;
+  border: 1px solid #176b5d;
+  color: #ffffff;
+}
+
+.genderButton:hover,
+.activeGenderButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
 }
 
 .workSkillSection {
@@ -107,70 +190,12 @@
   margin: 0;
 }
 
-.workSkillList {
-  align-items: stretch;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.workTypeEditorPanel {
+  padding: 14px 16px;
 }
 
-.workSkillRow {
-  align-items: center;
-  border-bottom: 1px solid #edf2f6;
-  display: flex;
-  justify-content: space-between;
-  min-height: 54px;
-  padding: 0 16px;
-}
-
-.workSkillRow:last-child {
-  border-bottom: 0;
-}
-
-.workSkillRow > span {
-  color: #2f3f50;
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.ratingButtonGroup {
-  align-items: center;
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-}
-
-.ratingButton {
-  align-items: center;
-  appearance: none;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
-  border-radius: 8px;
-  color: #4f5d6b;
-  display: flex;
-  font-size: 14px;
-  font-weight: 900;
-  height: 34px;
-  justify-content: center;
-  width: 34px;
-}
-
-.ratingButton:hover {
-  cursor: pointer;
-  border-color: #176b5d;
-}
-
-.activeRatingButton {
-  background: #176b5d;
-  border-color: #176b5d;
-  color: #ffffff;
-}
-
-.modalActions {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
+.workTypeEditorPanel [class*="workTypePillRow"] {
+  max-width: 100%;
 }
 
 .primaryActionButton,
@@ -204,34 +229,27 @@
   filter: brightness(0.97);
 }
 
+.primaryActionButton:disabled,
+.secondaryActionButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
 @media (max-width: 720px) {
-  .workerRegistrationModal {
-      padding: 22px 18px;
-    }
+  .workerProfileDialog {
+    padding: 22px 18px;
+  }
 
   .modalHeader {
-      gap: 12px;
-    }
+    gap: 12px;
+  }
 
   .modalHeaderActions {
-      align-items: stretch;
-      flex-direction: column;
-    }
+    align-items: stretch;
+    flex-direction: column;
+  }
 
   .workerFormGrid {
-      grid-template-columns: 1fr;
-    }
-
-  .workSkillRow {
-      align-items: flex-start;
-      flex-direction: column;
-      gap: 10px;
-      justify-content: center;
-      padding: 12px 16px;
-    }
-
-  .modalActions {
-      align-items: stretch;
-      flex-direction: column-reverse;
-    }
+    grid-template-columns: 1fr;
+  }
 }

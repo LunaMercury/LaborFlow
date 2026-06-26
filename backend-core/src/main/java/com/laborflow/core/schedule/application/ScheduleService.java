@@ -78,7 +78,11 @@ public class ScheduleService {
                 }
 
                 String area = "women".equalsIgnoreCase(assignment.area()) ? "women" : "men";
-                return new ScheduleAssignmentRequest(assignment.workerProfileUuid(), area);
+                return new ScheduleAssignmentRequest(
+                    assignment.workerProfileUuid(),
+                    area,
+                    normalizeWorkerCount(assignment.workerCount())
+                );
             })
             .distinct()
             .toList();
@@ -87,6 +91,18 @@ public class ScheduleService {
     private int normalizeRequiredCount(int value) {
         if (value < 0 || value > 10000) {
             throw new IllegalArgumentException("Required worker count is invalid.");
+        }
+
+        return value;
+    }
+
+    private int normalizeWorkerCount(int value) {
+        if (value <= 0) {
+            return 1;
+        }
+
+        if (value > 100) {
+            throw new IllegalArgumentException("Assigned worker count is invalid.");
         }
 
         return value;
