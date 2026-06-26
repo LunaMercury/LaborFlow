@@ -1,7 +1,8 @@
 import type { WorkTypeOption } from "../data/workTypeOptions";
 import type { WorkerRow } from "../data/workerRows";
+import { getApiBaseUrl } from "./apiBaseUrl";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5581";
+const apiBaseUrl = getApiBaseUrl();
 
 type WorkerListResponse = {
   workers: WorkerRow[];

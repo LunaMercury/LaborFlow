@@ -1,4 +1,6 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5581";
+import { getApiBaseUrl } from "./apiBaseUrl";
+
+const apiBaseUrl = getApiBaseUrl();
 
 export type ScheduleAssignmentArea = "men" | "women";
 
