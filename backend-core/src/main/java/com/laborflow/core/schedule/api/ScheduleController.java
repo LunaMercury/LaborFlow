@@ -31,13 +31,13 @@ public class ScheduleController {
         return scheduleService.getTasks(loginId, workDate);
     }
 
-    @PutMapping("/tasks/{workSiteUuid}")
+    @PutMapping("/tasks/{scheduleDayUuid}")
     public ScheduleTaskResponse updateTask(
-        @PathVariable UUID workSiteUuid,
+        @PathVariable UUID scheduleDayUuid,
         @RequestParam(defaultValue = "test") String loginId,
         @RequestParam LocalDate workDate,
         @RequestBody UpdateScheduleTaskRequest request
     ) {
-        return scheduleService.updateTask(loginId, workSiteUuid, workDate, request);
+        return scheduleService.updateTask(loginId, scheduleDayUuid, workDate, request);
     }
 }

@@ -28,13 +28,13 @@ public class ScheduleService {
     @Transactional
     public ScheduleTaskResponse updateTask(
         String loginId,
-        UUID workSiteUuid,
+        UUID scheduleDayUuid,
         LocalDate workDate,
         UpdateScheduleTaskRequest request
     ) {
         UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
-        if (!scheduleDao.workSiteBelongsToAgencyOwner(agencyOwnerUuid, workSiteUuid)) {
-            throw new IllegalArgumentException("Work site was not found.");
+        if (!scheduleDao.scheduleDayBelongsToAgencyOwner(agencyOwnerUuid, scheduleDayUuid)) {
+            throw new IllegalArgumentException("Schedule day was not found.");
         }
 
         int requiredMen = normalizeRequiredCount(request.requiredMen());
@@ -47,18 +47,18 @@ public class ScheduleService {
 
         scheduleDao.updateTask(
             agencyOwnerUuid,
-            workSiteUuid,
+            scheduleDayUuid,
             normalizeRequiredText(request.title()),
             normalizeRequiredText(request.address()),
             requiredMen,
             requiredWomen,
             normalizeOptionalText(request.memo())
         );
-        scheduleDao.replaceTaskWorkTypes(workSiteUuid, workTypeCodes);
-        scheduleDao.replaceAssignments(agencyOwnerUuid, workSiteUuid, workDate, assignments);
+        scheduleDao.replaceTaskWorkTypes(agencyOwnerUuid, scheduleDayUuid, workTypeCodes);
+        scheduleDao.replaceAssignments(agencyOwnerUuid, scheduleDayUuid, assignments);
 
-        return scheduleDao.findTask(agencyOwnerUuid, workSiteUuid, workDate)
-            .orElseThrow(() -> new IllegalArgumentException("Work site was not found."));
+        return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
     }
 
     private UUID findAgencyOwnerUuid(String loginId) {

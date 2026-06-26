@@ -86,6 +86,17 @@ function getTodayInputValue() {
   return `${year}-${month}-${day}`;
 }
 
+function getPreviousDateInputValue(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  date.setDate(date.getDate() - 1);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 function getWorkerDisplayName(worker: WorkerRow) {
   const name = worker.name.trim();
   const nickname = worker.nickname?.trim() ?? "";
@@ -94,7 +105,9 @@ function getWorkerDisplayName(worker: WorkerRow) {
 }
 
 function getWorkerId(worker: WorkerRow) {
-  return worker.profileUuid ?? `${worker.phone}-${getWorkerDisplayName(worker)}`;
+  return (
+    worker.profileUuid ?? `${worker.phone}-${getWorkerDisplayName(worker)}`
+  );
 }
 
 function getWorkerGenderLabel(gender?: string) {
@@ -113,6 +126,10 @@ function getWorkerGenderLabel(gender?: string) {
 
 function normalizeSearchText(value: string) {
   return value.trim().toLocaleLowerCase("ko-KR");
+}
+
+function normalizeScheduleMatchText(value: string) {
+  return normalizeSearchText(value).replace(/\s+/g, "");
 }
 
 function getWorkTypeNames(codes: string[], workTypes: WorkTypeOption[]) {
@@ -277,6 +294,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     null,
   );
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
+  const [loadingPreviousAssignmentsTaskId, setLoadingPreviousAssignmentsTaskId] =
+    useState<string | null>(null);
   const [editingWorkerDraft, setEditingWorkerDraft] =
     useState<EditingWorkerDraft | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -363,7 +382,9 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         worker.name,
         worker.nickname ?? "",
         getWorkerDisplayName(worker),
-      ].some((name) => normalizeSearchText(name).includes(normalizedWorkerSearch));
+      ].some((name) =>
+        normalizeSearchText(name).includes(normalizedWorkerSearch),
+      );
     });
 
     for (const worker of availableWorkers) {
@@ -449,7 +470,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       (memoByTaskId[task.id] ?? task.memo) !== persistedTask.memo ||
       detailDraft.title !== persistedTask.title ||
       detailDraft.address !== persistedTask.address ||
-      detailDraft.workTypeCodes.join("|") !== persistedTask.workTypeCodes.join("|")
+      detailDraft.workTypeCodes.join("|") !==
+        persistedTask.workTypeCodes.join("|")
     );
   };
 
@@ -617,6 +639,80 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     setStatusMessage("마지막 저장 상태로 되돌렸습니다.");
   };
 
+  const importPreviousDayAssignments = async (task: ScheduleTask) => {
+    const previousDate = getPreviousDateInputValue(selectedDate);
+    setLoadingPreviousAssignmentsTaskId(task.id);
+    setStatusMessage("");
+
+    try {
+      const previousTasks = await fetchScheduleTasks(loginId, previousDate);
+      const currentTitle = normalizeScheduleMatchText(
+        getTaskDetailDraft(task).title,
+      );
+      const currentOwnerName = normalizeScheduleMatchText(task.ownerName);
+      const previousTaskByWorkSite = previousTasks.find(
+        (currentTask) => currentTask.workSiteId === task.workSiteId,
+      );
+      const previousTaskByOwnerAndTitle = previousTasks
+        .filter(
+          (currentTask) =>
+            normalizeScheduleMatchText(currentTask.ownerName) ===
+              currentOwnerName &&
+            normalizeScheduleMatchText(currentTask.title) === currentTitle,
+        )
+        .sort((leftTask, rightTask) => {
+          return rightTask.assignments.length - leftTask.assignments.length;
+        })[0];
+      const previousTask = previousTaskByWorkSite ?? previousTaskByOwnerAndTitle;
+
+      if (!previousTask) {
+        setStatusMessage("전일 동일 작업의 배정이 없습니다.");
+        return;
+      }
+
+      const assignedToOtherTasks = new Set(
+        Object.entries(assignedWorkerIdsByTaskId)
+          .filter(([taskId]) => taskId !== task.id)
+          .flatMap(([, assignments]) => [
+            ...assignments.men,
+            ...assignments.women,
+          ]),
+      );
+      const nextAssignments: TaskAssignments = {
+        men: previousTask.assignments
+          .filter((assignment) => assignment.area === "men")
+          .map((assignment) => assignment.workerProfileUuid)
+          .filter((workerId) => !assignedToOtherTasks.has(workerId)),
+        women: previousTask.assignments
+          .filter((assignment) => assignment.area === "women")
+          .map((assignment) => assignment.workerProfileUuid)
+          .filter((workerId) => !assignedToOtherTasks.has(workerId)),
+      };
+      const previousAssignmentCount = previousTask.assignments.length;
+      const importedAssignmentCount =
+        nextAssignments.men.length + nextAssignments.women.length;
+
+      if (previousAssignmentCount === 0) {
+        setStatusMessage("전일 작업자 배정이 비어 있습니다.");
+        return;
+      }
+
+      setAssignedWorkerIdsByTaskId((currentAssignments) => ({
+        ...currentAssignments,
+        [task.id]: nextAssignments,
+      }));
+      setStatusMessage(
+        previousAssignmentCount === importedAssignmentCount
+          ? "전일 작업자를 불러왔습니다. 체크 버튼을 눌러야 저장됩니다."
+          : "전일 작업자 중 이미 다른 작업에 배정된 인원은 제외했습니다. 체크 버튼을 눌러야 저장됩니다.",
+      );
+    } catch {
+      setStatusMessage("전일 작업자를 불러오지 못했습니다.");
+    } finally {
+      setLoadingPreviousAssignmentsTaskId(null);
+    }
+  };
+
   const openWorkerEditor = (worker: WorkerRow) => {
     setEditingWorkerDraft({
       gender: worker.gender ?? "UNKNOWN",
@@ -636,13 +732,19 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       return;
     }
 
-    const worker = workers.find((currentWorker) => getWorkerId(currentWorker) === editingWorkerDraft.workerId);
+    const worker = workers.find(
+      (currentWorker) =>
+        getWorkerId(currentWorker) === editingWorkerDraft.workerId,
+    );
     if (!worker) {
       closeWorkerEditor();
       return;
     }
 
-    if (!editingWorkerDraft.name.trim() && !editingWorkerDraft.nickname.trim()) {
+    if (
+      !editingWorkerDraft.name.trim() &&
+      !editingWorkerDraft.nickname.trim()
+    ) {
       window.alert("이름 또는 호칭 중 하나를 입력해주세요.");
       return;
     }
@@ -704,13 +806,20 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       setStatusMessage("작업자 정보를 DB에 저장했습니다.");
       closeWorkerEditor();
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "작업자 정보를 저장하지 못했습니다.");
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "작업자 정보를 저장하지 못했습니다.",
+      );
     } finally {
       setSavingWorkerId(null);
     }
   };
 
-  const updateWorkerWorkTypes = async (worker: WorkerRow, nextWorkTypeCodes: string[]) => {
+  const updateWorkerWorkTypes = async (
+    worker: WorkerRow,
+    nextWorkTypeCodes: string[],
+  ) => {
     const workerId = getWorkerId(worker);
     const previousWorkers = workers;
 
@@ -728,7 +837,13 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     }
 
     try {
-      setWorkers(await saveWorkerWorkTypes(loginId, worker.profileUuid, nextWorkTypeCodes));
+      setWorkers(
+        await saveWorkerWorkTypes(
+          loginId,
+          worker.profileUuid,
+          nextWorkTypeCodes,
+        ),
+      );
       setStatusMessage("가능한 작업을 DB에 저장했습니다.");
     } catch {
       setWorkers(previousWorkers);
@@ -807,9 +922,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const getWorkersByIds = (workerIds: string[]) =>
     workerIds
       .map((workerId) =>
-        workers.find(
-          (worker) => getWorkerId(worker) === workerId,
-        ),
+        workers.find((worker) => getWorkerId(worker) === workerId),
       )
       .filter((worker): worker is WorkerRow => Boolean(worker));
 
@@ -1096,15 +1209,16 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   };
 
   const draggingWorkerRow = draggingWorker
-    ? workers.find(
-        (worker) => getWorkerId(worker) === draggingWorker.workerId,
-      )
+    ? workers.find((worker) => getWorkerId(worker) === draggingWorker.workerId)
     : null;
 
   return (
     <main className={styles.mainContent}>
       <section className={styles.workSchedulePanel} aria-label="작업 일정">
         <div className={styles.scheduleDateBar}>
+          {statusMessage ? (
+            <p className={styles.scheduleStatusMessage}>{statusMessage}</p>
+          ) : null}
           <label className={styles.scheduleDateField}>
             <span>작업일</span>
             <input
@@ -1113,9 +1227,6 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
               onChange={(event) => setSelectedDate(event.target.value)}
             />
           </label>
-          {statusMessage ? (
-            <p className={styles.scheduleStatusMessage}>{statusMessage}</p>
-          ) : null}
         </div>
 
         <div className={styles.workScheduleSplit}>
@@ -1136,7 +1247,9 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                     aria-label="작업자 이름 검색"
                     placeholder="작업자 이름 검색"
                     value={workerSearchDraft}
-                    onChange={(event) => setWorkerSearchDraft(event.target.value)}
+                    onChange={(event) =>
+                      setWorkerSearchDraft(event.target.value)
+                    }
                   />
                 </div>
               </div>
@@ -1392,13 +1505,15 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                               <input
                                 value={taskDetailDraft.title}
                                 onChange={(event) =>
-                                  setTaskDetailDraftsByTaskId((currentDrafts) => ({
-                                    ...currentDrafts,
-                                    [task.id]: {
-                                      ...taskDetailDraft,
-                                      title: event.target.value,
-                                    },
-                                  }))
+                                  setTaskDetailDraftsByTaskId(
+                                    (currentDrafts) => ({
+                                      ...currentDrafts,
+                                      [task.id]: {
+                                        ...taskDetailDraft,
+                                        title: event.target.value,
+                                      },
+                                    }),
+                                  )
                                 }
                               />
                             </label>
@@ -1407,13 +1522,15 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                               <input
                                 value={taskDetailDraft.address}
                                 onChange={(event) =>
-                                  setTaskDetailDraftsByTaskId((currentDrafts) => ({
-                                    ...currentDrafts,
-                                    [task.id]: {
-                                      ...taskDetailDraft,
-                                      address: event.target.value,
-                                    },
-                                  }))
+                                  setTaskDetailDraftsByTaskId(
+                                    (currentDrafts) => ({
+                                      ...currentDrafts,
+                                      [task.id]: {
+                                        ...taskDetailDraft,
+                                        address: event.target.value,
+                                      },
+                                    }),
+                                  )
                                 }
                               />
                             </label>
@@ -1421,7 +1538,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                         ) : (
                           <>
                             <h3>
-                              {taskDetailDraft.title} <span>/ {task.ownerName}</span>
+                              {taskDetailDraft.title}{" "}
+                              <span>/ {task.ownerName}</span>
                             </h3>
                             <p>
                               {task.siteName} · {taskDetailDraft.address}
@@ -1447,9 +1565,22 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                         ) : (
                           <>
                             <button
+                              aria-label={`${task.title} 전일 작업자 불러오기`}
+                              className={styles.schedulePreviousAssignmentsButton}
+                              disabled={
+                                loadingPreviousAssignmentsTaskId === task.id
+                              }
+                              type="button"
+                              onClick={() => importPreviousDayAssignments(task)}
+                            >
+                              전일 작업자
+                            </button>
+                            <button
                               aria-label={`${task.title} 일정 저장`}
                               className={styles.scheduleTaskApplyButton}
-                              disabled={savingTaskId === task.id || !canApplyTask}
+                              disabled={
+                                savingTaskId === task.id || !canApplyTask
+                              }
                               type="button"
                               onClick={() => applyTaskDraft(task)}
                             >
@@ -1466,14 +1597,6 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                             </button>
                             {isEditingTask ? (
                               <div className={styles.scheduleTaskEditActions}>
-                                <button
-                                  aria-label={`${task.title} 작업 수정 적용`}
-                                  className={styles.inlineConfirmButton}
-                                  type="button"
-                                  onClick={() => setEditingTaskId(null)}
-                                >
-                                  ✓
-                                </button>
                                 <button
                                   aria-label={`${task.title} 작업 수정 취소`}
                                   className={styles.inlineCancelButton}

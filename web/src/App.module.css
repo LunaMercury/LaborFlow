@@ -1,4 +1,4 @@
-.page {
+﻿.page {
   align-items: center;
   background: #f6f8fb;
   color: #17202a;
@@ -152,7 +152,7 @@
   display: flex;
   flex: 1;
   justify-content: center;
-  padding: 48px 32px;
+  padding: 30px 30px;
   width: 100%;
 }
 
@@ -513,12 +513,6 @@
   .mainContent {
     padding: 24px 16px;
   }
-
-
-
-
-
-
 
   .loginOptionsRow {
     align-items: flex-start;

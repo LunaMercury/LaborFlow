@@ -18,6 +18,7 @@ export type ScheduleTask = {
   siteName: string;
   timeRange: string;
   title: string;
+  workSiteId: string;
   workTypeCodes: string[];
 };
 

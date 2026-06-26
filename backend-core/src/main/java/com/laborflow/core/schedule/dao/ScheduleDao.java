@@ -10,17 +10,17 @@ import java.util.UUID;
 public interface ScheduleDao {
     Optional<UUID> findAgencyOwnerUuidByLoginId(String loginId);
 
-    boolean workSiteBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID workSiteUuid);
+    boolean scheduleDayBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID scheduleDayUuid);
 
     boolean workerProfileBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID workerProfileUuid);
 
     List<ScheduleTaskResponse> findTasks(UUID agencyOwnerUuid, LocalDate workDate);
 
-    Optional<ScheduleTaskResponse> findTask(UUID agencyOwnerUuid, UUID workSiteUuid, LocalDate workDate);
+    Optional<ScheduleTaskResponse> findTask(UUID agencyOwnerUuid, UUID scheduleDayUuid, LocalDate workDate);
 
     void updateTask(
         UUID agencyOwnerUuid,
-        UUID workSiteUuid,
+        UUID scheduleDayUuid,
         String title,
         String address,
         int requiredMen,
@@ -28,12 +28,11 @@ public interface ScheduleDao {
         String memo
     );
 
-    void replaceTaskWorkTypes(UUID workSiteUuid, List<String> workTypeCodes);
+    void replaceTaskWorkTypes(UUID agencyOwnerUuid, UUID scheduleDayUuid, List<String> workTypeCodes);
 
     void replaceAssignments(
         UUID agencyOwnerUuid,
-        UUID workSiteUuid,
-        LocalDate workDate,
+        UUID scheduleDayUuid,
         List<ScheduleAssignmentRequest> assignments
     );
 }

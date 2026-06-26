@@ -45,16 +45,17 @@ public class JdbcScheduleDao implements ScheduleDao {
     }
 
     @Override
-    public boolean workSiteBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID workSiteUuid) {
+    public boolean scheduleDayBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID scheduleDayUuid) {
         Integer count = jdbcTemplate.queryForObject(
             """
             SELECT count(*)
-            FROM public.farm_work_site
-            WHERE agency_owner_uuid = ? AND uuid = ?
+            FROM public.work_schedule_day d
+            JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
+            WHERE s.agency_owner_uuid = ? AND d.uuid = ?
             """,
             Integer.class,
             agencyOwnerUuid,
-            workSiteUuid
+            scheduleDayUuid
         );
 
         return count != null && count > 0;
@@ -81,30 +82,31 @@ public class JdbcScheduleDao implements ScheduleDao {
         List<ScheduleTaskProjection> tasks = jdbcTemplate.query(
             """
             SELECT
-                s.uuid,
+                d.uuid,
+                s.uuid AS work_site_uuid,
                 s.work_description,
                 COALESCE(fp.local_name, fp.local_nickname, fp.local_business_name, fo.canonical_name, '') AS owner_name,
                 COALESCE(s.site_name, '') AS site_name,
                 s.farm_address,
-                s.male_required_count,
-                s.female_required_count,
-                COALESCE(s.memo, '') AS memo,
-                s.daily_start_time,
-                s.daily_end_time
-            FROM public.farm_work_site s
+                d.male_required_count,
+                d.female_required_count,
+                COALESCE(d.memo, '') AS memo,
+                d.daily_start_time,
+                d.daily_end_time
+            FROM public.work_schedule_day d
+            JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
             JOIN public.farm_owner fo ON fo.uuid = s.owner_uuid
             LEFT JOIN public.labor_agency_farm_owner_profile fp
                 ON fp.agency_owner_uuid = s.agency_owner_uuid
                 AND fp.farm_owner_uuid = s.owner_uuid
             WHERE s.agency_owner_uuid = ?
                 AND s.status = 'ACTIVE'
-                AND (s.work_start_date IS NULL OR s.work_start_date <= ?)
-                AND (s.work_end_date IS NULL OR s.work_end_date >= ?)
-            ORDER BY s.daily_start_time NULLS LAST, s.work_description, s.created_at
+                AND d.status = 'ACTIVE'
+                AND d.work_date = ?
+            ORDER BY d.daily_start_time NULLS LAST, s.work_description, d.created_at
             """,
             (resultSet, rowNumber) -> mapTaskProjection(resultSet),
             agencyOwnerUuid,
-            workDate,
             workDate
         );
 
@@ -112,14 +114,16 @@ public class JdbcScheduleDao implements ScheduleDao {
             return List.of();
         }
 
-        List<UUID> siteUuids = tasks.stream().map(ScheduleTaskProjection::id).toList();
+        List<UUID> scheduleDayUuids = tasks.stream().map(ScheduleTaskProjection::id).toList();
+        List<UUID> siteUuids = tasks.stream().map(ScheduleTaskProjection::workSiteId).toList();
         Map<UUID, List<String>> workTypeCodesBySiteUuid = findWorkTypeCodesBySiteUuid(siteUuids);
-        Map<UUID, List<ScheduleAssignmentResponse>> assignmentsBySiteUuid =
-            findAssignmentsBySiteUuid(siteUuids, workDate);
+        Map<UUID, List<ScheduleAssignmentResponse>> assignmentsByScheduleDayUuid =
+            findAssignmentsByScheduleDayUuid(scheduleDayUuids);
 
         return tasks.stream()
             .map(task -> new ScheduleTaskResponse(
                 task.id(),
+                task.workSiteId(),
                 task.title(),
                 task.ownerName(),
                 task.siteName(),
@@ -127,24 +131,24 @@ public class JdbcScheduleDao implements ScheduleDao {
                 formatTimeRange(task.startTime(), task.endTime()),
                 task.requiredMen(),
                 task.requiredWomen(),
-                workTypeCodesBySiteUuid.getOrDefault(task.id(), List.of()),
+                workTypeCodesBySiteUuid.getOrDefault(task.workSiteId(), List.of()),
                 task.memo(),
-                assignmentsBySiteUuid.getOrDefault(task.id(), List.of())
+                assignmentsByScheduleDayUuid.getOrDefault(task.id(), List.of())
             ))
             .toList();
     }
 
     @Override
-    public Optional<ScheduleTaskResponse> findTask(UUID agencyOwnerUuid, UUID workSiteUuid, LocalDate workDate) {
+    public Optional<ScheduleTaskResponse> findTask(UUID agencyOwnerUuid, UUID scheduleDayUuid, LocalDate workDate) {
         return findTasks(agencyOwnerUuid, workDate).stream()
-            .filter(task -> task.id().equals(workSiteUuid))
+            .filter(task -> task.id().equals(scheduleDayUuid))
             .findFirst();
     }
 
     @Override
     public void updateTask(
         UUID agencyOwnerUuid,
-        UUID workSiteUuid,
+        UUID scheduleDayUuid,
         String title,
         String address,
         int requiredMen,
@@ -155,27 +159,51 @@ public class JdbcScheduleDao implements ScheduleDao {
             """
             UPDATE public.farm_work_site
             SET work_description = ?,
-                farm_address = ?,
-                male_required_count = ?,
-                female_required_count = ?,
-                memo = ?
-            WHERE agency_owner_uuid = ? AND uuid = ?
+                farm_address = ?
+            FROM public.work_schedule_day d
+            WHERE d.work_site_uuid = public.farm_work_site.uuid
+                AND public.farm_work_site.agency_owner_uuid = ?
+                AND d.uuid = ?
             """,
             title,
             address,
+            agencyOwnerUuid,
+            scheduleDayUuid
+        );
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.work_schedule_day d
+            SET
+                male_required_count = ?,
+                female_required_count = ?,
+                memo = ?
+            FROM public.farm_work_site s
+            WHERE s.uuid = d.work_site_uuid
+                AND s.agency_owner_uuid = ?
+                AND d.uuid = ?
+            """,
             requiredMen,
             requiredWomen,
             memo,
             agencyOwnerUuid,
-            workSiteUuid
+            scheduleDayUuid
         );
     }
 
     @Override
-    public void replaceTaskWorkTypes(UUID workSiteUuid, List<String> workTypeCodes) {
+    public void replaceTaskWorkTypes(UUID agencyOwnerUuid, UUID scheduleDayUuid, List<String> workTypeCodes) {
         jdbcTemplate.update(
-            "DELETE FROM public.farm_work_site_work_type WHERE work_site_uuid = ?",
-            workSiteUuid
+            """
+            DELETE FROM public.farm_work_site_work_type swt
+            USING public.work_schedule_day d, public.farm_work_site s
+            WHERE swt.work_site_uuid = d.work_site_uuid
+                AND s.uuid = d.work_site_uuid
+                AND s.agency_owner_uuid = ?
+                AND d.uuid = ?
+            """,
+            agencyOwnerUuid,
+            scheduleDayUuid
         );
 
         for (String workTypeCode : workTypeCodes) {
@@ -185,13 +213,17 @@ public class JdbcScheduleDao implements ScheduleDao {
                     work_site_uuid,
                     work_type_uuid
                 )
-                SELECT ?, uuid
-                FROM public.work_type
-                WHERE code = ? AND status = 'ACTIVE'
+                SELECT d.work_site_uuid, wt.uuid
+                FROM public.work_schedule_day d
+                JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
+                JOIN public.work_type wt ON wt.code = ? AND wt.status = 'ACTIVE'
+                WHERE s.agency_owner_uuid = ?
+                    AND d.uuid = ?
                 ON CONFLICT DO NOTHING
                 """,
-                workSiteUuid,
-                workTypeCode
+                workTypeCode,
+                agencyOwnerUuid,
+                scheduleDayUuid
             );
         }
     }
@@ -199,18 +231,16 @@ public class JdbcScheduleDao implements ScheduleDao {
     @Override
     public void replaceAssignments(
         UUID agencyOwnerUuid,
-        UUID workSiteUuid,
-        LocalDate workDate,
+        UUID scheduleDayUuid,
         List<ScheduleAssignmentRequest> assignments
     ) {
         jdbcTemplate.update(
             """
             DELETE FROM public.work_schedule_assignment
-            WHERE agency_owner_uuid = ? AND work_site_uuid = ? AND work_date = ?
+            WHERE agency_owner_uuid = ? AND schedule_day_uuid = ?
             """,
             agencyOwnerUuid,
-            workSiteUuid,
-            workDate
+            scheduleDayUuid
         );
 
         for (ScheduleAssignmentRequest assignment : assignments) {
@@ -221,15 +251,26 @@ public class JdbcScheduleDao implements ScheduleDao {
                     work_site_uuid,
                     worker_profile_uuid,
                     work_date,
-                    assignment_area
+                    assignment_area,
+                    schedule_day_uuid
                 )
-                VALUES (?, ?, ?, ?, ?)
+                SELECT
+                    ?,
+                    d.work_site_uuid,
+                    ?,
+                    d.work_date,
+                    ?,
+                    d.uuid
+                FROM public.work_schedule_day d
+                JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
+                WHERE s.agency_owner_uuid = ?
+                    AND d.uuid = ?
                 """,
                 agencyOwnerUuid,
-                workSiteUuid,
                 assignment.workerProfileUuid(),
-                workDate,
-                normalizeAssignmentArea(assignment.area())
+                normalizeAssignmentArea(assignment.area()),
+                agencyOwnerUuid,
+                scheduleDayUuid
             );
         }
     }
@@ -260,47 +301,41 @@ public class JdbcScheduleDao implements ScheduleDao {
         return workTypeCodesBySiteUuid;
     }
 
-    private Map<UUID, List<ScheduleAssignmentResponse>> findAssignmentsBySiteUuid(
-        List<UUID> siteUuids,
-        LocalDate workDate
+    private Map<UUID, List<ScheduleAssignmentResponse>> findAssignmentsByScheduleDayUuid(
+        List<UUID> scheduleDayUuids
     ) {
-        Map<UUID, List<ScheduleAssignmentResponse>> assignmentsBySiteUuid = new LinkedHashMap<>();
-        for (UUID siteUuid : siteUuids) {
-            assignmentsBySiteUuid.put(siteUuid, new ArrayList<>());
+        Map<UUID, List<ScheduleAssignmentResponse>> assignmentsByScheduleDayUuid = new LinkedHashMap<>();
+        for (UUID scheduleDayUuid : scheduleDayUuids) {
+            assignmentsByScheduleDayUuid.put(scheduleDayUuid, new ArrayList<>());
         }
 
-        String placeholders = String.join(",", siteUuids.stream().map(siteUuid -> "?").toList());
-        Object[] params = new Object[siteUuids.size() + 1];
-        for (int index = 0; index < siteUuids.size(); index += 1) {
-            params[index] = siteUuids.get(index);
-        }
-        params[siteUuids.size()] = workDate;
+        String placeholders = String.join(",", scheduleDayUuids.stream().map(scheduleDayUuid -> "?").toList());
 
         jdbcTemplate.query(
             """
-            SELECT work_site_uuid, worker_profile_uuid, assignment_area
+            SELECT schedule_day_uuid, worker_profile_uuid, assignment_area
             FROM public.work_schedule_assignment
-            WHERE work_site_uuid IN (%s)
-                AND work_date = ?
+            WHERE schedule_day_uuid IN (%s)
             ORDER BY created_at
             """.formatted(placeholders),
             resultSet -> {
-                UUID siteUuid = resultSet.getObject("work_site_uuid", UUID.class);
-                assignmentsBySiteUuid.computeIfAbsent(siteUuid, ignored -> new ArrayList<>())
+                UUID scheduleDayUuid = resultSet.getObject("schedule_day_uuid", UUID.class);
+                assignmentsByScheduleDayUuid.computeIfAbsent(scheduleDayUuid, ignored -> new ArrayList<>())
                     .add(new ScheduleAssignmentResponse(
                         resultSet.getObject("worker_profile_uuid", UUID.class),
                         denormalizeAssignmentArea(resultSet.getString("assignment_area"))
                     ));
             },
-            params
+            scheduleDayUuids.toArray()
         );
 
-        return assignmentsBySiteUuid;
+        return assignmentsByScheduleDayUuid;
     }
 
     private ScheduleTaskProjection mapTaskProjection(ResultSet resultSet) throws SQLException {
         return new ScheduleTaskProjection(
             resultSet.getObject("uuid", UUID.class),
+            resultSet.getObject("work_site_uuid", UUID.class),
             resultSet.getString("work_description"),
             resultSet.getString("owner_name"),
             resultSet.getString("site_name"),
@@ -339,6 +374,7 @@ public class JdbcScheduleDao implements ScheduleDao {
 
     private record ScheduleTaskProjection(
         UUID id,
+        UUID workSiteId,
         String title,
         String ownerName,
         String siteName,
