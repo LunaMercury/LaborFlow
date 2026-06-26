@@ -6,6 +6,10 @@ export type WorkerRow = {
   gender?: string;
   workTypeCodes: string[];
   pickupLocation: string;
+  teamUuid?: string | null;
+  teamName?: string | null;
+  teamRole?: string | null;
+  teamDisplayOrder?: number;
 };
 
 export const workerRows: WorkerRow[] = [

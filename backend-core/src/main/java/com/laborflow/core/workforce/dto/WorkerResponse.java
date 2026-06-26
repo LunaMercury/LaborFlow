@@ -10,6 +10,10 @@ public record WorkerResponse(
     String phone,
     String gender,
     String pickupLocation,
+    UUID teamUuid,
+    String teamName,
+    String teamRole,
+    int teamDisplayOrder,
     List<String> workTypeCodes
 ) {
 }

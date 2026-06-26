@@ -53,8 +53,26 @@ type EditingRequiredCount = {
 };
 
 type DraggingWorkerState = {
-  workerId: string;
+  label: string;
+  workerIds: string[];
 };
+
+type WorkerTeamGroup = {
+  displayOrder: number;
+  teamName: string;
+  teamUuid: string;
+  workers: WorkerRow[];
+};
+
+type WorkerListEntry =
+  | {
+      type: "team";
+      team: WorkerTeamGroup;
+    }
+  | {
+      type: "worker";
+      worker: WorkerRow;
+    };
 
 type EditingWorkerDraft = {
   gender: string;
@@ -272,6 +290,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const [workerSearchDraft, setWorkerSearchDraft] = useState("");
   const [filterDraft, setFilterDraft] = useState("");
   const [workFilters, setWorkFilters] = useState<string[]>([]);
+  const [isTeamViewEnabled, setIsTeamViewEnabled] = useState(false);
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
   const [tasks, setTasks] = useState<ScheduleTask[]>([]);
@@ -307,7 +326,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const dragPreviewRef = useRef<HTMLDivElement | null>(null);
   const dragFrameRef = useRef<number | null>(null);
   const dragPointRef = useRef({ x: 0, y: 0 });
-  const draggingWorkerId = draggingWorker?.workerId ?? null;
+  const draggingWorkerIds = useMemo(
+    () => new Set(draggingWorker?.workerIds ?? []),
+    [draggingWorker],
+  );
+  const isDraggingWorkers = draggingWorkerIds.size > 0;
 
   useEffect(() => {
     let isMounted = true;
@@ -854,8 +877,10 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const handleWorkerDrop = (
     taskId: string,
     targetArea: AssignmentArea,
-    workerId: string,
+    workerIds: string[],
   ) => {
+    const workerIdSet = new Set(workerIds);
+
     setAssignedWorkerIdsByTaskId((currentAssignments) => {
       const nextAssignments = Object.fromEntries(
         Object.entries(currentAssignments).map(
@@ -863,10 +888,10 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             currentTaskId,
             {
               men: assignment.men.filter(
-                (assignedWorkerId) => assignedWorkerId !== workerId,
+                (assignedWorkerId) => !workerIdSet.has(assignedWorkerId),
               ),
               women: assignment.women.filter(
-                (assignedWorkerId) => assignedWorkerId !== workerId,
+                (assignedWorkerId) => !workerIdSet.has(assignedWorkerId),
               ),
             },
           ],
@@ -879,9 +904,12 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         ...nextAssignments,
         [taskId]: {
           ...taskAssignments,
-          [targetArea]: targetWorkerIds.includes(workerId)
-            ? targetWorkerIds
-            : [...targetWorkerIds, workerId],
+          [targetArea]: [
+            ...targetWorkerIds,
+            ...workerIds.filter(
+              (workerId) => !targetWorkerIds.includes(workerId),
+            ),
+          ],
         },
       };
     });
@@ -901,17 +929,19 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     }));
   };
 
-  const releaseAssignedWorker = (workerId: string) => {
+  const releaseAssignedWorkers = (workerIds: string[]) => {
+    const workerIdSet = new Set(workerIds);
+
     setAssignedWorkerIdsByTaskId((currentAssignments) =>
       Object.fromEntries(
         Object.entries(currentAssignments).map(([taskId, assignment]) => [
           taskId,
           {
             men: assignment.men.filter(
-              (assignedWorkerId) => assignedWorkerId !== workerId,
+              (assignedWorkerId) => !workerIdSet.has(assignedWorkerId),
             ),
             women: assignment.women.filter(
-              (assignedWorkerId) => assignedWorkerId !== workerId,
+              (assignedWorkerId) => !workerIdSet.has(assignedWorkerId),
             ),
           },
         ]),
@@ -975,10 +1005,10 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
           handleWorkerDrop(
             dropZone.dataset.scheduleDropTaskId,
             dropZone.dataset.scheduleDropArea as AssignmentArea,
-            draggingWorker.workerId,
+            draggingWorker.workerIds,
           );
         } else if (targetElement.closest("[data-worker-return-zone='true']")) {
-          releaseAssignedWorker(draggingWorker.workerId);
+          releaseAssignedWorkers(draggingWorker.workerIds);
         }
       }
 
@@ -1012,9 +1042,84 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     }
 
     event.preventDefault();
+    event.stopPropagation();
+    moveDragPreview(event.clientX, event.clientY);
+    const worker = workers.find(
+      (currentWorker) => getWorkerId(currentWorker) === workerId,
+    );
+    setDraggingWorker({
+      label: worker ? getWorkerDisplayName(worker) : "작업자",
+      workerIds: [workerId],
+    });
+  };
+
+  const startTeamDrag = (
+    team: WorkerTeamGroup,
+    event: ReactPointerEvent<HTMLElement>,
+  ) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
     moveDragPreview(event.clientX, event.clientY);
     setDraggingWorker({
-      workerId,
+      label: team.teamName,
+      workerIds: team.workers.map(getWorkerId),
+    });
+  };
+
+  const createWorkerListEntries = (groupWorkers: WorkerRow[]): WorkerListEntry[] => {
+    if (!isTeamViewEnabled) {
+      return groupWorkers.map((worker) => ({ type: "worker", worker }));
+    }
+
+    const teamGroupsByUuid = new Map<string, WorkerTeamGroup>();
+    const entries: WorkerListEntry[] = [];
+
+    for (const worker of groupWorkers) {
+      if (!worker.teamUuid || !worker.teamName) {
+        entries.push({ type: "worker", worker });
+        continue;
+      }
+
+      const existingTeam = teamGroupsByUuid.get(worker.teamUuid);
+      if (existingTeam) {
+        existingTeam.workers.push(worker);
+      } else {
+        teamGroupsByUuid.set(worker.teamUuid, {
+          displayOrder: worker.teamDisplayOrder ?? 0,
+          teamName: worker.teamName,
+          teamUuid: worker.teamUuid,
+          workers: [worker],
+        });
+      }
+    }
+
+    for (const team of teamGroupsByUuid.values()) {
+      team.workers.sort(
+        (leftWorker, rightWorker) =>
+          (leftWorker.teamDisplayOrder ?? 0) -
+            (rightWorker.teamDisplayOrder ?? 0) ||
+          getWorkerDisplayName(leftWorker).localeCompare(
+            getWorkerDisplayName(rightWorker),
+            "ko-KR",
+          ),
+      );
+      entries.push({ type: "team", team });
+    }
+
+    return entries.sort((leftEntry, rightEntry) => {
+      const leftLabel =
+        leftEntry.type === "team"
+          ? leftEntry.team.teamName
+          : getWorkerDisplayName(leftEntry.worker);
+      const rightLabel =
+        rightEntry.type === "team"
+          ? rightEntry.team.teamName
+          : getWorkerDisplayName(rightEntry.worker);
+
+      return leftLabel.localeCompare(rightLabel, "ko-KR");
     });
   };
 
@@ -1051,7 +1156,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     return (
       <div
         className={`${styles.scheduleWorkerToken} ${
-          draggingWorkerId === workerId ? styles.draggingWorkerToken : ""
+          draggingWorkerIds.has(workerId) ? styles.draggingWorkerToken : ""
         } ${variant === "assigned" ? styles.droppedWorkerToken : ""}`}
         draggable={false}
         key={workerId}
@@ -1208,9 +1313,34 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     );
   };
 
-  const draggingWorkerRow = draggingWorker
-    ? workers.find((worker) => getWorkerId(worker) === draggingWorker.workerId)
-    : null;
+  const renderTeamCard = (team: WorkerTeamGroup) => (
+    <div
+      className={`${styles.scheduleWorkerTeamCard} ${
+        team.workers.some((worker) => draggingWorkerIds.has(getWorkerId(worker)))
+          ? styles.draggingWorkerTeamCard
+          : ""
+      }`}
+      key={team.teamUuid}
+      role="button"
+      tabIndex={0}
+      onPointerDown={(event) => startTeamDrag(team, event)}
+    >
+      <div className={styles.scheduleWorkerTeamTitle}>{team.teamName}</div>
+      <div className={styles.scheduleWorkerTeamMembers}>
+        {team.workers.map((worker) => renderWorkerToken(worker, "list"))}
+      </div>
+    </div>
+  );
+
+  const renderWorkerListEntry = (entry: WorkerListEntry) =>
+    entry.type === "team"
+      ? renderTeamCard(entry.team)
+      : renderWorkerToken(entry.worker, "list");
+
+  const draggingWorkerRows = draggingWorker
+    ? getWorkersByIds(draggingWorker.workerIds)
+    : [];
+  const draggingWorkerRow = draggingWorkerRows[0];
 
   return (
     <main className={styles.mainContent}>
@@ -1232,7 +1362,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         <div className={styles.workScheduleSplit}>
           <section
             className={`${styles.scheduleColumn} ${
-              draggingWorkerId ? styles.activeWorkerReturnZone : ""
+              isDraggingWorkers ? styles.activeWorkerReturnZone : ""
             }`}
             aria-label="작업자 목록"
             data-worker-return-zone="true"
@@ -1297,6 +1427,16 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                     ))}
                   </div>
                 ) : null}
+                <label className={styles.scheduleTeamToggle}>
+                  <input
+                    checked={isTeamViewEnabled}
+                    type="checkbox"
+                    onChange={(event) =>
+                      setIsTeamViewEnabled(event.target.checked)
+                    }
+                  />
+                  <span>팀 적용</span>
+                </label>
               </div>
 
               <div className={styles.scheduleWorkerGroup}>
@@ -1309,8 +1449,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                   <span>{workerGroups.matchingWorkers.length}명</span>
                 </div>
                 {workerGroups.matchingWorkers.length > 0 ? (
-                  workerGroups.matchingWorkers.map((worker) =>
-                    renderWorkerToken(worker, "list"),
+                  createWorkerListEntries(workerGroups.matchingWorkers).map(
+                    renderWorkerListEntry,
                   )
                 ) : (
                   <p className={styles.scheduleEmptyText}>
@@ -1327,8 +1467,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                     <span>{workerGroups.otherWorkers.length}명</span>
                   </div>
                   {workerGroups.otherWorkers.length > 0 ? (
-                    workerGroups.otherWorkers.map((worker) =>
-                      renderWorkerToken(worker, "list"),
+                    createWorkerListEntries(workerGroups.otherWorkers).map(
+                      renderWorkerListEntry,
                     )
                   ) : (
                     <p className={styles.scheduleEmptyText}>
@@ -1457,7 +1597,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                 ) => (
                   <div
                     className={`${styles.scheduleDropZone} ${
-                      draggingWorkerId ? styles.activeScheduleDropZone : ""
+                      isDraggingWorkers ? styles.activeScheduleDropZone : ""
                     }`}
                     data-schedule-drop-area={targetArea}
                     data-schedule-drop-task-id={task.id}
@@ -1706,7 +1846,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             </div>
           </section>
         </div>
-        {draggingWorker && draggingWorkerRow ? (
+        {draggingWorker && draggingWorkerRows.length > 0 ? (
           <div
             className={styles.scheduleDragPreview}
             ref={dragPreviewRef}
@@ -1717,7 +1857,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             }}
           >
             <span className={styles.scheduleWorkerName}>
-              {getWorkerDisplayName(draggingWorkerRow)}
+              {draggingWorker.label}
             </span>
             <span className={styles.scheduleWorkerMeta}>
               {draggingWorkerRow.pickupLocation || "승차장소 없음"}

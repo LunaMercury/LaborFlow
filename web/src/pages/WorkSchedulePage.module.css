@@ -268,6 +268,29 @@
   padding: 8px;
 }
 
+.scheduleTeamToggle {
+  align-items: center;
+  color: #4f5d6b;
+  display: flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 6px;
+  justify-content: flex-start;
+  line-height: 1.2;
+  user-select: none;
+}
+
+.scheduleTeamToggle input {
+  accent-color: #176b5d;
+  height: 15px;
+  margin: 0;
+  width: 15px;
+}
+
+.scheduleTeamToggle:hover {
+  cursor: pointer;
+}
+
 .scheduleWorkerList,
 .scheduleTaskList {
   align-items: stretch;
@@ -342,6 +365,84 @@
 
 .scheduleWorkerToken:active {
   cursor: grabbing;
+}
+
+.scheduleWorkerTeamCard {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #b8d2ca;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(23, 107, 93, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: flex-start;
+  padding: 10px 12px 11px;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    opacity 140ms ease,
+    transform 140ms ease;
+  user-select: none;
+}
+
+.scheduleWorkerTeamCard:hover {
+  border-color: #176b5d;
+  cursor: grab;
+}
+
+.scheduleWorkerTeamCard:active {
+  cursor: grabbing;
+}
+
+.draggingWorkerTeamCard {
+  border-color: #176b5d;
+  box-shadow: 0 10px 24px rgba(23, 107, 93, 0.16);
+  opacity: 0.5;
+  transform: scale(0.99);
+}
+
+.scheduleWorkerTeamTitle {
+  color: #176b5d;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.scheduleWorkerTeamMembers {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: flex-start;
+}
+
+.scheduleWorkerTeamCard .scheduleWorkerToken {
+  background: #f8fafc;
+  border-color: #edf2f6;
+  gap: 3px;
+  min-height: 48px;
+  padding: 7px 9px;
+}
+
+.scheduleWorkerTeamCard .scheduleWorkerTokenLine {
+  gap: 8px;
+  grid-template-columns: minmax(72px, 0.75fr) minmax(0, 1.1fr) auto;
+}
+
+.scheduleWorkerTeamCard .scheduleWorkerName {
+  font-size: 13px;
+}
+
+.scheduleWorkerTeamCard .scheduleWorkerMeta,
+.scheduleWorkerTeamCard .scheduleWorkerWorkTypes,
+.scheduleWorkerTeamCard .scheduleWorkerInlineEditButton {
+  font-size: 11px;
+}
+
+.scheduleWorkerTeamCard .scheduleWorkerGender {
+  font-size: 12px;
+  min-width: 20px;
 }
 
 .assignedWorkerToken {

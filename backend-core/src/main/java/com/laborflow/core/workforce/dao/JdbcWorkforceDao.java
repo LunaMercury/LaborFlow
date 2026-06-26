@@ -31,12 +31,29 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 p.local_nickname,
                 COALESCE(p.local_phone_encrypted, '') AS local_phone_encrypted,
                 w.gender,
-                COALESCE(p.pickup_location, '') AS pickup_location
+                COALESCE(p.pickup_location, '') AS pickup_location,
+                t.uuid AS team_uuid,
+                t.name AS team_name,
+                tm.role AS team_role,
+                tm.display_order AS team_display_order
             FROM public.labor_agency_worker_profile p
             JOIN public.app_account a ON a.labor_agency_owner_uuid = p.agency_owner_uuid
             LEFT JOIN public.worker w ON w.uuid = p.worker_uuid
+            LEFT JOIN public.labor_agency_worker_team_member tm
+                ON tm.worker_profile_uuid = p.uuid
+                AND tm.status = 'ACTIVE'
+                AND (tm.active_from IS NULL OR tm.active_from <= CURRENT_DATE)
+                AND (tm.active_to IS NULL OR tm.active_to >= CURRENT_DATE)
+            LEFT JOIN public.labor_agency_worker_team t
+                ON t.uuid = tm.team_uuid
+                AND t.agency_owner_uuid = p.agency_owner_uuid
+                AND t.status = 'ACTIVE'
             WHERE a.login_id = ?
-            ORDER BY COALESCE(NULLIF(p.local_name, ''), NULLIF(p.local_nickname, ''), w.canonical_name, ''), p.created_at
+            ORDER BY
+                COALESCE(t.sort_order, 2147483647),
+                COALESCE(tm.display_order, 2147483647),
+                COALESCE(NULLIF(p.local_name, ''), NULLIF(p.local_nickname, ''), w.canonical_name, ''),
+                p.created_at
             """,
             (resultSet, rowNumber) -> mapWorkerProjection(resultSet),
             loginId
@@ -58,6 +75,10 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 worker.phone(),
                 worker.gender(),
                 worker.pickupLocation(),
+                worker.teamUuid(),
+                worker.teamName(),
+                worker.teamRole(),
+                worker.teamDisplayOrder(),
                 workTypeCodesByProfileUuid.getOrDefault(worker.profileUuid(), List.of())
             ))
             .toList();
@@ -357,7 +378,11 @@ public class JdbcWorkforceDao implements WorkforceDao {
             resultSet.getString("local_nickname"),
             resultSet.getString("local_phone_encrypted"),
             resultSet.getString("gender"),
-            resultSet.getString("pickup_location")
+            resultSet.getString("pickup_location"),
+            resultSet.getObject("team_uuid", UUID.class),
+            resultSet.getString("team_name"),
+            resultSet.getString("team_role"),
+            Optional.ofNullable(resultSet.getObject("team_display_order", Integer.class)).orElse(0)
         );
     }
 
@@ -367,7 +392,11 @@ public class JdbcWorkforceDao implements WorkforceDao {
         String nickname,
         String phone,
         String gender,
-        String pickupLocation
+        String pickupLocation,
+        UUID teamUuid,
+        String teamName,
+        String teamRole,
+        int teamDisplayOrder
     ) {
     }
 }
