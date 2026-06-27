@@ -45,6 +45,19 @@ function getWorkerSearchText(worker: WorkerRow) {
     .toLowerCase();
 }
 
+function buildTeamConflictMessage(conflictingWorkers: WorkerRow[]) {
+  return [
+    "경고! 아래 인원은 이미 다른 팀에 등록되어 있습니다.",
+    "이대로 진행할 경우 이전 소속되어 있던 팀에서 제외됩니다.",
+    "",
+    ...conflictingWorkers.map(
+      (worker) => `${getWorkerDisplayName(worker)} - ${worker.teamName}`,
+    ),
+    "",
+    "진행하시겠습니까?",
+  ].join("\n");
+}
+
 export function TeamCompositionModal({
   loginId,
   mode,
@@ -62,8 +75,6 @@ export function TeamCompositionModal({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [workerSearchText, setWorkerSearchText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingPayload, setPendingPayload] =
-    useState<CreateWorkerTeamPayload | null>(null);
 
   const workersById = useMemo(() => {
     const nextWorkersById = new Map<string, WorkerRow>();
@@ -148,7 +159,6 @@ export function TeamCompositionModal({
       );
     } finally {
       setIsSubmitting(false);
-      setPendingPayload(null);
     }
   };
 
@@ -172,8 +182,12 @@ export function TeamCompositionModal({
     };
 
     if (conflictingWorkers.length > 0) {
-      setPendingPayload(payload);
-      return;
+      const shouldContinue = window.confirm(
+        buildTeamConflictMessage(conflictingWorkers),
+      );
+      if (!shouldContinue) {
+        return;
+      }
     }
 
     await saveTeam(payload);
@@ -311,42 +325,6 @@ export function TeamCompositionModal({
           </div>
         </form>
 
-        {pendingPayload ? (
-          <div className={styles.teamConflictPanel} role="alertdialog">
-            <div className={styles.teamConflictMessage}>
-              <strong>경고!</strong>
-              <p>
-                아래 인원은 이미 다른 팀에 등록되어 있습니다. 이대로 진행할
-                경우 이전 소속되어 있던 팀에서 제외됩니다.
-              </p>
-              <ul>
-                {conflictingWorkers.map((worker) => (
-                  <li key={getWorkerId(worker)}>
-                    {getWorkerDisplayName(worker)} - {worker.teamName}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className={styles.teamConflictActions}>
-              <button
-                className={styles.secondaryActionButton}
-                disabled={isSubmitting}
-                type="button"
-                onClick={() => setPendingPayload(null)}
-              >
-                취소
-              </button>
-              <button
-                className={styles.primaryActionButton}
-                disabled={isSubmitting}
-                type="button"
-                onClick={() => saveTeam(pendingPayload)}
-              >
-                진행
-              </button>
-            </div>
-          </div>
-        ) : null}
       </section>
     </div>
   );
