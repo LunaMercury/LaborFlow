@@ -73,6 +73,50 @@ function Stop-PortListener {
     }
 }
 
+function Get-TcpExcludedPortRanges {
+    try {
+        $output = & netsh interface ipv4 show excludedportrange protocol=tcp 2>$null
+    } catch {
+        return @()
+    }
+
+    $ranges = @()
+    foreach ($line in $output) {
+        if ($line -match '^\s*(\d+)\s+(\d+)') {
+            $ranges += [pscustomobject]@{
+                Start = [int]$matches[1]
+                End = [int]$matches[2]
+            }
+        }
+    }
+
+    return $ranges
+}
+
+function Show-PortExclusionWarning {
+    param(
+        [string] $Label,
+        [int[]] $Ports
+    )
+
+    $ranges = @(Get-TcpExcludedPortRanges)
+    if ($ranges.Count -eq 0) {
+        return
+    }
+
+    $blockedPorts = @()
+    foreach ($port in $Ports) {
+        $matched = $ranges | Where-Object { $port -ge $_.Start -and $port -le $_.End } | Select-Object -First 1
+        if ($matched) {
+            $blockedPorts += $port
+        }
+    }
+
+    if ($blockedPorts.Count -gt 0) {
+        Write-Warning "$Label ports are reserved by Windows TCP exclusions: $($blockedPorts -join ', '). This can look like a port conflict even when no process is listening."
+    }
+}
+
 function Wait-ForDockerDependency {
     param(
         [string] $Name,
@@ -127,7 +171,7 @@ if (-not $env:REDIS_PASSWORD) { $env:REDIS_PASSWORD = "admin" }
 
 $tailscaleIp = Resolve-TailscaleIp
 if (-not $tailscaleIp) {
-    throw "TAILSCALE_IP is not set and `tailscale ip -4` did not return an address."
+    throw "TAILSCALE_IP is not set and tailscale ip -4 did not return an address."
 }
 
 $logDir = Join-Path $root "logs"
@@ -137,6 +181,8 @@ Write-Host "=========================================="
 Write-Host "Starting LaborFlow for Tailscale..."
 Write-Host "=========================================="
 Write-Host "Tailscale IP: $tailscaleIp"
+Show-PortExclusionWarning "Tailscale" @($webPort, $corePort, $fastPort)
+Show-PortExclusionWarning "Manual run-windows" @(5580, 5581, 5582)
 
 if ($DryRun) {
     Write-Host "Dry run completed. No services were stopped or started."
@@ -157,6 +203,7 @@ Write-Host "[1/4] Starting PostgreSQL and Redis (Docker)..."
 if ($LASTEXITCODE -ne 0) {
     throw "docker compose up failed."
 }
+Show-PortExclusionWarning "Manual run-windows" @(5580, 5581, 5582)
 
 Wait-ForDockerDependency "PostgreSQL" {
     & cmd.exe /c "docker exec laborflow_db pg_isready -U $($env:POSTGRES_USER) -d $($env:POSTGRES_DB) >nul 2>nul"
