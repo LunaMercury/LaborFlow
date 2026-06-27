@@ -175,8 +175,7 @@
   z-index: 30;
 }
 
-.menuItemWrapper:hover .menuDropdown,
-.menuItemWrapper:focus-within .menuDropdown {
+.openMenuDropdown {
   opacity: 1;
   pointer-events: auto;
   transform: translate(-50%, 0);

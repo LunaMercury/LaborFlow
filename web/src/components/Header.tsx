@@ -11,9 +11,14 @@ type HeaderProps = {
 
 export function Header({ currentPath, isLoggedIn, onLogout, onNavigate }: HeaderProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [openMenuPath, setOpenMenuPath] = useState<string | null>(null);
 
   const handleNavigate = (path: string) => {
     setIsProfileMenuOpen(false);
+    setOpenMenuPath(null);
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     onNavigate(path);
   };
 
@@ -94,7 +99,26 @@ export function Header({ currentPath, isLoggedIn, onLogout, onNavigate }: Header
             menuItem.children?.some((child) => child.path === currentPath);
 
           return (
-            <div className={styles.menuItemWrapper} key={menuItem.path}>
+            <div
+              className={styles.menuItemWrapper}
+              key={menuItem.path}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setOpenMenuPath(null);
+                }
+              }}
+              onFocus={() => {
+                if (menuItem.children) {
+                  setOpenMenuPath(menuItem.path);
+                }
+              }}
+              onMouseEnter={() => {
+                if (menuItem.children) {
+                  setOpenMenuPath(menuItem.path);
+                }
+              }}
+              onMouseLeave={() => setOpenMenuPath(null)}
+            >
               <button
                 aria-current={isActive ? "page" : undefined}
                 aria-haspopup={menuItem.children ? "menu" : undefined}
@@ -108,7 +132,12 @@ export function Header({ currentPath, isLoggedIn, onLogout, onNavigate }: Header
               </button>
 
               {menuItem.children ? (
-                <div className={styles.menuDropdown} role="menu">
+                <div
+                  className={`${styles.menuDropdown} ${
+                    openMenuPath === menuItem.path ? styles.openMenuDropdown : ""
+                  }`}
+                  role="menu"
+                >
                   {menuItem.children.map((child) => (
                     <button
                       className={`${styles.menuDropdownItem} ${
