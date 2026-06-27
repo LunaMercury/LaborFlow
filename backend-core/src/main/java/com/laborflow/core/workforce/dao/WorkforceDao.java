@@ -18,6 +18,8 @@ public interface WorkforceDao {
 
     boolean workerProfileBelongsToLoginId(String loginId, UUID workerProfileUuid);
 
+    boolean workerTeamBelongsToLoginId(String loginId, UUID teamUuid);
+
     boolean agencyWorkerProfileExists(UUID agencyOwnerUuid, UUID workerUuid);
 
     UUID insertWorker(String canonicalName, String gender, Integer age);
@@ -52,4 +54,6 @@ public interface WorkforceDao {
     void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes, Map<String, Integer> workTypeRatings);
 
     UUID createWorkerTeam(UUID agencyOwnerUuid, String teamName, List<UUID> workerProfileUuids);
+
+    void updateWorkerTeam(UUID agencyOwnerUuid, UUID teamUuid, String teamName, List<UUID> workerProfileUuids);
 }

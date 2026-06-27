@@ -83,6 +83,30 @@ export async function createWorkerTeam(
   return body.workers;
 }
 
+export async function updateWorkerTeam(
+  loginId: string,
+  teamUuid: string,
+  payload: CreateWorkerTeamPayload,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/worker-teams/${teamUuid}?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "팀을 수정하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
+}
+
 export async function updateWorkerWorkTypes(
   loginId: string,
   profileUuid: string,

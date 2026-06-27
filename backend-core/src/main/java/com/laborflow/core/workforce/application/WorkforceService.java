@@ -35,18 +35,27 @@ public class WorkforceService {
         String normalizedLoginId = normalizeLoginId(loginId);
         UUID agencyOwnerUuid = workforceDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
             .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
-        String teamName = normalizeRequiredText(request.teamName());
-        List<UUID> workerProfileUuids = normalizeWorkerProfileUuids(request.workerProfileUuids());
+        TeamInput teamInput = normalizeTeamInput(normalizedLoginId, request);
 
-        if (workerProfileUuids.isEmpty()) {
-            throw new IllegalArgumentException("At least one team member is required.");
+        workforceDao.createWorkerTeam(agencyOwnerUuid, teamInput.teamName(), teamInput.workerProfileUuids());
+    }
+
+    @Transactional
+    public void updateWorkerTeam(String loginId, UUID teamUuid, CreateWorkerTeamRequest request) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        UUID agencyOwnerUuid = workforceDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
+        if (!workforceDao.workerTeamBelongsToLoginId(normalizedLoginId, teamUuid)) {
+            throw new IllegalArgumentException("Worker team was not found.");
         }
 
-        for (UUID workerProfileUuid : workerProfileUuids) {
-            ensureWorkerProfileBelongsToLoginId(normalizedLoginId, workerProfileUuid);
-        }
-
-        workforceDao.createWorkerTeam(agencyOwnerUuid, teamName, workerProfileUuids);
+        TeamInput teamInput = normalizeTeamInput(normalizedLoginId, request);
+        workforceDao.updateWorkerTeam(
+            agencyOwnerUuid,
+            teamUuid,
+            teamInput.teamName(),
+            teamInput.workerProfileUuids()
+        );
     }
 
     @Transactional
@@ -217,6 +226,21 @@ public class WorkforceService {
             .toList();
     }
 
+    private TeamInput normalizeTeamInput(String loginId, CreateWorkerTeamRequest request) {
+        String teamName = normalizeRequiredText(request.teamName());
+        List<UUID> workerProfileUuids = normalizeWorkerProfileUuids(request.workerProfileUuids());
+
+        if (workerProfileUuids.isEmpty()) {
+            throw new IllegalArgumentException("At least one team member is required.");
+        }
+
+        for (UUID workerProfileUuid : workerProfileUuids) {
+            ensureWorkerProfileBelongsToLoginId(loginId, workerProfileUuid);
+        }
+
+        return new TeamInput(teamName, workerProfileUuids);
+    }
+
     private Map<String, Integer> normalizeWorkTypeRatings(List<String> workTypeCodes, Map<String, Integer> workTypeRatings) {
         Map<String, Integer> ratings = workTypeRatings == null ? Map.of() : workTypeRatings;
 
@@ -303,5 +327,8 @@ public class WorkforceService {
         }
 
         return loginId.trim();
+    }
+
+    private record TeamInput(String teamName, List<UUID> workerProfileUuids) {
     }
 }

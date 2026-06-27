@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchWorkers } from "../api/workforceApi";
 import appStyles from "../App.module.css";
-import { TeamCompositionModal } from "../components/TeamCompositionModal";
+import {
+  TeamCompositionModal,
+  type EditableWorkerTeam,
+} from "../components/TeamCompositionModal";
 import type { WorkerRow } from "../data/workerRows";
 import teamsStyles from "./TeamsPage.module.css";
 
@@ -18,6 +21,15 @@ type WorkerTeam = {
   workers: WorkerRow[];
 };
 
+type TeamCompositionModalState =
+  | {
+      mode: "create";
+    }
+  | {
+      mode: "edit";
+      team: EditableWorkerTeam;
+    };
+
 function getWorkerDisplayName(worker: WorkerRow) {
   return worker.name || worker.nickname || "이름 없음";
 }
@@ -33,7 +45,8 @@ function getWorkerSubName(worker: WorkerRow) {
 export function TeamsPage({ loginId }: TeamsPageProps) {
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [statusMessage, setStatusMessage] = useState("");
-  const [isCompositionModalOpen, setIsCompositionModalOpen] = useState(false);
+  const [compositionModalState, setCompositionModalState] =
+    useState<TeamCompositionModalState | null>(null);
   const [collapsedTeamUuids, setCollapsedTeamUuids] = useState<Set<string>>(
     () => new Set(),
   );
@@ -152,7 +165,7 @@ export function TeamsPage({ loginId }: TeamsPageProps) {
             <button
               className={styles.composeTeamButton}
               type="button"
-              onClick={() => setIsCompositionModalOpen(true)}
+              onClick={() => setCompositionModalState({ mode: "create" })}
             >
               팀 구성하기
             </button>
@@ -176,6 +189,22 @@ export function TeamsPage({ loginId }: TeamsPageProps) {
                     <h2>{team.name}</h2>
                     <div className={styles.teamCardHeaderActions}>
                       <span>{team.workers.length}명</span>
+                      <button
+                        className={styles.editTeamButton}
+                        type="button"
+                        onClick={() =>
+                          setCompositionModalState({
+                            mode: "edit",
+                            team: {
+                              name: team.name,
+                              uuid: team.uuid,
+                              workers: team.workers,
+                            },
+                          })
+                        }
+                      >
+                        수정
+                      </button>
                       <button
                         aria-label={
                           isCollapsed
@@ -241,14 +270,24 @@ export function TeamsPage({ loginId }: TeamsPageProps) {
           </aside>
         </div>
       </section>
-      {isCompositionModalOpen ? (
+      {compositionModalState ? (
         <TeamCompositionModal
           loginId={loginId}
+          mode={compositionModalState.mode}
+          team={
+            compositionModalState.mode === "edit"
+              ? compositionModalState.team
+              : undefined
+          }
           workers={workers}
-          onClose={() => setIsCompositionModalOpen(false)}
+          onClose={() => setCompositionModalState(null)}
           onSaved={(nextWorkers) => {
             setWorkers(nextWorkers);
-            setStatusMessage("팀을 구성했습니다.");
+            setStatusMessage(
+              compositionModalState.mode === "edit"
+                ? "팀을 수정했습니다."
+                : "팀을 구성했습니다.",
+            );
           }}
         />
       ) : null}

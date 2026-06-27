@@ -190,6 +190,10 @@
   font-weight: 800;
 }
 
+.selectedWorkerText .workerTeamHint {
+  color: #8a5a15;
+}
+
 .removeWorkerButton,
 .addWorkerButton {
   align-items: center;
@@ -284,6 +288,44 @@
   justify-content: center;
   min-height: 40px;
   padding: 0 10px;
+}
+
+.teamConflictPanel {
+  background: #fff8e7;
+  border: 1px solid #f0c36a;
+  border-radius: 8px;
+  margin-top: 18px;
+  padding: 16px;
+}
+
+.teamConflictMessage {
+  color: #3d3321;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.teamConflictMessage strong {
+  color: #9a4f00;
+  display: block;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.teamConflictMessage p {
+  margin: 0 0 10px;
+}
+
+.teamConflictMessage ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.teamConflictActions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 @media (max-width: 720px) {

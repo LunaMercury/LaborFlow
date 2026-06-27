@@ -158,6 +158,25 @@ public class JdbcWorkforceDao implements WorkforceDao {
     }
 
     @Override
+    public boolean workerTeamBelongsToLoginId(String loginId, UUID teamUuid) {
+        Integer count = jdbcTemplate.queryForObject(
+            """
+            SELECT count(*)
+            FROM public.labor_agency_worker_team t
+            JOIN public.app_account a ON a.labor_agency_owner_uuid = t.agency_owner_uuid
+            WHERE a.login_id = ?
+                AND t.uuid = ?
+                AND t.status = 'ACTIVE'
+            """,
+            Integer.class,
+            loginId,
+            teamUuid
+        );
+
+        return count != null && count > 0;
+    }
+
+    @Override
     public boolean agencyWorkerProfileExists(UUID agencyOwnerUuid, UUID workerUuid) {
         Integer count = jdbcTemplate.queryForObject(
             """
@@ -441,6 +460,67 @@ public class JdbcWorkforceDao implements WorkforceDao {
             deactivateParams.toArray()
         );
 
+        upsertTeamMembers(teamUuid, workerProfileUuids);
+
+        return teamUuid;
+    }
+
+    @Override
+    public void updateWorkerTeam(UUID agencyOwnerUuid, UUID teamUuid, String teamName, List<UUID> workerProfileUuids) {
+        UUID leaderWorkerProfileUuid = workerProfileUuids.get(0);
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_team
+            SET name = ?,
+                leader_worker_profile_uuid = ?,
+                updated_at = now()
+            WHERE uuid = ?
+                AND agency_owner_uuid = ?
+                AND status = 'ACTIVE'
+            """,
+            teamName,
+            leaderWorkerProfileUuid,
+            teamUuid,
+            agencyOwnerUuid
+        );
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_team_member
+            SET status = 'INACTIVE',
+                active_to = CURRENT_DATE,
+                updated_at = now()
+            WHERE team_uuid = ?
+                AND status = 'ACTIVE'
+            """,
+            teamUuid
+        );
+
+        String placeholders = placeholders(workerProfileUuids.size());
+        List<Object> deactivateParams = new ArrayList<>();
+        deactivateParams.add(agencyOwnerUuid);
+        deactivateParams.add(teamUuid);
+        deactivateParams.addAll(workerProfileUuids);
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_team_member tm
+            SET status = 'INACTIVE',
+                active_to = CURRENT_DATE,
+                updated_at = now()
+            FROM public.labor_agency_worker_profile p
+            WHERE tm.worker_profile_uuid = p.uuid
+                AND p.agency_owner_uuid = ?
+                AND tm.team_uuid <> ?
+                AND tm.worker_profile_uuid IN (%s)
+                AND tm.status = 'ACTIVE'
+            """.formatted(placeholders),
+            deactivateParams.toArray()
+        );
+
+        upsertTeamMembers(teamUuid, workerProfileUuids);
+    }
+
+    private void upsertTeamMembers(UUID teamUuid, List<UUID> workerProfileUuids) {
         for (int index = 0; index < workerProfileUuids.size(); index++) {
             jdbcTemplate.update(
                 """
@@ -449,9 +529,18 @@ public class JdbcWorkforceDao implements WorkforceDao {
                     worker_profile_uuid,
                     role,
                     display_order,
-                    active_from
+                    active_from,
+                    active_to,
+                    status
                 )
-                VALUES (?, ?, ?, ?, CURRENT_DATE)
+                VALUES (?, ?, ?, ?, CURRENT_DATE, NULL, 'ACTIVE')
+                ON CONFLICT (team_uuid, worker_profile_uuid) DO UPDATE
+                SET role = EXCLUDED.role,
+                    display_order = EXCLUDED.display_order,
+                    active_from = CURRENT_DATE,
+                    active_to = NULL,
+                    status = 'ACTIVE',
+                    updated_at = now()
                 """,
                 teamUuid,
                 workerProfileUuids.get(index),
@@ -459,8 +548,6 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 index
             );
         }
-
-        return teamUuid;
     }
 
     private Map<UUID, List<String>> findWorkTypeCodesByProfileUuid(List<UUID> profileUuids) {

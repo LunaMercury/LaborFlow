@@ -164,7 +164,27 @@
   width: 30px;
 }
 
+.editTeamButton {
+  align-items: center;
+  appearance: none;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 6px;
+  color: #2f3f50;
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  height: 30px;
+  justify-content: center;
+  padding: 0 10px;
+}
+
 .collapseTeamButton:hover {
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.editTeamButton:hover {
   background: #f8fafc;
   cursor: pointer;
 }

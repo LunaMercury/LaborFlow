@@ -60,6 +60,16 @@ public class WorkforceController {
         return workforceService.getWorkers(loginId);
     }
 
+    @PatchMapping("/worker-teams/{teamUuid}")
+    public WorkerListResponse updateWorkerTeam(
+        @PathVariable UUID teamUuid,
+        @RequestParam(defaultValue = "test") String loginId,
+        @RequestBody CreateWorkerTeamRequest request
+    ) {
+        workforceService.updateWorkerTeam(loginId, teamUuid, request);
+        return workforceService.getWorkers(loginId);
+    }
+
     @PatchMapping("/worker-profiles/{profileUuid}")
     public WorkerListResponse updateWorkerProfile(
         @PathVariable UUID profileUuid,

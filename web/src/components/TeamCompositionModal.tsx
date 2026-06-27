@@ -1,10 +1,24 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { createWorkerTeam } from "../api/workforceApi";
+import {
+  createWorkerTeam,
+  updateWorkerTeam,
+  type CreateWorkerTeamPayload,
+} from "../api/workforceApi";
 import type { WorkerRow } from "../data/workerRows";
 import styles from "./TeamCompositionModal.module.css";
 
+export type EditableWorkerTeam = {
+  name: string;
+  uuid: string;
+  workers: WorkerRow[];
+};
+
+type TeamCompositionModalMode = "create" | "edit";
+
 type TeamCompositionModalProps = {
   loginId: string;
+  mode: TeamCompositionModalMode;
+  team?: EditableWorkerTeam;
   workers: WorkerRow[];
   onClose: () => void;
   onSaved: (workers: WorkerRow[]) => void;
@@ -24,6 +38,7 @@ function getWorkerSearchText(worker: WorkerRow) {
     worker.nickname,
     worker.phone,
     worker.pickupLocation,
+    worker.teamName,
   ]
     .filter(Boolean)
     .join(" ")
@@ -32,16 +47,23 @@ function getWorkerSearchText(worker: WorkerRow) {
 
 export function TeamCompositionModal({
   loginId,
+  mode,
+  team,
   workers,
   onClose,
   onSaved,
 }: TeamCompositionModalProps) {
-  const formId = "team-composition-form";
-  const [teamName, setTeamName] = useState("");
-  const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>([]);
+  const formId = `team-composition-${mode}-form`;
+  const isEditMode = mode === "edit";
+  const [teamName, setTeamName] = useState(team?.name ?? "");
+  const [selectedWorkerIds, setSelectedWorkerIds] = useState<string[]>(
+    () => team?.workers.map(getWorkerId).filter(Boolean) ?? [],
+  );
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [workerSearchText, setWorkerSearchText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingPayload, setPendingPayload] =
+    useState<CreateWorkerTeamPayload | null>(null);
 
   const workersById = useMemo(() => {
     const nextWorkersById = new Map<string, WorkerRow>();
@@ -58,6 +80,13 @@ export function TeamCompositionModal({
   const selectedWorkers = selectedWorkerIds
     .map((workerId) => workersById.get(workerId))
     .filter((worker): worker is WorkerRow => Boolean(worker));
+
+  const conflictingWorkers = selectedWorkers.filter(
+    (worker) =>
+      worker.teamUuid &&
+      worker.teamName &&
+      (!isEditMode || worker.teamUuid !== team?.uuid),
+  );
 
   const availableWorkers = useMemo(() => {
     const selectedWorkerIdSet = new Set(selectedWorkerIds);
@@ -100,6 +129,29 @@ export function TeamCompositionModal({
     );
   };
 
+  const saveTeam = async (payload: CreateWorkerTeamPayload) => {
+    setIsSubmitting(true);
+    try {
+      const nextWorkers =
+        isEditMode && team
+          ? await updateWorkerTeam(loginId, team.uuid, payload)
+          : await createWorkerTeam(loginId, payload);
+      onSaved(nextWorkers);
+      onClose();
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : isEditMode
+            ? "팀을 수정하지 못했습니다."
+            : "팀을 구성하지 못했습니다.",
+      );
+    } finally {
+      setIsSubmitting(false);
+      setPendingPayload(null);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -114,19 +166,17 @@ export function TeamCompositionModal({
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const nextWorkers = await createWorkerTeam(loginId, {
-        teamName: normalizedTeamName,
-        workerProfileUuids: selectedWorkerIds,
-      });
-      onSaved(nextWorkers);
-      onClose();
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : "팀을 구성하지 못했습니다.");
-    } finally {
-      setIsSubmitting(false);
+    const payload = {
+      teamName: normalizedTeamName,
+      workerProfileUuids: selectedWorkerIds,
+    };
+
+    if (conflictingWorkers.length > 0) {
+      setPendingPayload(payload);
+      return;
     }
+
+    await saveTeam(payload);
   };
 
   return (
@@ -140,7 +190,9 @@ export function TeamCompositionModal({
         <div className={styles.modalHeader}>
           <div>
             <p className={styles.sectionLabel}>팀 목록</p>
-            <h2 id="team-composition-title">팀 구성하기</h2>
+            <h2 id="team-composition-title">
+              {isEditMode ? "팀 수정하기" : "팀 구성하기"}
+            </h2>
           </div>
           <div className={styles.modalHeaderActions}>
             <button
@@ -149,7 +201,7 @@ export function TeamCompositionModal({
               form={formId}
               type="submit"
             >
-              등록
+              {isEditMode ? "저장" : "등록"}
             </button>
             <button
               className={styles.secondaryActionButton}
@@ -193,6 +245,11 @@ export function TeamCompositionModal({
                       {worker.nickname && worker.name ? (
                         <span>- {worker.nickname}</span>
                       ) : null}
+                      {worker.teamName ? (
+                        <span className={styles.workerTeamHint}>
+                          {worker.teamName}
+                        </span>
+                      ) : null}
                     </div>
                     <button
                       aria-label={`${getWorkerDisplayName(worker)} 팀원 제외`}
@@ -226,7 +283,11 @@ export function TeamCompositionModal({
                             onClick={() => addWorker(worker)}
                           >
                             <strong>{getWorkerDisplayName(worker)}</strong>
-                            <span>{worker.pickupLocation || "승차장소 없음"}</span>
+                            <span>
+                              {worker.teamName
+                                ? `${worker.teamName} · ${worker.pickupLocation || "승차장소 없음"}`
+                                : worker.pickupLocation || "승차장소 없음"}
+                            </span>
                           </button>
                         ))
                       ) : (
@@ -249,6 +310,43 @@ export function TeamCompositionModal({
             </div>
           </div>
         </form>
+
+        {pendingPayload ? (
+          <div className={styles.teamConflictPanel} role="alertdialog">
+            <div className={styles.teamConflictMessage}>
+              <strong>경고!</strong>
+              <p>
+                아래 인원은 이미 다른 팀에 등록되어 있습니다. 이대로 진행할
+                경우 이전 소속되어 있던 팀에서 제외됩니다.
+              </p>
+              <ul>
+                {conflictingWorkers.map((worker) => (
+                  <li key={getWorkerId(worker)}>
+                    {getWorkerDisplayName(worker)} - {worker.teamName}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className={styles.teamConflictActions}>
+              <button
+                className={styles.secondaryActionButton}
+                disabled={isSubmitting}
+                type="button"
+                onClick={() => setPendingPayload(null)}
+              >
+                취소
+              </button>
+              <button
+                className={styles.primaryActionButton}
+                disabled={isSubmitting}
+                type="button"
+                onClick={() => saveTeam(pendingPayload)}
+              >
+                진행
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );
