@@ -32,6 +32,11 @@ export type UpdateWorkerProfilePayload = {
   workTypeRatings: Record<string, number>;
 };
 
+export type CreateWorkerTeamPayload = {
+  teamName: string;
+  workerProfileUuids: string[];
+};
+
 export async function fetchWorkers(loginId: string): Promise<WorkerRow[]> {
   const response = await fetch(
     `${apiBaseUrl}/api/workforce/workers?loginId=${encodeURIComponent(loginId)}`,
@@ -53,6 +58,29 @@ export async function fetchWorkTypes(): Promise<WorkTypeOption[]> {
   }
 
   return (await response.json()) as WorkTypeOption[];
+}
+
+export async function createWorkerTeam(
+  loginId: string,
+  payload: CreateWorkerTeamPayload,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/worker-teams?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "팀을 구성하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
 }
 
 export async function updateWorkerWorkTypes(

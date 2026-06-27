@@ -50,4 +50,6 @@ public interface WorkforceDao {
     void updateWorkerProfileDetails(UUID workerProfileUuid, String pickupLocation, String privateMemo);
 
     void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes, Map<String, Integer> workTypeRatings);
+
+    UUID createWorkerTeam(UUID agencyOwnerUuid, String teamName, List<UUID> workerProfileUuids);
 }

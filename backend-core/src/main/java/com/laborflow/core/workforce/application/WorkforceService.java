@@ -1,6 +1,7 @@
 package com.laborflow.core.workforce.application;
 
 import com.laborflow.core.workforce.dao.WorkforceDao;
+import com.laborflow.core.workforce.dto.CreateWorkerTeamRequest;
 import com.laborflow.core.workforce.dto.CreateWorkerRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerProfileRequest;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
@@ -27,6 +28,25 @@ public class WorkforceService {
 
     public List<WorkTypeResponse> getWorkTypes() {
         return workforceDao.findActiveWorkTypes();
+    }
+
+    @Transactional
+    public void createWorkerTeam(String loginId, CreateWorkerTeamRequest request) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        UUID agencyOwnerUuid = workforceDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
+        String teamName = normalizeRequiredText(request.teamName());
+        List<UUID> workerProfileUuids = normalizeWorkerProfileUuids(request.workerProfileUuids());
+
+        if (workerProfileUuids.isEmpty()) {
+            throw new IllegalArgumentException("At least one team member is required.");
+        }
+
+        for (UUID workerProfileUuid : workerProfileUuids) {
+            ensureWorkerProfileBelongsToLoginId(normalizedLoginId, workerProfileUuid);
+        }
+
+        workforceDao.createWorkerTeam(agencyOwnerUuid, teamName, workerProfileUuids);
     }
 
     @Transactional
@@ -184,6 +204,16 @@ public class WorkforceService {
         return uniqueWorkTypeCodes.stream()
             .map(this::normalizeOptionalText)
             .filter(code -> code != null)
+            .toList();
+    }
+
+    private List<UUID> normalizeWorkerProfileUuids(List<UUID> workerProfileUuids) {
+        Set<UUID> uniqueWorkerProfileUuids = new LinkedHashSet<>(
+            workerProfileUuids == null ? List.of() : workerProfileUuids
+        );
+
+        return uniqueWorkerProfileUuids.stream()
+            .filter(uuid -> uuid != null)
             .toList();
     }
 

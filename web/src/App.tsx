@@ -53,7 +53,7 @@ export default function App() {
 
   const isProtectedServicePath = Object.hasOwn(servicePages, currentPath);
   const isWorkersPage = currentPath === "/workers";
-  const isTeamsPage = currentPath === "/teams";
+  const isTeamsPage = currentPath === "/teams" || currentPath === "/team";
   const isWorkSchedulePage = currentPath === "/work-schedule";
   const shouldShowLoginPage =
     !isLoggedIn && (

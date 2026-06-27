@@ -1,0 +1,302 @@
+.sectionLabel {
+  color: #176b5d;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.modalBackdrop {
+  align-items: center;
+  background: rgba(23, 32, 42, 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 100;
+}
+
+.teamCompositionDialog {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  box-shadow: 0 24px 60px rgba(23, 32, 42, 0.24);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  max-height: calc(100vh - 48px);
+  max-width: 560px;
+  overflow: visible;
+  padding: 28px;
+  width: 100%;
+}
+
+.modalHeader {
+  align-items: flex-start;
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.modalHeader h2 {
+  font-size: 26px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.modalHeaderActions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+  justify-content: center;
+}
+
+.primaryActionButton,
+.secondaryActionButton {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 92px;
+  padding: 0 16px;
+}
+
+.primaryActionButton {
+  background: #176b5d;
+  border: 0;
+  color: #ffffff;
+}
+
+.secondaryActionButton {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  color: #2f3f50;
+}
+
+.primaryActionButton:hover,
+.secondaryActionButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+.primaryActionButton:disabled,
+.secondaryActionButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.teamCompositionForm {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  justify-content: flex-start;
+}
+
+.formField {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
+}
+
+.formField span,
+.teamMemberLabel {
+  color: #2f3f50;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.formField input,
+.workerSearchInput {
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  font-size: 14px;
+  min-height: 40px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.formField input:focus,
+.workerSearchInput:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
+.requiredMark {
+  color: #d0445f;
+}
+
+.teamMemberSection {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.selectedWorkerList {
+  align-items: stretch;
+  background: #fbfcfe;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 84px;
+  padding: 8px;
+}
+
+.selectedWorkerRow {
+  align-items: center;
+  border-radius: 7px;
+  display: flex;
+  justify-content: space-between;
+  min-height: 42px;
+  padding: 6px 8px;
+}
+
+.selectedWorkerRow:hover {
+  background: #eef6f4;
+}
+
+.selectedWorkerText {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.selectedWorkerText strong {
+  color: #17202a;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.selectedWorkerText span {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.removeWorkerButton,
+.addWorkerButton {
+  align-items: center;
+  appearance: none;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 6px;
+  color: #2f3f50;
+  display: flex;
+  font-size: 18px;
+  font-weight: 900;
+  height: 32px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 32px;
+}
+
+.removeWorkerButton:hover,
+.addWorkerButton:hover {
+  background: #edf2f6;
+  cursor: pointer;
+}
+
+.workerSearchArea {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 8px;
+  position: relative;
+}
+
+.addWorkerButton {
+  align-self: flex-start;
+}
+
+.workerSearchDropdown {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  box-shadow: 0 18px 38px rgba(23, 32, 42, 0.14);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  left: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px;
+  position: absolute;
+  right: 8px;
+  top: calc(100% + 4px);
+  z-index: 110;
+}
+
+.workerSearchOption {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: #17202a;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.workerSearchOption:hover {
+  background: #edf2f6;
+  cursor: pointer;
+}
+
+.workerSearchOption strong {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.workerSearchOption span,
+.emptySearchResult {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.emptySearchResult {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+@media (max-width: 720px) {
+  .teamCompositionDialog {
+    padding: 22px 18px;
+  }
+
+  .modalHeader {
+    gap: 12px;
+  }
+
+  .modalHeaderActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

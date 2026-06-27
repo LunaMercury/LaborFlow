@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchWorkers } from "../api/workforceApi";
 import appStyles from "../App.module.css";
+import { TeamCompositionModal } from "../components/TeamCompositionModal";
 import type { WorkerRow } from "../data/workerRows";
 import teamsStyles from "./TeamsPage.module.css";
 
@@ -32,6 +33,7 @@ function getWorkerSubName(worker: WorkerRow) {
 export function TeamsPage({ loginId }: TeamsPageProps) {
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [statusMessage, setStatusMessage] = useState("");
+  const [isCompositionModalOpen, setIsCompositionModalOpen] = useState(false);
   const [collapsedTeamUuids, setCollapsedTeamUuids] = useState<Set<string>>(
     () => new Set(),
   );
@@ -150,7 +152,7 @@ export function TeamsPage({ loginId }: TeamsPageProps) {
             <button
               className={styles.composeTeamButton}
               type="button"
-              onClick={() => setStatusMessage("팀 구성 기능은 다음 단계에서 연결합니다.")}
+              onClick={() => setIsCompositionModalOpen(true)}
             >
               팀 구성하기
             </button>
@@ -239,6 +241,17 @@ export function TeamsPage({ loginId }: TeamsPageProps) {
           </aside>
         </div>
       </section>
+      {isCompositionModalOpen ? (
+        <TeamCompositionModal
+          loginId={loginId}
+          workers={workers}
+          onClose={() => setIsCompositionModalOpen(false)}
+          onSaved={(nextWorkers) => {
+            setWorkers(nextWorkers);
+            setStatusMessage("팀을 구성했습니다.");
+          }}
+        />
+      ) : null}
     </main>
   );
 }

@@ -1,6 +1,7 @@
 package com.laborflow.core.workforce.api;
 
 import com.laborflow.core.workforce.application.WorkforceService;
+import com.laborflow.core.workforce.dto.CreateWorkerTeamRequest;
 import com.laborflow.core.workforce.dto.CreateWorkerRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerIdentityRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerPhoneRequest;
@@ -47,6 +48,15 @@ public class WorkforceController {
         @RequestBody CreateWorkerRequest request
     ) {
         workforceService.createWorker(loginId, request);
+        return workforceService.getWorkers(loginId);
+    }
+
+    @PostMapping("/worker-teams")
+    public WorkerListResponse createWorkerTeam(
+        @RequestParam(defaultValue = "test") String loginId,
+        @RequestBody CreateWorkerTeamRequest request
+    ) {
+        workforceService.createWorkerTeam(loginId, request);
         return workforceService.getWorkers(loginId);
     }
 

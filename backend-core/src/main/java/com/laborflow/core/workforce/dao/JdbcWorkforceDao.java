@@ -392,6 +392,77 @@ public class JdbcWorkforceDao implements WorkforceDao {
         }
     }
 
+    @Override
+    public UUID createWorkerTeam(UUID agencyOwnerUuid, String teamName, List<UUID> workerProfileUuids) {
+        UUID leaderWorkerProfileUuid = workerProfileUuids.get(0);
+        UUID teamUuid = jdbcTemplate.queryForObject(
+            """
+            INSERT INTO public.labor_agency_worker_team (
+                agency_owner_uuid,
+                name,
+                leader_worker_profile_uuid,
+                sort_order
+            )
+            VALUES (
+                ?,
+                ?,
+                ?,
+                COALESCE((
+                    SELECT MAX(sort_order) + 10
+                    FROM public.labor_agency_worker_team
+                    WHERE agency_owner_uuid = ?
+                ), 10)
+            )
+            RETURNING uuid
+            """,
+            UUID.class,
+            agencyOwnerUuid,
+            teamName,
+            leaderWorkerProfileUuid,
+            agencyOwnerUuid
+        );
+
+        String placeholders = placeholders(workerProfileUuids.size());
+        List<Object> deactivateParams = new ArrayList<>();
+        deactivateParams.add(agencyOwnerUuid);
+        deactivateParams.addAll(workerProfileUuids);
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_team_member tm
+            SET status = 'INACTIVE',
+                active_to = CURRENT_DATE,
+                updated_at = now()
+            FROM public.labor_agency_worker_profile p
+            WHERE tm.worker_profile_uuid = p.uuid
+                AND p.agency_owner_uuid = ?
+                AND tm.worker_profile_uuid IN (%s)
+                AND tm.status = 'ACTIVE'
+            """.formatted(placeholders),
+            deactivateParams.toArray()
+        );
+
+        for (int index = 0; index < workerProfileUuids.size(); index++) {
+            jdbcTemplate.update(
+                """
+                INSERT INTO public.labor_agency_worker_team_member (
+                    team_uuid,
+                    worker_profile_uuid,
+                    role,
+                    display_order,
+                    active_from
+                )
+                VALUES (?, ?, ?, ?, CURRENT_DATE)
+                """,
+                teamUuid,
+                workerProfileUuids.get(index),
+                index == 0 ? "LEADER" : "MEMBER",
+                index
+            );
+        }
+
+        return teamUuid;
+    }
+
     private Map<UUID, List<String>> findWorkTypeCodesByProfileUuid(List<UUID> profileUuids) {
         Map<UUID, List<String>> workTypeCodesByProfileUuid = new LinkedHashMap<>();
 
@@ -399,7 +470,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             workTypeCodesByProfileUuid.put(profileUuid, new ArrayList<>());
         }
 
-        String placeholders = String.join(",", profileUuids.stream().map(profileUuid -> "?").toList());
+        String placeholders = placeholders(profileUuids.size());
         jdbcTemplate.query(
             """
             SELECT s.worker_profile_uuid, wt.code
@@ -426,7 +497,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             workTypeRatingsByProfileUuid.put(profileUuid, new LinkedHashMap<>());
         }
 
-        String placeholders = String.join(",", profileUuids.stream().map(profileUuid -> "?").toList());
+        String placeholders = placeholders(profileUuids.size());
         jdbcTemplate.query(
             """
             SELECT s.worker_profile_uuid, wt.code, s.rating
@@ -461,6 +532,10 @@ public class JdbcWorkforceDao implements WorkforceDao {
             resultSet.getString("team_role"),
             Optional.ofNullable(resultSet.getObject("team_display_order", Integer.class)).orElse(0)
         );
+    }
+
+    private String placeholders(int size) {
+        return String.join(",", java.util.Collections.nCopies(size, "?"));
     }
 
     private record WorkerProjection(
