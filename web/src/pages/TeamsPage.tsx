@@ -32,6 +32,9 @@ function getWorkerSubName(worker: WorkerRow) {
 export function TeamsPage({ loginId }: TeamsPageProps) {
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [statusMessage, setStatusMessage] = useState("");
+  const [collapsedTeamUuids, setCollapsedTeamUuids] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -115,6 +118,19 @@ export function TeamsPage({ loginId }: TeamsPageProps) {
     };
   }, [workers]);
 
+  const toggleTeamCollapsed = (teamUuid: string) => {
+    setCollapsedTeamUuids((currentTeamUuids) => {
+      const nextTeamUuids = new Set(currentTeamUuids);
+      if (nextTeamUuids.has(teamUuid)) {
+        nextTeamUuids.delete(teamUuid);
+      } else {
+        nextTeamUuids.add(teamUuid);
+      }
+
+      return nextTeamUuids;
+    });
+  };
+
   return (
     <main className={styles.tableMainContent}>
       <section className={styles.teamsPanel} aria-labelledby="teams-title">
@@ -126,41 +142,75 @@ export function TeamsPage({ loginId }: TeamsPageProps) {
               <p className={styles.teamsStatusMessage}>{statusMessage}</p>
             ) : null}
           </div>
-          <div className={styles.teamsSummary}>
-            <span>팀 {teams.length}개</span>
-            <span>미배정 {unassignedWorkers.length}명</span>
+          <div className={styles.teamsHeaderActions}>
+            <div className={styles.teamsSummary}>
+              <span>팀 {teams.length}개</span>
+              <span>미배정 {unassignedWorkers.length}명</span>
+            </div>
+            <button
+              className={styles.composeTeamButton}
+              type="button"
+              onClick={() => setStatusMessage("팀 구성 기능은 다음 단계에서 연결합니다.")}
+            >
+              팀 구성하기
+            </button>
           </div>
         </div>
 
         <div className={styles.teamsLayout}>
           <section className={styles.teamListSection} aria-label="팀 목록">
             {teams.length > 0 ? (
-              teams.map((team) => (
-                <article className={styles.teamCard} key={team.uuid}>
+              teams.map((team) => {
+                const isCollapsed = collapsedTeamUuids.has(team.uuid);
+
+                return (
+                <article
+                  className={`${styles.teamCard} ${
+                    isCollapsed ? styles.collapsedTeamCard : ""
+                  }`}
+                  key={team.uuid}
+                >
                   <div className={styles.teamCardHeader}>
                     <h2>{team.name}</h2>
-                    <span>{team.workers.length}명</span>
-                  </div>
-                  <div className={styles.teamMemberList}>
-                    {team.workers.map((worker) => (
-                      <div
-                        className={styles.teamMemberRow}
-                        key={worker.profileUuid ?? `${team.uuid}-${worker.phone}`}
+                    <div className={styles.teamCardHeaderActions}>
+                      <span>{team.workers.length}명</span>
+                      <button
+                        aria-label={
+                          isCollapsed
+                            ? `${team.name} 팀원 펼치기`
+                            : `${team.name} 팀원 접기`
+                        }
+                        className={styles.collapseTeamButton}
+                        type="button"
+                        onClick={() => toggleTeamCollapsed(team.uuid)}
                       >
-                        <div className={styles.teamMemberNameGroup}>
-                          <strong>{getWorkerDisplayName(worker)}</strong>
-                          {getWorkerSubName(worker) ? (
-                            <span>- {getWorkerSubName(worker)}</span>
-                          ) : null}
-                        </div>
-                        <span className={styles.teamMemberMeta}>
-                          {worker.pickupLocation || "승차장소 없음"}
-                        </span>
-                      </div>
-                    ))}
+                        {isCollapsed ? "+" : "-"}
+                      </button>
+                    </div>
                   </div>
+                  {!isCollapsed ? (
+                    <div className={styles.teamMemberList}>
+                      {team.workers.map((worker) => (
+                        <div
+                          className={styles.teamMemberRow}
+                          key={worker.profileUuid ?? `${team.uuid}-${worker.phone}`}
+                        >
+                          <div className={styles.teamMemberNameGroup}>
+                            <strong>{getWorkerDisplayName(worker)}</strong>
+                            {getWorkerSubName(worker) ? (
+                              <span>- {getWorkerSubName(worker)}</span>
+                            ) : null}
+                          </div>
+                          <span className={styles.teamMemberMeta}>
+                            {worker.pickupLocation || "승차장소 없음"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </article>
-              ))
+                );
+              })
             ) : (
               <div className={styles.emptyTeamPanel}>구성된 팀이 없습니다.</div>
             )}
