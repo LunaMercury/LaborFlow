@@ -169,7 +169,7 @@
   padding: 6px;
   pointer-events: none;
   position: absolute;
-  top: calc(100% + 6px);
+  top: 100%;
   transform: translate(-50%, -4px);
   transition: opacity 140ms ease, transform 140ms ease;
   z-index: 30;
