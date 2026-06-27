@@ -1,0 +1,239 @@
+.teamsPanel {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 1120px;
+  width: 100%;
+}
+
+.teamsPageHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  width: 100%;
+}
+
+.teamsHeading {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.teamsHeading h1 {
+  font-size: 32px;
+  line-height: 1.22;
+  margin: 0;
+}
+
+.teamsStatusMessage {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 800;
+  margin: 6px 0 0;
+}
+
+.teamsSummary {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.teamsSummary span {
+  align-items: center;
+  background: #e6f1ee;
+  border: 1px solid #c5ddd7;
+  border-radius: 999px;
+  color: #176b5d;
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+}
+
+.teamsLayout {
+  align-items: stretch;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  justify-content: center;
+  width: 100%;
+}
+
+.teamListSection {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.teamCard {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.teamCardHeader {
+  align-items: center;
+  background: #edf2f6;
+  border-bottom: 1px solid #d9e2ec;
+  display: flex;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 16px;
+}
+
+.teamCardHeader h2,
+.unassignedWorkerHeader h2 {
+  color: #17202a;
+  font-size: 17px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.teamCardHeader span,
+.unassignedWorkerHeader span {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.teamMemberList {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.teamMemberRow {
+  align-items: center;
+  border-bottom: 1px solid #e5ebf1;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 8px 16px;
+}
+
+.teamMemberRow:last-child {
+  border-bottom: 0;
+}
+
+.teamMemberNameGroup {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.teamMemberNameGroup strong,
+.unassignedWorkerItem strong {
+  color: #17202a;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.teamMemberNameGroup span {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.teamMemberMeta,
+.unassignedWorkerItem span {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.unassignedWorkerPanel,
+.emptyTeamPanel {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+}
+
+.unassignedWorkerPanel {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.unassignedWorkerHeader {
+  align-items: center;
+  background: #f3f6f9;
+  border-bottom: 1px solid #d9e2ec;
+  display: flex;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 16px;
+}
+
+.unassignedWorkerList {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px;
+}
+
+.unassignedWorkerItem {
+  align-items: center;
+  border-radius: 7px;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 42px;
+  padding: 8px 10px;
+}
+
+.unassignedWorkerItem:hover {
+  background: #f3f8f7;
+}
+
+.unassignedWorkerList p,
+.emptyTeamPanel {
+  color: #687789;
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.emptyTeamPanel {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 180px;
+}
+
+@media (max-width: 860px) {
+  .teamsPageHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .teamsSummary {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .teamsLayout {
+    grid-template-columns: 1fr;
+  }
+}

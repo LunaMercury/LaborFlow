@@ -88,19 +88,45 @@ export function Header({ currentPath, isLoggedIn, onLogout, onNavigate }: Header
       </header>
 
       <nav className={styles.menuBar} aria-label="주요 메뉴">
-        {menuItems.map((menuItem) => (
-          <button
-            aria-current={currentPath === menuItem.path ? "page" : undefined}
-            className={`${styles.menuButton} ${
-              currentPath === menuItem.path ? styles.activeMenuButton : ""
-            }`}
-            type="button"
-            key={menuItem.path}
-            onClick={() => handleNavigate(menuItem.path)}
-          >
-            {menuItem.label}
-          </button>
-        ))}
+        {menuItems.map((menuItem) => {
+          const isActive =
+            currentPath === menuItem.path ||
+            menuItem.children?.some((child) => child.path === currentPath);
+
+          return (
+            <div className={styles.menuItemWrapper} key={menuItem.path}>
+              <button
+                aria-current={isActive ? "page" : undefined}
+                aria-haspopup={menuItem.children ? "menu" : undefined}
+                className={`${styles.menuButton} ${
+                  isActive ? styles.activeMenuButton : ""
+                }`}
+                type="button"
+                onClick={() => handleNavigate(menuItem.path)}
+              >
+                {menuItem.label}
+              </button>
+
+              {menuItem.children ? (
+                <div className={styles.menuDropdown} role="menu">
+                  {menuItem.children.map((child) => (
+                    <button
+                      className={`${styles.menuDropdownItem} ${
+                        currentPath === child.path ? styles.activeMenuDropdownItem : ""
+                      }`}
+                      key={child.path}
+                      role="menuitem"
+                      type="button"
+                      onClick={() => handleNavigate(child.path)}
+                    >
+                      {child.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
       </nav>
     </>
   );

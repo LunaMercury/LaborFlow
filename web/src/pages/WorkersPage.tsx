@@ -17,6 +17,7 @@ const styles = { ...appStyles, ...workersStyles };
 
 type WorkersPageProps = {
   loginId: string;
+  onNavigate: (path: string) => void;
 };
 
 type WorkerProfileModalState =
@@ -28,7 +29,7 @@ type WorkerProfileModalState =
       worker: WorkerRow;
     };
 
-export function WorkersPage({ loginId }: WorkersPageProps) {
+export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
   const [profileModalState, setProfileModalState] =
     useState<WorkerProfileModalState | null>(null);
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
@@ -137,13 +138,22 @@ export function WorkersPage({ loginId }: WorkersPageProps) {
               <p className={styles.workersStatusMessage}>{statusMessage}</p>
             ) : null}
           </div>
-          <button
-            className={styles.registerWorkerButton}
-            type="button"
-            onClick={() => setProfileModalState({ mode: "create" })}
-          >
-            인력 등록 +
-          </button>
+          <div className={styles.workersHeaderActions}>
+            <button
+              className={styles.goToTeamsButton}
+              type="button"
+              onClick={() => onNavigate("/teams")}
+            >
+              팀 목록으로 &gt;
+            </button>
+            <button
+              className={styles.registerWorkerButton}
+              type="button"
+              onClick={() => setProfileModalState({ mode: "create" })}
+            >
+              인력 등록 +
+            </button>
+          </div>
         </div>
 
         <div className={styles.workerTableFrame}>

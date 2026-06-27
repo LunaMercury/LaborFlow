@@ -59,6 +59,32 @@
   margin: 6px 0 0;
 }
 
+.workersHeaderActions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.goToTeamsButton {
+  align-items: center;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  color: #3446a3;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 16px;
+}
+
+.goToTeamsButton:hover {
+  background: #e1e8ff;
+  cursor: pointer;
+}
+
 .registerWorkerButton {
   align-items: center;
   background: #176b5d;
@@ -177,5 +203,11 @@
 
   .registerWorkerButton {
       justify-content: flex-start;
+    }
+
+  .workersHeaderActions {
+      align-items: stretch;
+      flex-direction: column;
+      width: 100%;
     }
 }
