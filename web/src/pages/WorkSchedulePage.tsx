@@ -1618,89 +1618,88 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
               </span>
             </div>
 
-            <div className={styles.scheduleWorkerList}>
-              <div className={styles.scheduleWorkerFilterPanel}>
-                <div
-                  className={`${styles.scheduleFilterBox} ${styles.scheduleWorkFilterBox}`}
-                >
-                  <input
-                    aria-label="작업 필터"
-                    placeholder="작업 필터 검색"
-                    value={filterDraft}
-                    onBlur={() => {
-                      window.setTimeout(
-                        () => setIsWorkFilterDropdownOpen(false),
-                        120,
-                      );
-                    }}
-                    onChange={(event) => {
-                      setFilterDraft(event.target.value);
-                      setIsWorkFilterDropdownOpen(true);
-                    }}
-                    onFocus={() => setIsWorkFilterDropdownOpen(true)}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter") {
-                        return;
-                      }
+            <div className={styles.scheduleWorkerFilterPanel}>
+              <div
+                className={`${styles.scheduleFilterBox} ${styles.scheduleWorkFilterBox}`}
+              >
+                <input
+                  aria-label="작업 필터"
+                  placeholder="작업 필터 검색"
+                  value={filterDraft}
+                  onBlur={() => {
+                    window.setTimeout(
+                      () => setIsWorkFilterDropdownOpen(false),
+                      120,
+                    );
+                  }}
+                  onChange={(event) => {
+                    setFilterDraft(event.target.value);
+                    setIsWorkFilterDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsWorkFilterDropdownOpen(true)}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") {
+                      return;
+                    }
 
-                      event.preventDefault();
-                      addWorkFilter();
-                    }}
-                  />
-                  <button
-                    aria-label="작업 필터 추가"
-                    type="button"
-                    onClick={() => addWorkFilter()}
-                  >
-                    +
-                  </button>
-                  {isWorkFilterDropdownOpen &&
-                  workFilterSuggestions.length > 0 ? (
-                    <div className={styles.scheduleWorkFilterDropdown}>
-                      {workFilterSuggestions.map((suggestion) => (
-                        <button
-                          className={styles.scheduleWorkFilterOption}
-                          key={`${suggestion.type}-${suggestion.label}`}
-                          type="button"
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => addWorkFilter(suggestion.label)}
-                        >
-                          <span>{suggestion.label}</span>
-                          <small>
-                            {suggestion.type === "group"
-                              ? "상위"
-                              : "작업"}
-                          </small>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-                {workFilters.length > 0 ? (
-                  <div className={styles.scheduleFilterChipList}>
-                    {workFilters.map((filter) => (
+                    event.preventDefault();
+                    addWorkFilter();
+                  }}
+                />
+                <button
+                  aria-label="작업 필터 추가"
+                  type="button"
+                  onClick={() => addWorkFilter()}
+                >
+                  +
+                </button>
+                {isWorkFilterDropdownOpen &&
+                workFilterSuggestions.length > 0 ? (
+                  <div className={styles.scheduleWorkFilterDropdown}>
+                    {workFilterSuggestions.map((suggestion) => (
                       <button
-                        className={styles.scheduleFilterChip}
-                        key={filter}
+                        className={styles.scheduleWorkFilterOption}
+                        key={`${suggestion.type}-${suggestion.label}`}
                         type="button"
-                        onClick={() => removeWorkFilter(filter)}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => addWorkFilter(suggestion.label)}
                       >
-                        {filter} -
+                        <span>{suggestion.label}</span>
+                        <small>
+                          {suggestion.type === "group" ? "상위" : "작업"}
+                        </small>
                       </button>
                     ))}
                   </div>
                 ) : null}
-                <label className={styles.scheduleTeamToggle}>
-                  <input
-                    checked={isTeamViewEnabled}
-                    type="checkbox"
-                    onChange={(event) =>
-                      setIsTeamViewEnabled(event.target.checked)
-                    }
-                  />
-                  <span>팀 적용</span>
-                </label>
               </div>
+              {workFilters.length > 0 ? (
+                <div className={styles.scheduleFilterChipList}>
+                  {workFilters.map((filter) => (
+                    <button
+                      className={styles.scheduleFilterChip}
+                      key={filter}
+                      type="button"
+                      onClick={() => removeWorkFilter(filter)}
+                    >
+                      {filter} -
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <label className={styles.scheduleTeamToggle}>
+                <input
+                  checked={isTeamViewEnabled}
+                  type="checkbox"
+                  onChange={(event) =>
+                    setIsTeamViewEnabled(event.target.checked)
+                  }
+                />
+                <span>팀 적용</span>
+              </label>
+            </div>
+
+            <div className={styles.scheduleWorkerList}>
 
               <div className={styles.scheduleWorkerGroup}>
                 <div className={styles.scheduleGroupTitle}>

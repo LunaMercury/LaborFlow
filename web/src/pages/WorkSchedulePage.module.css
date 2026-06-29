@@ -344,13 +344,17 @@
 .scheduleWorkerFilterPanel {
   align-items: stretch;
   background: #fbfcfe;
-  border: 1px solid #edf2f6;
+  border-bottom: 1px solid #edf2f6;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   gap: 8px;
   justify-content: center;
+  margin: 16px 16px 0;
   padding: 8px;
+  position: relative;
+  z-index: 20;
 }
 
 .scheduleTeamToggle {
