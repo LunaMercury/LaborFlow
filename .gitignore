@@ -1,6 +1,7 @@
 node_modules/
 runs/
 .run/
+logs/
 dist/
 .env
 .env.local
