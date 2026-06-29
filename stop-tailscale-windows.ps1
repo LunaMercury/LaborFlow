@@ -88,7 +88,6 @@ $fastPort = [int](Get-EnvOrDefault "FAST_PORT_TAILSCALE" "6212")
 Write-Host "=========================================="
 Write-Host "Stopping LaborFlow Tailscale services..."
 Write-Host "=========================================="
-Show-PortExclusionWarning "Tailscale" @($webPort, $corePort, $fastPort)
 Show-PortExclusionWarning "Manual run-windows" @(5580, 5581, 5582)
 
 Write-Host "[1/3] Releasing Tailscale service ports..."
