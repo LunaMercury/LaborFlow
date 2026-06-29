@@ -61,6 +61,15 @@ public interface WorkforceDao {
         String availabilityMemo
     );
 
+    void upsertWorkerPaymentProfile(
+        UUID workerProfileUuid,
+        String bankCode,
+        String bankName,
+        String accountNumber,
+        String accountNumberHashSource,
+        String accountHolderName
+    );
+
     void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes, Map<String, Integer> workTypeRatings);
 
     UUID createWorkerTeam(UUID agencyOwnerUuid, String teamName, List<UUID> workerProfileUuids);

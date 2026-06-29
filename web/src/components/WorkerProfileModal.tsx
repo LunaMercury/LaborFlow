@@ -36,6 +36,35 @@ const weekdayOptions = [
   { bit: 64, label: "일" },
 ];
 
+const bankOptions = [
+  { code: "004", name: "KB국민은행" },
+  { code: "088", name: "신한은행" },
+  { code: "020", name: "우리은행" },
+  { code: "081", name: "하나은행" },
+  { code: "011", name: "NH농협은행" },
+  { code: "003", name: "IBK기업은행" },
+  { code: "090", name: "카카오뱅크" },
+  { code: "092", name: "토스뱅크" },
+  { code: "089", name: "케이뱅크" },
+  { code: "071", name: "우체국" },
+  { code: "023", name: "SC제일은행" },
+  { code: "027", name: "한국씨티은행" },
+  { code: "032", name: "부산은행" },
+  { code: "031", name: "대구은행" },
+  { code: "034", name: "광주은행" },
+  { code: "039", name: "경남은행" },
+  { code: "037", name: "전북은행" },
+  { code: "035", name: "제주은행" },
+  { code: "007", name: "수협은행" },
+  { code: "045", name: "새마을금고" },
+  { code: "048", name: "신협" },
+  { code: "050", name: "저축은행" },
+];
+
+function normalizeAccountNumber(value: string) {
+  return value.replace(/\D/g, "").slice(0, 20);
+}
+
 function toFormGender(gender?: string): GenderValue {
   if (gender === "MALE" || gender === "M") {
     return "M";
@@ -74,6 +103,12 @@ export function WorkerProfileModal({
   const [availabilityMemo, setAvailabilityMemo] = useState(
     worker?.availabilityMemo ?? "",
   );
+  const [bankCode, setBankCode] = useState(worker?.bankCode ?? "");
+  const [bankName, setBankName] = useState(worker?.bankName ?? "");
+  const [accountNumber, setAccountNumber] = useState(worker?.accountNumber ?? "");
+  const [accountHolderName, setAccountHolderName] = useState(
+    worker?.accountHolderName ?? "",
+  );
   const [workTypeCodes, setWorkTypeCodes] = useState(worker?.workTypeCodes ?? []);
   const [workTypeRatings, setWorkTypeRatings] = useState<Record<string, number>>(
     worker?.workTypeRatings ?? {},
@@ -102,12 +137,25 @@ export function WorkerProfileModal({
       return;
     }
 
+    const accountNumberDigits = normalizeAccountNumber(accountNumber);
+    if (
+      accountNumberDigits &&
+      (accountNumberDigits.length < 8 || accountNumberDigits.length > 20)
+    ) {
+      window.alert("계좌번호는 숫자 8자리 이상 20자리 이하로 입력해주세요.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload = {
+        accountHolderName: accountHolderName.trim(),
+        accountNumber: accountNumberDigits,
         age: ageValue,
         availableDaysMask,
         availabilityMemo: availabilityMemo.trim(),
+        bankCode,
+        bankName,
         gender,
         isActive,
         memo: memo.trim(),
@@ -149,6 +197,12 @@ export function WorkerProfileModal({
 
   const toggleAvailableDay = (dayBit: number) => {
     setAvailableDaysMask((currentMask) => currentMask ^ dayBit);
+  };
+
+  const updateBank = (nextBankCode: string) => {
+    const nextBank = bankOptions.find((bank) => bank.code === nextBankCode);
+    setBankCode(nextBank?.code ?? "");
+    setBankName(nextBank?.name ?? "");
   };
 
   return (
@@ -354,6 +408,51 @@ export function WorkerProfileModal({
                   onChange={(event) => setMemo(event.target.value)}
                 />
               </label>
+
+              <div className={`${styles.paymentSection} ${styles.fullWidthField}`}>
+                <div className={styles.paymentHeader}>
+                  <span>계좌 정보</span>
+                  <p>계좌 인증 없이 입력 보조만 제공합니다.</p>
+                </div>
+                <div className={styles.paymentFieldGrid}>
+                  <label className={styles.paymentField}>
+                    <span>은행</span>
+                    <select
+                      value={bankCode}
+                      onChange={(event) => updateBank(event.target.value)}
+                    >
+                      <option value="">은행 선택</option>
+                      {bankOptions.map((bank) => (
+                        <option key={bank.code} value={bank.code}>
+                          {bank.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={styles.paymentField}>
+                    <span>계좌번호</span>
+                    <input
+                      inputMode="numeric"
+                      maxLength={20}
+                      placeholder="숫자만 입력"
+                      type="text"
+                      value={accountNumber}
+                      onChange={(event) =>
+                        setAccountNumber(normalizeAccountNumber(event.target.value))
+                      }
+                    />
+                  </label>
+                  <label className={styles.paymentField}>
+                    <span>예금주</span>
+                    <input
+                      placeholder="예금주명"
+                      type="text"
+                      value={accountHolderName}
+                      onChange={(event) => setAccountHolderName(event.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className={styles.workSkillSection}>

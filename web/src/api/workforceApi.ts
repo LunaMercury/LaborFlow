@@ -16,6 +16,10 @@ export type CreateWorkerPayload = {
   isActive: boolean;
   availableDaysMask: number;
   availabilityMemo: string;
+  bankCode: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolderName: string;
   phone: string;
   pickupLocation: string;
   workTypeCodes: string[];
@@ -30,6 +34,10 @@ export type UpdateWorkerProfilePayload = {
   isActive: boolean;
   availableDaysMask: number;
   availabilityMemo: string;
+  bankCode: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolderName: string;
   name: string;
   nickname: string;
   phone: string;

@@ -9,6 +9,11 @@ export type WorkerRow = {
   isActive?: boolean;
   availableDaysMask?: number;
   availabilityMemo?: string;
+  bankCode?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountHolderName?: string;
+  paymentVerificationStatus?: string;
   workTypeCodes: string[];
   workTypeRatings?: Record<string, number>;
   pickupLocation: string;

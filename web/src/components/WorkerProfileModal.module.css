@@ -92,7 +92,9 @@
 
 .formField input,
 .formField textarea,
-.availabilityMemoField input {
+.availabilityMemoField input,
+.paymentField input,
+.paymentField select {
   background: #fbfcfe;
   border: 1px solid #c8d4e0;
   border-radius: 8px;
@@ -111,7 +113,9 @@
 
 .formField input:focus,
 .formField textarea:focus,
-.availabilityMemoField input:focus {
+.availabilityMemoField input:focus,
+.paymentField input:focus,
+.paymentField select:focus {
   border-color: #176b5d;
   box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
   outline: 0;
@@ -280,6 +284,60 @@
   justify-content: center;
 }
 
+.paymentSection {
+  align-items: stretch;
+  background: #fbfcfe;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  padding: 14px;
+}
+
+.paymentHeader {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+
+.paymentHeader span,
+.paymentField span {
+  color: #2f3f50;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.paymentHeader p {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.paymentFieldGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(140px, 0.8fr) minmax(0, 1.2fr) minmax(0, 1fr);
+}
+
+.paymentField {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.paymentField select:hover {
+  cursor: pointer;
+}
+
 .workSkillSection {
   align-items: stretch;
   border: 1px solid #d9e2ec;
@@ -368,6 +426,10 @@
   }
 
   .workerFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .paymentFieldGrid {
     grid-template-columns: 1fr;
   }
 }

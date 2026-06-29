@@ -14,6 +14,10 @@ public record CreateWorkerRequest(
     Boolean isActive,
     Integer availableDaysMask,
     String availabilityMemo,
+    String bankCode,
+    String bankName,
+    String accountNumber,
+    String accountHolderName,
     List<String> workTypeCodes,
     Map<String, Integer> workTypeRatings
 ) {

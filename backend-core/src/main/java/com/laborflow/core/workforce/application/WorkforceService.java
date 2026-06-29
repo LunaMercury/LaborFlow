@@ -79,6 +79,12 @@ public class WorkforceService {
         boolean isActive = normalizeIsActive(request.isActive());
         int availableDaysMask = normalizeAvailableDaysMask(request.availableDaysMask());
         String availabilityMemo = normalizeOptionalText(request.availabilityMemo());
+        PaymentInput paymentInput = normalizePaymentInput(
+            request.bankCode(),
+            request.bankName(),
+            request.accountNumber(),
+            request.accountHolderName()
+        );
 
         if (workforceDao.localPhoneExistsForOtherProfile(normalizedLoginId, new UUID(0L, 0L), phoneHashSource)) {
             throw new DuplicateWorkerPhoneException();
@@ -111,6 +117,16 @@ public class WorkforceService {
             workTypeCodes,
             normalizeWorkTypeRatings(workTypeCodes, request.workTypeRatings())
         );
+        if (paymentInput.hasValue()) {
+            workforceDao.upsertWorkerPaymentProfile(
+                workerProfileUuid,
+                paymentInput.bankCode(),
+                paymentInput.bankName(),
+                paymentInput.accountNumber(),
+                paymentInput.accountNumberHashSource(),
+                paymentInput.accountHolderName()
+            );
+        }
     }
 
     @Transactional
@@ -144,6 +160,20 @@ public class WorkforceService {
             normalizeIsActive(request.isActive()),
             normalizeAvailableDaysMask(request.availableDaysMask()),
             normalizeOptionalText(request.availabilityMemo())
+        );
+        PaymentInput paymentInput = normalizePaymentInput(
+            request.bankCode(),
+            request.bankName(),
+            request.accountNumber(),
+            request.accountHolderName()
+        );
+        workforceDao.upsertWorkerPaymentProfile(
+            workerProfileUuid,
+            paymentInput.bankCode(),
+            paymentInput.bankName(),
+            paymentInput.accountNumber(),
+            paymentInput.accountNumberHashSource(),
+            paymentInput.accountHolderName()
         );
         List<String> workTypeCodes = normalizeWorkTypeCodes(request.workTypeCodes());
         workforceDao.replaceWorkerWorkTypes(
@@ -346,6 +376,35 @@ public class WorkforceService {
         return availableDaysMask;
     }
 
+    private PaymentInput normalizePaymentInput(
+        String bankCode,
+        String bankName,
+        String accountNumber,
+        String accountHolderName
+    ) {
+        String normalizedBankCode = normalizeOptionalText(bankCode);
+        String normalizedBankName = normalizeOptionalText(bankName);
+        String normalizedAccountHolderName = normalizeOptionalText(accountHolderName);
+        String normalizedAccountNumber = normalizeOptionalText(accountNumber);
+        String accountNumberHashSource = null;
+
+        if (normalizedAccountNumber != null) {
+            accountNumberHashSource = normalizedAccountNumber.replaceAll("\\D", "");
+            if (accountNumberHashSource.length() < 8 || accountNumberHashSource.length() > 20) {
+                throw new IllegalArgumentException("Account number is invalid.");
+            }
+            normalizedAccountNumber = accountNumberHashSource;
+        }
+
+        return new PaymentInput(
+            normalizedBankCode,
+            normalizedBankName,
+            normalizedAccountNumber,
+            accountNumberHashSource,
+            normalizedAccountHolderName
+        );
+    }
+
     private String normalizeLoginId(String loginId) {
         if (loginId == null || loginId.isBlank()) {
             return "test";
@@ -355,5 +414,20 @@ public class WorkforceService {
     }
 
     private record TeamInput(String teamName, List<UUID> workerProfileUuids) {
+    }
+
+    private record PaymentInput(
+        String bankCode,
+        String bankName,
+        String accountNumber,
+        String accountNumberHashSource,
+        String accountHolderName
+    ) {
+        boolean hasValue() {
+            return bankCode != null
+                || bankName != null
+                || accountNumber != null
+                || accountHolderName != null;
+        }
     }
 }

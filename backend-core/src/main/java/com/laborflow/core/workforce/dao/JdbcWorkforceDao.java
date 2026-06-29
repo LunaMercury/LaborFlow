@@ -37,6 +37,11 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 COALESCE(p.is_active, true) AS is_active,
                 COALESCE(p.available_days_mask, 127) AS available_days_mask,
                 COALESCE(p.availability_memo, '') AS availability_memo,
+                COALESCE(pay.bank_code, '') AS bank_code,
+                COALESCE(pay.bank_name, '') AS bank_name,
+                COALESCE(pay.account_number_encrypted, '') AS account_number_encrypted,
+                COALESCE(pay.account_holder_name, '') AS account_holder_name,
+                COALESCE(pay.verification_status, 'NOT_VERIFIED') AS payment_verification_status,
                 t.uuid AS team_uuid,
                 t.name AS team_name,
                 tm.role AS team_role,
@@ -44,6 +49,8 @@ public class JdbcWorkforceDao implements WorkforceDao {
             FROM public.labor_agency_worker_profile p
             JOIN public.app_account a ON a.labor_agency_owner_uuid = p.agency_owner_uuid
             LEFT JOIN public.worker w ON w.uuid = p.worker_uuid
+            LEFT JOIN public.labor_agency_worker_payment_profile pay
+                ON pay.worker_profile_uuid = p.uuid
             LEFT JOIN public.labor_agency_worker_team_member tm
                 ON tm.worker_profile_uuid = p.uuid
                 AND tm.status = 'ACTIVE'
@@ -88,6 +95,11 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 worker.isActive(),
                 worker.availableDaysMask(),
                 worker.availabilityMemo(),
+                worker.bankCode(),
+                worker.bankName(),
+                worker.accountNumber(),
+                worker.accountHolderName(),
+                worker.paymentVerificationStatus(),
                 worker.teamUuid(),
                 worker.teamName(),
                 worker.teamRole(),
@@ -408,6 +420,50 @@ public class JdbcWorkforceDao implements WorkforceDao {
     }
 
     @Override
+    public void upsertWorkerPaymentProfile(
+        UUID workerProfileUuid,
+        String bankCode,
+        String bankName,
+        String accountNumber,
+        String accountNumberHashSource,
+        String accountHolderName
+    ) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.labor_agency_worker_payment_profile (
+                worker_profile_uuid,
+                bank_code,
+                bank_name,
+                account_number_encrypted,
+                account_number_hash,
+                account_holder_name,
+                verification_status
+            )
+            VALUES (?, ?, ?, ?, CASE WHEN ? IS NULL THEN NULL ELSE encode(digest(?, 'sha256'), 'hex') END, ?, 'NOT_VERIFIED')
+            ON CONFLICT (worker_profile_uuid) DO UPDATE
+            SET bank_code = EXCLUDED.bank_code,
+                bank_name = EXCLUDED.bank_name,
+                account_number_encrypted = EXCLUDED.account_number_encrypted,
+                account_number_hash = EXCLUDED.account_number_hash,
+                account_holder_name = EXCLUDED.account_holder_name,
+                verification_status = CASE
+                    WHEN public.labor_agency_worker_payment_profile.account_number_hash IS DISTINCT FROM EXCLUDED.account_number_hash
+                        OR public.labor_agency_worker_payment_profile.bank_code IS DISTINCT FROM EXCLUDED.bank_code
+                    THEN 'NOT_VERIFIED'
+                    ELSE public.labor_agency_worker_payment_profile.verification_status
+                END
+            """,
+            workerProfileUuid,
+            bankCode,
+            bankName,
+            accountNumber,
+            accountNumberHashSource,
+            accountNumberHashSource,
+            accountHolderName
+        );
+    }
+
+    @Override
     public void replaceWorkerWorkTypes(
         UUID workerProfileUuid,
         List<String> workTypeCodes,
@@ -645,6 +701,11 @@ public class JdbcWorkforceDao implements WorkforceDao {
             resultSet.getBoolean("is_active"),
             resultSet.getInt("available_days_mask"),
             resultSet.getString("availability_memo"),
+            resultSet.getString("bank_code"),
+            resultSet.getString("bank_name"),
+            resultSet.getString("account_number_encrypted"),
+            resultSet.getString("account_holder_name"),
+            resultSet.getString("payment_verification_status"),
             resultSet.getObject("team_uuid", UUID.class),
             resultSet.getString("team_name"),
             resultSet.getString("team_role"),
@@ -668,6 +729,11 @@ public class JdbcWorkforceDao implements WorkforceDao {
         boolean isActive,
         int availableDaysMask,
         String availabilityMemo,
+        String bankCode,
+        String bankName,
+        String accountNumber,
+        String accountHolderName,
+        String paymentVerificationStatus,
         UUID teamUuid,
         String teamName,
         String teamRole,

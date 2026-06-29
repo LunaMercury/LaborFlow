@@ -50,6 +50,7 @@ Worker records are split into central identity and agency-private views:
 - `labor_agency_worker_work_skill`: per-agency worker skill rating by work type. Ratings are 0 to 5 stars and belong to the agency-private worker profile, not the central worker identity.
 - `labor_agency_worker_profile.is_active` and `available_days_mask`: the agency-private default availability rule. The bit mask uses Monday=1, Tuesday=2, Wednesday=4, Thursday=8, Friday=16, Saturday=32, Sunday=64.
 - `labor_agency_worker_availability_exception`: date-range availability overrides such as resting, unavailable, or explicitly available periods.
+- `labor_agency_worker_payment_profile`: per-agency worker payment information. Account numbers are sensitive data and must stay off the central `worker` table.
 
 Application APIs must read agency-facing worker lists from `labor_agency_worker_profile`.
 Central `worker` canonical fields are for identity merge and internal moderation; they must not expose another agency owner's private input.
