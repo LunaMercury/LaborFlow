@@ -107,6 +107,12 @@ type TaskMemoEditorProps = {
   onConfirm: (value: string) => void;
 };
 
+type WorkFilterInputProps = {
+  onAddFilter: (filterLabel: string) => void;
+  selectedFilters: string[];
+  workTypes: WorkTypeOption[];
+};
+
 function getTodayInputValue() {
   const today = new Date();
   const year = today.getFullYear();
@@ -180,6 +186,55 @@ function getWorkTypeGroupName(workTypeName: string) {
   return workTypeName.trim().split(/\s+/)[0] ?? "";
 }
 
+function createWorkFilterSuggestions(
+  filterDraft: string,
+  selectedFilters: string[],
+  workTypes: WorkTypeOption[],
+) {
+  const normalizedDraft = normalizeScheduleMatchText(filterDraft);
+  const selectedFilterSet = new Set(selectedFilters.map(normalizeSearchText));
+  const groups = new Map<string, WorkFilterSuggestion>();
+  const suggestions: WorkFilterSuggestion[] = [];
+
+  for (const workType of workTypes) {
+    const groupName = getWorkTypeGroupName(workType.name);
+    const groupKey = normalizeSearchText(groupName);
+    if (groupName && !groups.has(groupKey)) {
+      groups.set(groupKey, {
+        label: groupName,
+        type: "group",
+      });
+    }
+  }
+
+  for (const group of groups.values()) {
+    const normalizedLabel = normalizeSearchText(group.label);
+    if (
+      !selectedFilterSet.has(normalizedLabel) &&
+      (!normalizedDraft ||
+        normalizeScheduleMatchText(group.label).includes(normalizedDraft))
+    ) {
+      suggestions.push(group);
+    }
+  }
+
+  for (const workType of workTypes) {
+    const normalizedLabel = normalizeSearchText(workType.name);
+    if (
+      !selectedFilterSet.has(normalizedLabel) &&
+      (!normalizedDraft ||
+        normalizeScheduleMatchText(workType.name).includes(normalizedDraft))
+    ) {
+      suggestions.push({
+        label: workType.name,
+        type: "workType",
+      });
+    }
+  }
+
+  return suggestions.slice(0, 10);
+}
+
 function workerMatchesFilters(
   worker: WorkerRow,
   workTypes: WorkTypeOption[],
@@ -201,6 +256,82 @@ function workerMatchesFilters(
         normalizeScheduleMatchText(workType?.name ?? "").includes(filterText)
       );
     }),
+  );
+}
+
+function WorkFilterInput({
+  onAddFilter,
+  selectedFilters,
+  workTypes,
+}: WorkFilterInputProps) {
+  const [filterDraft, setFilterDraft] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const suggestions = useMemo(
+    () => createWorkFilterSuggestions(filterDraft, selectedFilters, workTypes),
+    [filterDraft, selectedFilters, workTypes],
+  );
+
+  const addFilter = (filterLabel = filterDraft) => {
+    const nextFilter = filterLabel.trim();
+    if (!nextFilter) {
+      return;
+    }
+
+    onAddFilter(nextFilter);
+    setFilterDraft("");
+    setIsDropdownOpen(false);
+  };
+
+  return (
+    <div
+      className={`${styles.scheduleFilterBox} ${styles.scheduleWorkFilterBox}`}
+    >
+      <input
+        aria-label="작업 필터"
+        placeholder="작업 필터 검색"
+        value={filterDraft}
+        onBlur={() => {
+          window.setTimeout(() => setIsDropdownOpen(false), 120);
+        }}
+        onChange={(event) => {
+          setFilterDraft(event.target.value);
+          setIsDropdownOpen(true);
+        }}
+        onFocus={() => setIsDropdownOpen(true)}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") {
+            return;
+          }
+
+          event.preventDefault();
+          addFilter();
+        }}
+      />
+      <button
+        aria-label="작업 필터 추가"
+        type="button"
+        onClick={() => addFilter()}
+      >
+        +
+      </button>
+      {isDropdownOpen && suggestions.length > 0 ? (
+        <div className={styles.scheduleWorkFilterDropdown}>
+          {suggestions.map((suggestion) => (
+            <button
+              className={styles.scheduleWorkFilterOption}
+              key={`${suggestion.type}-${suggestion.label}`}
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => addFilter(suggestion.label)}
+            >
+              <span>{suggestion.label}</span>
+              <small>{suggestion.type === "group" ? "상위" : "작업"}</small>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -352,10 +483,7 @@ function TaskMemoEditor({
 export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const [selectedDate, setSelectedDate] = useState(getTodayInputValue);
   const [workerSearchDraft, setWorkerSearchDraft] = useState("");
-  const [filterDraft, setFilterDraft] = useState("");
   const [workFilters, setWorkFilters] = useState<string[]>([]);
-  const [isWorkFilterDropdownOpen, setIsWorkFilterDropdownOpen] =
-    useState(false);
   const [isTeamViewEnabled, setIsTeamViewEnabled] = useState(false);
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
@@ -489,52 +617,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     return { matchingWorkers, otherWorkers };
   }, [assignedWorkerIds, workFilters, workTypes, workerSearchDraft, workers]);
 
-  const workFilterSuggestions = useMemo<WorkFilterSuggestion[]>(() => {
-    const normalizedDraft = normalizeScheduleMatchText(filterDraft);
-    const selectedFilterSet = new Set(workFilters.map(normalizeSearchText));
-    const groups = new Map<string, WorkFilterSuggestion>();
-    const suggestions: WorkFilterSuggestion[] = [];
-
-    for (const workType of workTypes) {
-      const groupName = getWorkTypeGroupName(workType.name);
-      const groupKey = normalizeSearchText(groupName);
-      if (groupName && !groups.has(groupKey)) {
-        groups.set(groupKey, {
-          label: groupName,
-          type: "group",
-        });
-      }
-    }
-
-    for (const group of groups.values()) {
-      const normalizedLabel = normalizeSearchText(group.label);
-      if (
-        !selectedFilterSet.has(normalizedLabel) &&
-        (!normalizedDraft ||
-          normalizeScheduleMatchText(group.label).includes(normalizedDraft))
-      ) {
-        suggestions.push(group);
-      }
-    }
-
-    for (const workType of workTypes) {
-      const normalizedLabel = normalizeSearchText(workType.name);
-      if (
-        !selectedFilterSet.has(normalizedLabel) &&
-        (!normalizedDraft ||
-          normalizeScheduleMatchText(workType.name).includes(normalizedDraft))
-      ) {
-        suggestions.push({
-          label: workType.name,
-          type: "workType",
-        });
-      }
-    }
-
-    return suggestions.slice(0, 10);
-  }, [filterDraft, workFilters, workTypes]);
-
-  const addWorkFilter = (filterLabel = filterDraft) => {
+  const addWorkFilter = (filterLabel: string) => {
     const nextFilter = filterLabel.trim();
     if (!nextFilter) {
       return;
@@ -549,8 +632,6 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         ? currentFilters
         : [...currentFilters, nextFilter],
     );
-    setFilterDraft("");
-    setIsWorkFilterDropdownOpen(false);
   };
 
   const removeWorkFilter = (filter: string) => {
@@ -1619,60 +1700,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             </div>
 
             <div className={styles.scheduleWorkerFilterPanel}>
-              <div
-                className={`${styles.scheduleFilterBox} ${styles.scheduleWorkFilterBox}`}
-              >
-                <input
-                  aria-label="작업 필터"
-                  placeholder="작업 필터 검색"
-                  value={filterDraft}
-                  onBlur={() => {
-                    window.setTimeout(
-                      () => setIsWorkFilterDropdownOpen(false),
-                      120,
-                    );
-                  }}
-                  onChange={(event) => {
-                    setFilterDraft(event.target.value);
-                    setIsWorkFilterDropdownOpen(true);
-                  }}
-                  onFocus={() => setIsWorkFilterDropdownOpen(true)}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter") {
-                      return;
-                    }
-
-                    event.preventDefault();
-                    addWorkFilter();
-                  }}
-                />
-                <button
-                  aria-label="작업 필터 추가"
-                  type="button"
-                  onClick={() => addWorkFilter()}
-                >
-                  +
-                </button>
-                {isWorkFilterDropdownOpen &&
-                workFilterSuggestions.length > 0 ? (
-                  <div className={styles.scheduleWorkFilterDropdown}>
-                    {workFilterSuggestions.map((suggestion) => (
-                      <button
-                        className={styles.scheduleWorkFilterOption}
-                        key={`${suggestion.type}-${suggestion.label}`}
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => addWorkFilter(suggestion.label)}
-                      >
-                        <span>{suggestion.label}</span>
-                        <small>
-                          {suggestion.type === "group" ? "상위" : "작업"}
-                        </small>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+              <WorkFilterInput
+                onAddFilter={addWorkFilter}
+                selectedFilters={workFilters}
+                workTypes={workTypes}
+              />
               {workFilters.length > 0 ? (
                 <div className={styles.scheduleFilterChipList}>
                   {workFilters.map((filter) => (
