@@ -11,6 +11,9 @@ public record CreateWorkerRequest(
     String gender,
     String pickupLocation,
     String memo,
+    Boolean isActive,
+    Integer availableDaysMask,
+    String availabilityMemo,
     List<String> workTypeCodes,
     Map<String, Integer> workTypeRatings
 ) {

@@ -34,7 +34,10 @@ public interface WorkforceDao {
         String phone,
         String phoneHashSource,
         String pickupLocation,
-        String privateMemo
+        String privateMemo,
+        boolean isActive,
+        int availableDaysMask,
+        String availabilityMemo
     );
 
     void updateWorkerIdentity(UUID workerProfileUuid, String name, String nickname);
@@ -49,7 +52,14 @@ public interface WorkforceDao {
 
     void updateWorkerCoreDetails(UUID workerProfileUuid, String gender, Integer age);
 
-    void updateWorkerProfileDetails(UUID workerProfileUuid, String pickupLocation, String privateMemo);
+    void updateWorkerProfileDetails(
+        UUID workerProfileUuid,
+        String pickupLocation,
+        String privateMemo,
+        boolean isActive,
+        int availableDaysMask,
+        String availabilityMemo
+    );
 
     void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes, Map<String, Integer> workTypeRatings);
 

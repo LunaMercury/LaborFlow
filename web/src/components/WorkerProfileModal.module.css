@@ -91,7 +91,8 @@
 }
 
 .formField input,
-.formField textarea {
+.formField textarea,
+.availabilityMemoField input {
   background: #fbfcfe;
   border: 1px solid #c8d4e0;
   border-radius: 8px;
@@ -109,7 +110,8 @@
 }
 
 .formField input:focus,
-.formField textarea:focus {
+.formField textarea:focus,
+.availabilityMemoField input:focus {
   border-color: #176b5d;
   box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
   outline: 0;
@@ -160,6 +162,122 @@
 .activeGenderButton:hover {
   cursor: pointer;
   filter: brightness(0.97);
+}
+
+.availabilitySection {
+  align-items: stretch;
+  background: #fbfcfe;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  padding: 14px;
+}
+
+.availabilityHeader {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.availabilityHeader span,
+.availabilityMemoField span {
+  color: #2f3f50;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.availabilityHeader p {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+  margin: 4px 0 0;
+}
+
+.availabilityToggle {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 999px;
+  color: #176b5d;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 7px;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.availabilityToggle input {
+  accent-color: #176b5d;
+  height: 16px;
+  margin: 0;
+  width: 16px;
+}
+
+.availabilityToggle:hover,
+.availabilityPresetRow button:hover,
+.availableDayButton:hover,
+.activeAvailableDayButton:hover {
+  cursor: pointer;
+  filter: brightness(0.98);
+}
+
+.availabilityPresetRow,
+.availableDayGrid {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: flex-start;
+}
+
+.availabilityPresetRow button,
+.availableDayButton,
+.activeAvailableDayButton {
+  align-items: center;
+  appearance: none;
+  border-radius: 999px;
+  display: flex;
+  font-size: 12px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 11px;
+}
+
+.availabilityPresetRow button {
+  background: #edf2f6;
+  border: 1px solid #c8d4e0;
+  color: #2f3f50;
+}
+
+.availableDayButton {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  color: #4f5d6b;
+  min-width: 42px;
+}
+
+.activeAvailableDayButton {
+  background: #eef6f4;
+  border: 1px solid #176b5d;
+  color: #176b5d;
+  min-width: 42px;
+}
+
+.availabilityMemoField {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
 }
 
 .workSkillSection {

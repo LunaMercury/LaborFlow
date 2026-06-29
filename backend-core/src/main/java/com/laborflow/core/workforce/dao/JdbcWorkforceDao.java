@@ -34,6 +34,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 w.gender,
                 COALESCE(p.private_memo, '') AS private_memo,
                 COALESCE(p.pickup_location, '') AS pickup_location,
+                COALESCE(p.is_active, true) AS is_active,
+                COALESCE(p.available_days_mask, 127) AS available_days_mask,
+                COALESCE(p.availability_memo, '') AS availability_memo,
                 t.uuid AS team_uuid,
                 t.name AS team_name,
                 tm.role AS team_role,
@@ -82,6 +85,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 worker.gender(),
                 worker.memo(),
                 worker.pickupLocation(),
+                worker.isActive(),
+                worker.availableDaysMask(),
+                worker.availabilityMemo(),
                 worker.teamUuid(),
                 worker.teamName(),
                 worker.teamRole(),
@@ -240,7 +246,10 @@ public class JdbcWorkforceDao implements WorkforceDao {
         String phone,
         String phoneHashSource,
         String pickupLocation,
-        String privateMemo
+        String privateMemo,
+        boolean isActive,
+        int availableDaysMask,
+        String availabilityMemo
     ) {
         return jdbcTemplate.queryForObject(
             """
@@ -252,9 +261,12 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 local_phone_encrypted,
                 local_phone_hash,
                 pickup_location,
-                private_memo
+                private_memo,
+                is_active,
+                available_days_mask,
+                availability_memo
             )
-            VALUES (?, ?, ?, ?, ?, encode(digest(?, 'sha256'), 'hex'), ?, ?)
+            VALUES (?, ?, ?, ?, ?, encode(digest(?, 'sha256'), 'hex'), ?, ?, ?, ?, ?)
             RETURNING uuid
             """,
             UUID.class,
@@ -265,7 +277,10 @@ public class JdbcWorkforceDao implements WorkforceDao {
             phone,
             phoneHashSource,
             pickupLocation,
-            privateMemo
+            privateMemo,
+            isActive,
+            availableDaysMask,
+            availabilityMemo
         );
     }
 
@@ -365,16 +380,29 @@ public class JdbcWorkforceDao implements WorkforceDao {
     }
 
     @Override
-    public void updateWorkerProfileDetails(UUID workerProfileUuid, String pickupLocation, String privateMemo) {
+    public void updateWorkerProfileDetails(
+        UUID workerProfileUuid,
+        String pickupLocation,
+        String privateMemo,
+        boolean isActive,
+        int availableDaysMask,
+        String availabilityMemo
+    ) {
         jdbcTemplate.update(
             """
             UPDATE public.labor_agency_worker_profile
             SET pickup_location = ?,
-                private_memo = ?
+                private_memo = ?,
+                is_active = ?,
+                available_days_mask = ?,
+                availability_memo = ?
             WHERE uuid = ?
             """,
             pickupLocation,
             privateMemo,
+            isActive,
+            availableDaysMask,
+            availabilityMemo,
             workerProfileUuid
         );
     }
@@ -614,6 +642,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
             resultSet.getString("gender"),
             resultSet.getString("private_memo"),
             resultSet.getString("pickup_location"),
+            resultSet.getBoolean("is_active"),
+            resultSet.getInt("available_days_mask"),
+            resultSet.getString("availability_memo"),
             resultSet.getObject("team_uuid", UUID.class),
             resultSet.getString("team_name"),
             resultSet.getString("team_role"),
@@ -634,6 +665,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
         String gender,
         String memo,
         String pickupLocation,
+        boolean isActive,
+        int availableDaysMask,
+        String availabilityMemo,
         UUID teamUuid,
         String teamName,
         String teamRole,

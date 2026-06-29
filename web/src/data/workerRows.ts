@@ -6,6 +6,9 @@ export type WorkerRow = {
   age?: number | null;
   gender?: string;
   memo?: string;
+  isActive?: boolean;
+  availableDaysMask?: number;
+  availabilityMemo?: string;
   workTypeCodes: string[];
   workTypeRatings?: Record<string, number>;
   pickupLocation: string;

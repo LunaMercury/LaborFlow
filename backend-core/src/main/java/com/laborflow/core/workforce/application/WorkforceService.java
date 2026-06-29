@@ -76,6 +76,9 @@ public class WorkforceService {
         Integer age = normalizeAge(request.age());
         String pickupLocation = normalizeOptionalText(request.pickupLocation());
         String privateMemo = normalizeOptionalText(request.memo());
+        boolean isActive = normalizeIsActive(request.isActive());
+        int availableDaysMask = normalizeAvailableDaysMask(request.availableDaysMask());
+        String availabilityMemo = normalizeOptionalText(request.availabilityMemo());
 
         if (workforceDao.localPhoneExistsForOtherProfile(normalizedLoginId, new UUID(0L, 0L), phoneHashSource)) {
             throw new DuplicateWorkerPhoneException();
@@ -97,7 +100,10 @@ public class WorkforceService {
             formattedPhone,
             phoneHashSource,
             pickupLocation,
-            privateMemo
+            privateMemo,
+            isActive,
+            availableDaysMask,
+            availabilityMemo
         );
         List<String> workTypeCodes = normalizeWorkTypeCodes(request.workTypeCodes());
         workforceDao.replaceWorkerWorkTypes(
@@ -134,7 +140,10 @@ public class WorkforceService {
         workforceDao.updateWorkerProfileDetails(
             workerProfileUuid,
             normalizeOptionalText(request.pickupLocation()),
-            normalizeOptionalText(request.memo())
+            normalizeOptionalText(request.memo()),
+            normalizeIsActive(request.isActive()),
+            normalizeAvailableDaysMask(request.availableDaysMask()),
+            normalizeOptionalText(request.availabilityMemo())
         );
         List<String> workTypeCodes = normalizeWorkTypeCodes(request.workTypeCodes());
         workforceDao.replaceWorkerWorkTypes(
@@ -319,6 +328,22 @@ public class WorkforceService {
         }
 
         return age;
+    }
+
+    private boolean normalizeIsActive(Boolean isActive) {
+        return isActive == null || isActive;
+    }
+
+    private int normalizeAvailableDaysMask(Integer availableDaysMask) {
+        if (availableDaysMask == null) {
+            return 127;
+        }
+
+        if (availableDaysMask < 0 || availableDaysMask > 127) {
+            throw new IllegalArgumentException("Available days mask is invalid.");
+        }
+
+        return availableDaysMask;
     }
 
     private String normalizeLoginId(String loginId) {

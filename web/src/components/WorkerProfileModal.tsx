@@ -22,6 +22,20 @@ type WorkerProfileModalProps = {
 
 type GenderValue = "M" | "F" | "N";
 
+const EVERY_DAY_MASK = 127;
+const WEEKDAY_MASK = 31;
+const WEEKEND_MASK = 96;
+
+const weekdayOptions = [
+  { bit: 1, label: "월" },
+  { bit: 2, label: "화" },
+  { bit: 4, label: "수" },
+  { bit: 8, label: "목" },
+  { bit: 16, label: "금" },
+  { bit: 32, label: "토" },
+  { bit: 64, label: "일" },
+];
+
 function toFormGender(gender?: string): GenderValue {
   if (gender === "MALE" || gender === "M") {
     return "M";
@@ -53,6 +67,13 @@ export function WorkerProfileModal({
   const [gender, setGender] = useState<GenderValue>(toFormGender(worker?.gender));
   const [pickupLocation, setPickupLocation] = useState(worker?.pickupLocation ?? "");
   const [memo, setMemo] = useState(worker?.memo ?? "");
+  const [isActive, setIsActive] = useState(worker?.isActive ?? true);
+  const [availableDaysMask, setAvailableDaysMask] = useState(
+    worker?.availableDaysMask ?? EVERY_DAY_MASK,
+  );
+  const [availabilityMemo, setAvailabilityMemo] = useState(
+    worker?.availabilityMemo ?? "",
+  );
   const [workTypeCodes, setWorkTypeCodes] = useState(worker?.workTypeCodes ?? []);
   const [workTypeRatings, setWorkTypeRatings] = useState<Record<string, number>>(
     worker?.workTypeRatings ?? {},
@@ -85,7 +106,10 @@ export function WorkerProfileModal({
     try {
       const payload = {
         age: ageValue,
+        availableDaysMask,
+        availabilityMemo: availabilityMemo.trim(),
         gender,
+        isActive,
         memo: memo.trim(),
         phone: formatKoreanPhoneNumber(workerPhone),
         pickupLocation: pickupLocation.trim(),
@@ -121,6 +145,10 @@ export function WorkerProfileModal({
     setGender((currentGender) =>
       currentGender === nextGender ? "N" : nextGender,
     );
+  };
+
+  const toggleAvailableDay = (dayBit: number) => {
+    setAvailableDaysMask((currentMask) => currentMask ^ dayBit);
   };
 
   return (
@@ -251,6 +279,70 @@ export function WorkerProfileModal({
                     여
                   </button>
                 </div>
+              </div>
+
+              <div className={`${styles.availabilitySection} ${styles.fullWidthField}`}>
+                <div className={styles.availabilityHeader}>
+                  <div>
+                    <span>작업자 활성화</span>
+                    <p>장기 휴식, 평일/주말 가능 여부를 사무소 기준으로 관리합니다.</p>
+                  </div>
+                  <label className={styles.availabilityToggle}>
+                    <input
+                      checked={isActive}
+                      type="checkbox"
+                      onChange={(event) => setIsActive(event.target.checked)}
+                    />
+                    <span>{isActive ? "활성" : "휴식중"}</span>
+                  </label>
+                </div>
+
+                <div className={styles.availabilityPresetRow}>
+                  <button type="button" onClick={() => setAvailableDaysMask(EVERY_DAY_MASK)}>
+                    매일
+                  </button>
+                  <button type="button" onClick={() => setAvailableDaysMask(WEEKDAY_MASK)}>
+                    평일만
+                  </button>
+                  <button type="button" onClick={() => setAvailableDaysMask(WEEKEND_MASK)}>
+                    주말만
+                  </button>
+                  <button type="button" onClick={() => setAvailableDaysMask(0)}>
+                    요일 비움
+                  </button>
+                </div>
+
+                <div className={styles.availableDayGrid} aria-label="출근 가능 요일">
+                  {weekdayOptions.map((option) => {
+                    const isSelected = (availableDaysMask & option.bit) !== 0;
+
+                    return (
+                      <button
+                        aria-pressed={isSelected}
+                        className={
+                          isSelected
+                            ? styles.activeAvailableDayButton
+                            : styles.availableDayButton
+                        }
+                        key={option.bit}
+                        type="button"
+                        onClick={() => toggleAvailableDay(option.bit)}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <label className={styles.availabilityMemoField}>
+                  <span>근무 가능 메모</span>
+                  <input
+                    placeholder="예: 7월 초까지 휴식, 토요일 오전만 가능"
+                    type="text"
+                    value={availabilityMemo}
+                    onChange={(event) => setAvailabilityMemo(event.target.value)}
+                  />
+                </label>
               </div>
 
               <label className={`${styles.formField} ${styles.fullWidthField}`}>

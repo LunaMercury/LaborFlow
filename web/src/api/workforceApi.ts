@@ -13,6 +13,9 @@ export type CreateWorkerPayload = {
   gender: string;
   localNickname: string;
   memo: string;
+  isActive: boolean;
+  availableDaysMask: number;
+  availabilityMemo: string;
   phone: string;
   pickupLocation: string;
   workTypeCodes: string[];
@@ -24,6 +27,9 @@ export type UpdateWorkerProfilePayload = {
   age: number | null;
   gender: string;
   memo: string;
+  isActive: boolean;
+  availableDaysMask: number;
+  availabilityMemo: string;
   name: string;
   nickname: string;
   phone: string;

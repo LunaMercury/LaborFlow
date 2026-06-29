@@ -141,6 +141,23 @@ function getNextDateInputValue(value: string) {
   return addDaysToInputValue(value, 1);
 }
 
+function getWeekdayBitFromInputValue(value: string) {
+  const dayIndex = new Date(`${value}T00:00:00`).getDay();
+
+  return dayIndex === 0 ? 64 : 1 << (dayIndex - 1);
+}
+
+function workerIsAvailableOnDate(worker: WorkerRow, selectedDate: string) {
+  if (worker.isActive === false) {
+    return false;
+  }
+
+  const availableDaysMask = worker.availableDaysMask ?? 127;
+  const selectedDayBit = getWeekdayBitFromInputValue(selectedDate);
+
+  return (availableDaysMask & selectedDayBit) !== 0;
+}
+
 function getWorkerDisplayName(worker: WorkerRow) {
   const name = worker.name.trim();
   const nickname = worker.nickname?.trim() ?? "";
@@ -593,6 +610,10 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         return false;
       }
 
+      if (!workerIsAvailableOnDate(worker, selectedDate)) {
+        return false;
+      }
+
       if (!normalizedWorkerSearch) {
         return true;
       }
@@ -615,7 +636,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     }
 
     return { matchingWorkers, otherWorkers };
-  }, [assignedWorkerIds, workFilters, workTypes, workerSearchDraft, workers]);
+  }, [assignedWorkerIds, selectedDate, workFilters, workTypes, workerSearchDraft, workers]);
 
   const addWorkFilter = (filterLabel: string) => {
     const nextFilter = filterLabel.trim();
