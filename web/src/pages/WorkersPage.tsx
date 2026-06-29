@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchWorkers,
   fetchWorkTypes,
@@ -299,6 +299,7 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
   const [workerWorkTypeFilter, setWorkerWorkTypeFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [statusMessage, setStatusMessage] = useState("");
+  const workerTableFrameRef = useRef<HTMLDivElement | null>(null);
 
   const filteredWorkers = useMemo(
     () =>
@@ -361,6 +362,20 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, pageCount));
   }, [pageCount]);
+
+  const moveToPage = (page: number) => {
+    setCurrentPage(page);
+    window.requestAnimationFrame(() => {
+      const tableFrame = workerTableFrameRef.current;
+
+      if (!tableFrame) {
+        return;
+      }
+
+      tableFrame.scrollTop = 0;
+      tableFrame.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -500,7 +515,7 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
           onWorkTypeFilterChange={setWorkerWorkTypeFilter}
         />
 
-        <div className={styles.workerTableFrame}>
+        <div className={styles.workerTableFrame} ref={workerTableFrameRef}>
           <table className={styles.workerTable}>
             <thead>
               <tr>
@@ -557,7 +572,7 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
           currentPage={currentPage}
           pageCount={pageCount}
           totalCount={organizedWorkers.length}
-          onPageChange={setCurrentPage}
+          onPageChange={moveToPage}
         />
       </section>
       {profileModalState ? (
