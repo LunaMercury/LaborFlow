@@ -81,9 +81,72 @@ function Get-EnvOrDefault {
     return $value
 }
 
-$webPort = [int](Get-EnvOrDefault "WEB_PORT_TAILSCALE" "6210")
-$corePort = [int](Get-EnvOrDefault "CORE_PORT_TAILSCALE" "6211")
-$fastPort = [int](Get-EnvOrDefault "FAST_PORT_TAILSCALE" "6212")
+function Get-EnvValue {
+    param(
+        [string] $Name
+    )
+
+    $value = [Environment]::GetEnvironmentVariable($Name, "Process")
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return $null
+    }
+
+    return $value
+}
+
+function Add-PortSet {
+    param(
+        [System.Collections.Generic.List[object]] $PortSets,
+        [int] $WebPort,
+        [int] $CorePort,
+        [int] $FastPort
+    )
+
+    $key = "$WebPort,$CorePort,$FastPort"
+    foreach ($portSet in $PortSets) {
+        if ($portSet.Key -eq $key) {
+            return
+        }
+    }
+
+    $PortSets.Add([pscustomobject]@{
+        Key = $key
+        Web = $WebPort
+        Core = $CorePort
+        Fast = $FastPort
+    })
+}
+
+function Resolve-StopPortSets {
+    $portSets = [System.Collections.Generic.List[object]]::new()
+
+    $explicitWebPort = Get-EnvValue "WEB_PORT_TAILSCALE"
+    if ($explicitWebPort) {
+        $web = [int]$explicitWebPort
+        $core = if (Get-EnvValue "CORE_PORT_TAILSCALE") { [int](Get-EnvValue "CORE_PORT_TAILSCALE") } else { $web + 1 }
+        $fast = if (Get-EnvValue "FAST_PORT_TAILSCALE") { [int](Get-EnvValue "FAST_PORT_TAILSCALE") } else { $web + 2 }
+        Add-PortSet $portSets $web $core $fast
+    }
+
+    $statePath = Join-Path $root "logs\tailscale-services.json"
+    if (Test-Path $statePath) {
+        try {
+            $state = Get-Content -Path $statePath -Raw | ConvertFrom-Json
+            if ($state.webPort -and $state.corePort -and $state.fastPort) {
+                Add-PortSet $portSets ([int]$state.webPort) ([int]$state.corePort) ([int]$state.fastPort)
+            }
+        } catch {
+            Write-Warning "Could not read Tailscale service state file: $statePath"
+        }
+    }
+
+    Add-PortSet $portSets 6210 6211 6212
+    Add-PortSet $portSets 16210 16211 16212
+
+    return $portSets
+}
+
+$portSets = Resolve-StopPortSets
 
 Write-Host "=========================================="
 Write-Host "Stopping LaborFlow Tailscale services..."
@@ -91,9 +154,11 @@ Write-Host "=========================================="
 Show-PortExclusionWarning "Manual run-windows" @(5580, 5581, 5582)
 
 Write-Host "[1/3] Releasing Tailscale service ports..."
-Stop-PortListener "Web App" $webPort
-Stop-PortListener "Core API" $corePort
-Stop-PortListener "Fast API" $fastPort
+foreach ($portSet in $portSets) {
+    Stop-PortListener "Web App" ([int]$portSet.Web)
+    Stop-PortListener "Core API" ([int]$portSet.Core)
+    Stop-PortListener "Fast API" ([int]$portSet.Fast)
+}
 
 Write-Host "[2/3] Stopping Gradle daemons..."
 if (Test-Path (Join-Path $root "backend-core\gradlew.bat")) {

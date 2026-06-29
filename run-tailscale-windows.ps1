@@ -57,6 +57,19 @@ function Get-EnvOrDefault {
     return $value
 }
 
+function Get-EnvValue {
+    param(
+        [string] $Name
+    )
+
+    $value = [Environment]::GetEnvironmentVariable($Name, "Process")
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return $null
+    }
+
+    return $value
+}
+
 function Stop-PortListener {
     param(
         [string] $Name,
@@ -117,6 +130,101 @@ function Show-PortExclusionWarning {
     }
 }
 
+function Test-TcpPortExcluded {
+    param(
+        [int] $Port,
+        [object[]] $Ranges
+    )
+
+    foreach ($range in $Ranges) {
+        if ($Port -ge $range.Start -and $Port -le $range.End) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Test-TcpPortListening {
+    param(
+        [int] $Port
+    )
+
+    $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    return $null -ne $listener
+}
+
+function Test-TailscalePortSetAvailable {
+    param(
+        [int] $WebPort,
+        [object[]] $ExcludedRanges
+    )
+
+    foreach ($port in @($WebPort, $WebPort + 1, $WebPort + 2)) {
+        if (Test-TcpPortExcluded $port $ExcludedRanges) {
+            return $false
+        }
+
+        if (Test-TcpPortListening $port) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Resolve-TailscaleServicePorts {
+    $explicitWebPort = Get-EnvValue "WEB_PORT_TAILSCALE"
+    $explicitCorePort = Get-EnvValue "CORE_PORT_TAILSCALE"
+    $explicitFastPort = Get-EnvValue "FAST_PORT_TAILSCALE"
+    $excludedRanges = @(Get-TcpExcludedPortRanges)
+
+    if ($explicitWebPort) {
+        $web = [int]$explicitWebPort
+        $core = if ($explicitCorePort) { [int]$explicitCorePort } else { $web + 1 }
+        $fast = if ($explicitFastPort) { [int]$explicitFastPort } else { $web + 2 }
+        $requestedPorts = @($web, $core, $fast)
+        $blockedPorts = @()
+        foreach ($port in $requestedPorts) {
+            if ((Test-TcpPortExcluded $port $excludedRanges) -or (Test-TcpPortListening $port)) {
+                $blockedPorts += $port
+            }
+        }
+
+        if ($blockedPorts.Count -gt 0) {
+            throw "Explicit Tailscale ports are not available: $($blockedPorts -join ', '). Change WEB_PORT_TAILSCALE/CORE_PORT_TAILSCALE/FAST_PORT_TAILSCALE or clear Windows TCP exclusions."
+        }
+
+        return [pscustomobject]@{
+            Web = $web
+            Core = $core
+            Fast = $fast
+            WasFallback = $false
+        }
+    }
+
+    $candidateWebPorts = @(
+        6210, 16210, 17210, 18210, 19210, 20210, 21210, 22210, 23210, 24210,
+        25210, 26210, 27210, 28210, 29210, 30210, 31210, 32210, 33210, 34210,
+        35210, 36210, 37210, 38210, 39210, 40210, 41210, 42210, 43210, 44210,
+        45210, 46210, 47210, 48210, 49210
+    )
+
+    foreach ($candidateWebPort in $candidateWebPorts) {
+        if (Test-TailscalePortSetAvailable $candidateWebPort $excludedRanges) {
+            return [pscustomobject]@{
+                Web = $candidateWebPort
+                Core = $candidateWebPort + 1
+                Fast = $candidateWebPort + 2
+                WasFallback = $candidateWebPort -ne 6210
+            }
+        }
+    }
+
+    throw "No available Tailscale port set was found. Review Windows TCP exclusions with: netsh interface ipv4 show excludedportrange protocol=tcp"
+}
+
 function Wait-ForDockerDependency {
     param(
         [string] $Name,
@@ -158,9 +266,10 @@ function Start-LoggedProcess {
 
 Import-DotEnv
 
-$webPort = [int](Get-EnvOrDefault "WEB_PORT_TAILSCALE" "6210")
-$corePort = [int](Get-EnvOrDefault "CORE_PORT_TAILSCALE" "6211")
-$fastPort = [int](Get-EnvOrDefault "FAST_PORT_TAILSCALE" "6212")
+$tailscalePorts = Resolve-TailscaleServicePorts
+$webPort = [int]$tailscalePorts.Web
+$corePort = [int]$tailscalePorts.Core
+$fastPort = [int]$tailscalePorts.Fast
 $dbPort = [int](Get-EnvOrDefault "DB_PORT" "55432")
 $redisPort = [int](Get-EnvOrDefault "REDIS_PORT" "56379")
 
@@ -181,7 +290,9 @@ Write-Host "=========================================="
 Write-Host "Starting LaborFlow for Tailscale..."
 Write-Host "=========================================="
 Write-Host "Tailscale IP: $tailscaleIp"
-Show-PortExclusionWarning "Tailscale" @($webPort, $corePort, $fastPort)
+if ($tailscalePorts.WasFallback) {
+    Write-Host "Preferred Tailscale ports 6210-6212 are unavailable. Using $webPort-$fastPort instead."
+}
 Show-PortExclusionWarning "Manual run-windows" @(5580, 5581, 5582)
 
 if ($DryRun) {
@@ -256,6 +367,15 @@ Start-LoggedProcess "Backend Fast" $fastCommand $fastOut $fastErr
 
 Write-Host "[4/4] Starting Frontend..."
 Start-LoggedProcess "Frontend" $webCommand $webOut $webErr
+
+$statePath = Join-Path $logDir "tailscale-services.json"
+[pscustomobject]@{
+    tailscaleIp = $tailscaleIp
+    webPort = $webPort
+    corePort = $corePort
+    fastPort = $fastPort
+    updatedAt = (Get-Date).ToString("o")
+} | ConvertTo-Json | Set-Content -Path $statePath -Encoding UTF8
 
 Write-Host ""
 Write-Host "=========================================="
