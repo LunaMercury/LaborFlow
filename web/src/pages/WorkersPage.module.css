@@ -121,6 +121,104 @@
   white-space: nowrap;
 }
 
+.workerListControls {
+  align-items: center;
+  background: #fbfcfe;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  width: 100%;
+}
+
+.workerControlGroup {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.workerControlGroup > span {
+  color: #2f3f50;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.workerSortButtonGroup {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.workerControlButton,
+.activeWorkerControlButton,
+.workerDirectionButton {
+  align-items: center;
+  appearance: none;
+  border-radius: 999px;
+  display: flex;
+  font-size: 12px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+
+.workerControlButton {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  color: #4f5d6b;
+}
+
+.activeWorkerControlButton,
+.workerDirectionButton {
+  background: #eef6f4;
+  border: 1px solid #176b5d;
+  color: #176b5d;
+}
+
+.workerControlButton:hover,
+.activeWorkerControlButton:hover,
+.workerDirectionButton:hover {
+  cursor: pointer;
+  filter: brightness(0.98);
+}
+
+.workerControlButton:disabled,
+.activeWorkerControlButton:disabled {
+  background: #edf2f6;
+  border-color: #d9e2ec;
+  color: #a8b3bf;
+  cursor: default;
+  filter: none;
+}
+
+.workerControlGroup select {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #2f3f50;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.workerControlGroup select:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
 .goToTeamsButton {
   align-items: center;
   background: #eef2ff;
@@ -168,6 +266,52 @@
   justify-content: center;
   overflow: auto;
   width: 100%;
+}
+
+.workerPaginationBar {
+  align-items: center;
+  color: #687789;
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: space-between;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.workerPaginationActions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.workerPaginationActions button {
+  align-items: center;
+  appearance: none;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #2f3f50;
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 34px;
+  min-width: 64px;
+  padding: 0 12px;
+}
+
+.workerPaginationActions button:hover {
+  cursor: pointer;
+  filter: brightness(0.98);
+}
+
+.workerPaginationActions button:disabled {
+  background: #edf2f6;
+  color: #a8b3bf;
+  cursor: default;
+  filter: none;
 }
 
 .workerTable {
@@ -277,5 +421,16 @@
 
   .workerSearchCount {
       align-self: flex-end;
+    }
+
+  .workerListControls,
+  .workerControlGroup,
+  .workerPaginationBar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+  .workerPaginationActions {
+      justify-content: flex-end;
     }
 }

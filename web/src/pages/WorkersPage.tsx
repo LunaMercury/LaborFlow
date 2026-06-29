@@ -9,12 +9,20 @@ import appStyles from "../App.module.css";
 import { EditableTextCell, EditableWorkerNameCell } from "../components/WorkerEditableCells";
 import { WorkerProfileModal } from "../components/WorkerProfileModal";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
-import { workTypeOptions as fallbackWorkTypeOptions } from "../data/workTypeOptions";
+import {
+  workTypeOptions as fallbackWorkTypeOptions,
+  type WorkTypeOption,
+} from "../data/workTypeOptions";
 import type { WorkerRow } from "../data/workerRows";
 import { getPhoneDigits } from "../utils/phoneNumber";
 import workersStyles from "./WorkersPage.module.css";
 
 const styles = { ...appStyles, ...workersStyles };
+const WORKERS_PER_PAGE = 15;
+
+type WorkerSortKey = "name" | "phone" | "work" | "pickupLocation" | "recentWork";
+type SortDirection = "asc" | "desc";
+type WorkerStatusFilter = "all" | "active" | "resting";
 
 type WorkersPageProps = {
   loginId: string;
@@ -34,6 +42,25 @@ type WorkerSearchInputProps = {
   resultCount: number;
   totalCount: number;
   onSearchTextChange: (searchText: string) => void;
+};
+
+type WorkerListControlsProps = {
+  sortDirection: SortDirection;
+  sortKey: WorkerSortKey;
+  statusFilter: WorkerStatusFilter;
+  workTypeFilter: string;
+  workTypes: WorkTypeOption[];
+  onSortDirectionChange: (sortDirection: SortDirection) => void;
+  onSortKeyChange: (sortKey: WorkerSortKey) => void;
+  onStatusFilterChange: (statusFilter: WorkerStatusFilter) => void;
+  onWorkTypeFilterChange: (workTypeCode: string) => void;
+};
+
+type PaginationControlsProps = {
+  currentPage: number;
+  pageCount: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
 };
 
 function normalizeWorkerSearchText(value: string) {
@@ -57,6 +84,57 @@ function workerMatchesSearch(worker: WorkerRow, searchText: string) {
   return (
     searchableNames.some((name) => name.includes(normalizedSearchText)) ||
     Boolean(searchPhoneDigits && workerPhoneDigits.includes(searchPhoneDigits))
+  );
+}
+
+function getWorkerDisplayName(worker: WorkerRow) {
+  return worker.name.trim() || worker.nickname?.trim() || "";
+}
+
+function getWorkerWorkTypeNames(worker: WorkerRow, workTypes: WorkTypeOption[]) {
+  return worker.workTypeCodes
+    .map((code) => workTypes.find((workType) => workType.code === code)?.name ?? code)
+    .join(", ");
+}
+
+function workerMatchesStatusFilter(worker: WorkerRow, statusFilter: WorkerStatusFilter) {
+  if (statusFilter === "active") {
+    return worker.isActive !== false;
+  }
+
+  if (statusFilter === "resting") {
+    return worker.isActive === false;
+  }
+
+  return true;
+}
+
+function compareWorkers(
+  leftWorker: WorkerRow,
+  rightWorker: WorkerRow,
+  sortKey: WorkerSortKey,
+  sortDirection: SortDirection,
+  workTypes: WorkTypeOption[],
+) {
+  const direction = sortDirection === "asc" ? 1 : -1;
+  const getSortValue = (worker: WorkerRow) => {
+    switch (sortKey) {
+      case "phone":
+        return getPhoneDigits(worker.phone);
+      case "work":
+        return getWorkerWorkTypeNames(worker, workTypes);
+      case "pickupLocation":
+        return worker.pickupLocation;
+      case "recentWork":
+      case "name":
+      default:
+        return getWorkerDisplayName(worker);
+    }
+  };
+
+  return (
+    getSortValue(leftWorker).localeCompare(getSortValue(rightWorker), "ko-KR") *
+    direction
   );
 }
 
@@ -94,12 +172,132 @@ function WorkerSearchInput({
   );
 }
 
+function WorkerListControls({
+  sortDirection,
+  sortKey,
+  statusFilter,
+  workTypeFilter,
+  workTypes,
+  onSortDirectionChange,
+  onSortKeyChange,
+  onStatusFilterChange,
+  onWorkTypeFilterChange,
+}: WorkerListControlsProps) {
+  const sortOptions: Array<{ key: WorkerSortKey; label: string; disabled?: boolean }> = [
+    { key: "name", label: "이름" },
+    { key: "phone", label: "전화번호" },
+    { key: "work", label: "작업" },
+    { key: "pickupLocation", label: "승차장소" },
+    { key: "recentWork", label: "최근 근무", disabled: true },
+  ];
+
+  return (
+    <div className={styles.workerListControls}>
+      <div className={styles.workerControlGroup}>
+        <span>정렬</span>
+        <div className={styles.workerSortButtonGroup}>
+          {sortOptions.map((option) => (
+            <button
+              className={
+                sortKey === option.key
+                  ? styles.activeWorkerControlButton
+                  : styles.workerControlButton
+              }
+              disabled={option.disabled}
+              key={option.key}
+              title={option.disabled ? "근태/근무 이력 DB 구성 후 연결됩니다." : undefined}
+              type="button"
+              onClick={() => onSortKeyChange(option.key)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <button
+          className={styles.workerDirectionButton}
+          type="button"
+          onClick={() =>
+            onSortDirectionChange(sortDirection === "asc" ? "desc" : "asc")
+          }
+        >
+          {sortDirection === "asc" ? "오름차순" : "내림차순"}
+        </button>
+      </div>
+
+      <div className={styles.workerControlGroup}>
+        <span>필터</span>
+        <select
+          aria-label="작업자 상태 필터"
+          value={statusFilter}
+          onChange={(event) =>
+            onStatusFilterChange(event.target.value as WorkerStatusFilter)
+          }
+        >
+          <option value="all">전체 상태</option>
+          <option value="active">활성 작업자</option>
+          <option value="resting">휴식중</option>
+        </select>
+        <select
+          aria-label="가능 작업 필터"
+          value={workTypeFilter}
+          onChange={(event) => onWorkTypeFilterChange(event.target.value)}
+        >
+          <option value="">전체 작업</option>
+          {workTypes.map((workType) => (
+            <option key={workType.code} value={workType.code}>
+              {workType.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function PaginationControls({
+  currentPage,
+  pageCount,
+  totalCount,
+  onPageChange,
+}: PaginationControlsProps) {
+  return (
+    <div className={styles.workerPaginationBar}>
+      <span>
+        페이지 {currentPage} / {pageCount} · 총 {totalCount}명
+      </span>
+      <div className={styles.workerPaginationActions}>
+        <button
+          disabled={currentPage <= 1}
+          type="button"
+          onClick={() => onPageChange(currentPage - 1)}
+        >
+          이전
+        </button>
+        <button
+          disabled={currentPage >= pageCount}
+          type="button"
+          onClick={() => onPageChange(currentPage + 1)}
+        >
+          다음
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
   const [profileModalState, setProfileModalState] =
     useState<WorkerProfileModalState | null>(null);
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
   const [workerSearchText, setWorkerSearchText] = useState("");
+  const [workerSortKey, setWorkerSortKey] = useState<WorkerSortKey>("name");
+  const [workerSortDirection, setWorkerSortDirection] =
+    useState<SortDirection>("asc");
+  const [workerStatusFilter, setWorkerStatusFilter] =
+    useState<WorkerStatusFilter>("all");
+  const [workerWorkTypeFilter, setWorkerWorkTypeFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [statusMessage, setStatusMessage] = useState("");
 
   const filteredWorkers = useMemo(
@@ -109,6 +307,60 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
         .filter(({ worker }) => workerMatchesSearch(worker, workerSearchText)),
     [workerSearchText, workers],
   );
+
+  const organizedWorkers = useMemo(
+    () =>
+      [...filteredWorkers]
+        .filter(({ worker }) =>
+          workerMatchesStatusFilter(worker, workerStatusFilter),
+        )
+        .filter(({ worker }) =>
+          workerWorkTypeFilter
+            ? worker.workTypeCodes.includes(workerWorkTypeFilter)
+            : true,
+        )
+        .sort((leftEntry, rightEntry) =>
+          compareWorkers(
+            leftEntry.worker,
+            rightEntry.worker,
+            workerSortKey,
+            workerSortDirection,
+            workTypes,
+          ),
+        ),
+    [
+      filteredWorkers,
+      workerSortDirection,
+      workerSortKey,
+      workerStatusFilter,
+      workerWorkTypeFilter,
+      workTypes,
+    ],
+  );
+
+  const pageCount = Math.max(1, Math.ceil(organizedWorkers.length / WORKERS_PER_PAGE));
+  const paginatedWorkers = useMemo(
+    () =>
+      organizedWorkers.slice(
+        (currentPage - 1) * WORKERS_PER_PAGE,
+        currentPage * WORKERS_PER_PAGE,
+      ),
+    [currentPage, organizedWorkers],
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    workerSearchText,
+    workerSortDirection,
+    workerSortKey,
+    workerStatusFilter,
+    workerWorkTypeFilter,
+  ]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, pageCount));
+  }, [pageCount]);
 
   useEffect(() => {
     let isMounted = true;
@@ -231,9 +483,21 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
         </div>
 
         <WorkerSearchInput
-          resultCount={filteredWorkers.length}
+          resultCount={organizedWorkers.length}
           totalCount={workers.length}
           onSearchTextChange={setWorkerSearchText}
+        />
+
+        <WorkerListControls
+          sortDirection={workerSortDirection}
+          sortKey={workerSortKey}
+          statusFilter={workerStatusFilter}
+          workTypeFilter={workerWorkTypeFilter}
+          workTypes={workTypes}
+          onSortDirectionChange={setWorkerSortDirection}
+          onSortKeyChange={setWorkerSortKey}
+          onStatusFilterChange={setWorkerStatusFilter}
+          onWorkTypeFilterChange={setWorkerWorkTypeFilter}
         />
 
         <div className={styles.workerTableFrame}>
@@ -247,7 +511,7 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
               </tr>
             </thead>
             <tbody>
-              {filteredWorkers.map(({ worker, workerIndex }) => (
+              {paginatedWorkers.map(({ worker, workerIndex }) => (
                 <tr key={worker.profileUuid ?? `${worker.name}-${worker.phone}-${workerIndex}`}>
                   <td>
                     <EditableWorkerNameCell
@@ -289,6 +553,12 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          currentPage={currentPage}
+          pageCount={pageCount}
+          totalCount={organizedWorkers.length}
+          onPageChange={setCurrentPage}
+        />
       </section>
       {profileModalState ? (
         <WorkerProfileModal
