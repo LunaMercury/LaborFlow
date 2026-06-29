@@ -30,6 +30,12 @@ type WorkerProfileModalState =
       worker: WorkerRow;
     };
 
+type WorkerSearchInputProps = {
+  resultCount: number;
+  totalCount: number;
+  onSearchTextChange: (searchText: string) => void;
+};
+
 function normalizeWorkerSearchText(value: string) {
   return value.trim().toLocaleLowerCase("ko-KR");
 }
@@ -51,6 +57,40 @@ function workerMatchesSearch(worker: WorkerRow, searchText: string) {
   return (
     searchableNames.some((name) => name.includes(normalizedSearchText)) ||
     Boolean(searchPhoneDigits && workerPhoneDigits.includes(searchPhoneDigits))
+  );
+}
+
+function WorkerSearchInput({
+  resultCount,
+  totalCount,
+  onSearchTextChange,
+}: WorkerSearchInputProps) {
+  const [draftSearchText, setDraftSearchText] = useState("");
+
+  useEffect(() => {
+    const debounceTimer = window.setTimeout(() => {
+      onSearchTextChange(draftSearchText);
+    }, 160);
+
+    return () => window.clearTimeout(debounceTimer);
+  }, [draftSearchText, onSearchTextChange]);
+
+  return (
+    <div className={styles.workerSearchPanel}>
+      <label className={styles.workerSearchField}>
+        <span>작업자 검색</span>
+        <input
+          aria-label="작업자 이름 또는 전화번호 검색"
+          placeholder="이름, 호칭, 전화번호 검색"
+          type="search"
+          value={draftSearchText}
+          onChange={(event) => setDraftSearchText(event.target.value)}
+        />
+      </label>
+      <span className={styles.workerSearchCount}>
+        {resultCount} / {totalCount} 명
+      </span>
+    </div>
   );
 }
 
@@ -190,21 +230,11 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
           </div>
         </div>
 
-        <div className={styles.workerSearchPanel}>
-          <label className={styles.workerSearchField}>
-            <span>작업자 검색</span>
-            <input
-              aria-label="작업자 이름 또는 전화번호 검색"
-              placeholder="이름, 호칭, 전화번호 검색"
-              type="search"
-              value={workerSearchText}
-              onChange={(event) => setWorkerSearchText(event.target.value)}
-            />
-          </label>
-          <span className={styles.workerSearchCount}>
-            {filteredWorkers.length} / {workers.length} 명
-          </span>
-        </div>
+        <WorkerSearchInput
+          resultCount={filteredWorkers.length}
+          totalCount={workers.length}
+          onSearchTextChange={setWorkerSearchText}
+        />
 
         <div className={styles.workerTableFrame}>
           <table className={styles.workerTable}>
