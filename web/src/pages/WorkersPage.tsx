@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   fetchWorkers,
   fetchWorkTypes,
@@ -11,6 +11,7 @@ import { WorkerProfileModal } from "../components/WorkerProfileModal";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
 import { workTypeOptions as fallbackWorkTypeOptions } from "../data/workTypeOptions";
 import type { WorkerRow } from "../data/workerRows";
+import { getPhoneDigits } from "../utils/phoneNumber";
 import workersStyles from "./WorkersPage.module.css";
 
 const styles = { ...appStyles, ...workersStyles };
@@ -29,12 +30,45 @@ type WorkerProfileModalState =
       worker: WorkerRow;
     };
 
+function normalizeWorkerSearchText(value: string) {
+  return value.trim().toLocaleLowerCase("ko-KR");
+}
+
+function workerMatchesSearch(worker: WorkerRow, searchText: string) {
+  const normalizedSearchText = normalizeWorkerSearchText(searchText);
+  const searchPhoneDigits = getPhoneDigits(searchText);
+
+  if (!normalizedSearchText && !searchPhoneDigits) {
+    return true;
+  }
+
+  const searchableNames = [
+    worker.name,
+    worker.nickname ?? "",
+  ].map(normalizeWorkerSearchText);
+  const workerPhoneDigits = getPhoneDigits(worker.phone);
+
+  return (
+    searchableNames.some((name) => name.includes(normalizedSearchText)) ||
+    Boolean(searchPhoneDigits && workerPhoneDigits.includes(searchPhoneDigits))
+  );
+}
+
 export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
   const [profileModalState, setProfileModalState] =
     useState<WorkerProfileModalState | null>(null);
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
+  const [workerSearchText, setWorkerSearchText] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+
+  const filteredWorkers = useMemo(
+    () =>
+      workers
+        .map((worker, workerIndex) => ({ worker, workerIndex }))
+        .filter(({ worker }) => workerMatchesSearch(worker, workerSearchText)),
+    [workerSearchText, workers],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -156,6 +190,22 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
           </div>
         </div>
 
+        <div className={styles.workerSearchPanel}>
+          <label className={styles.workerSearchField}>
+            <span>작업자 검색</span>
+            <input
+              aria-label="작업자 이름 또는 전화번호 검색"
+              placeholder="이름, 호칭, 전화번호 검색"
+              type="search"
+              value={workerSearchText}
+              onChange={(event) => setWorkerSearchText(event.target.value)}
+            />
+          </label>
+          <span className={styles.workerSearchCount}>
+            {filteredWorkers.length} / {workers.length} 명
+          </span>
+        </div>
+
         <div className={styles.workerTableFrame}>
           <table className={styles.workerTable}>
             <thead>
@@ -167,7 +217,7 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
               </tr>
             </thead>
             <tbody>
-              {workers.map((worker, workerIndex) => (
+              {filteredWorkers.map(({ worker, workerIndex }) => (
                 <tr key={worker.profileUuid ?? `${worker.name}-${worker.phone}-${workerIndex}`}>
                   <td>
                     <EditableWorkerNameCell

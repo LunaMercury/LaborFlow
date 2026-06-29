@@ -66,6 +66,61 @@
   justify-content: center;
 }
 
+.workerSearchPanel {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+.workerSearchField {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(240px, 420px);
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.workerSearchField span {
+  color: #2f3f50;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.workerSearchField input {
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  font-size: 14px;
+  min-height: 38px;
+  min-width: 0;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.workerSearchField input:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
+.workerSearchCount {
+  color: #687789;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .goToTeamsButton {
   align-items: center;
   background: #eef2ff;
@@ -209,5 +264,18 @@
       align-items: stretch;
       flex-direction: column;
       width: 100%;
+    }
+
+  .workerSearchPanel {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+  .workerSearchField {
+      grid-template-columns: 1fr;
+    }
+
+  .workerSearchCount {
+      align-self: flex-end;
     }
 }
