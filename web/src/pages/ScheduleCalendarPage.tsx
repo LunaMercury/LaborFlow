@@ -98,6 +98,8 @@ type CalendarDragState = {
   mode: "move" | "resize-end" | "resize-start";
 };
 
+type CalendarViewMode = "agenda" | "calendar";
+
 type CalendarDragPreview = {
   clientX: number;
   clientY: number;
@@ -553,6 +555,14 @@ function getAgendaDateLabel(date: string) {
   return `${parsedDate.getMonth() + 1}월 ${parsedDate.getDate()}일 ${dayName}`;
 }
 
+function getDefaultCalendarViewMode(): CalendarViewMode {
+  if (typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches) {
+    return "agenda";
+  }
+
+  return "calendar";
+}
+
 function createAgendaDays(events: CalendarEvent[], visibleDates: string[], monthValue: string) {
   return visibleDates
     .filter((date) => isCurrentMonth(date, monthValue))
@@ -615,6 +625,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
   const dragClickSuppressedRef = useRef(false);
   const editFormRef = useRef<HTMLFormElement | null>(null);
   const latestMovePointRef = useRef<{ clientX: number; clientY: number } | null>(null);
+  const [calendarViewMode, setCalendarViewMode] = useState<CalendarViewMode>(
+    getDefaultCalendarViewMode,
+  );
   const [monthValue, setMonthValue] = useState(getMonthInputValue(new Date()));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
@@ -1355,138 +1368,174 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
             <button type="button" onClick={() => moveMonth(1)}>
               다음
             </button>
+            <div
+              aria-label="일정 보기 방식"
+              className={styles.calendarViewToggle}
+              role="group"
+            >
+              <button
+                aria-pressed={calendarViewMode === "calendar"}
+                className={
+                  calendarViewMode === "calendar" ? styles.selectedCalendarViewButton : ""
+                }
+                type="button"
+                onClick={() => setCalendarViewMode("calendar")}
+              >
+                캘린더
+              </button>
+              <button
+                aria-pressed={calendarViewMode === "agenda"}
+                className={
+                  calendarViewMode === "agenda" ? styles.selectedCalendarViewButton : ""
+                }
+                type="button"
+                onClick={() => setCalendarViewMode("agenda")}
+              >
+                아젠다
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className={styles.calendarWeekHeader}>
-          {DAY_NAMES.map((dayName) => (
-            <div key={dayName}>{dayName}</div>
-          ))}
-        </div>
+        <div
+          className={`${styles.calendarMonthView} ${
+            calendarViewMode === "calendar" ? "" : styles.calendarViewHidden
+          }`}
+        >
+          <div className={styles.calendarWeekHeader}>
+            {DAY_NAMES.map((dayName) => (
+              <div key={dayName}>{dayName}</div>
+            ))}
+          </div>
 
-        <div className={styles.calendarGrid} ref={calendarGridRef}>
-          {calendarWeeks.map((week, weekIndex) => (
-            <section
-              className={styles.calendarWeekRow}
-              data-calendar-week-index={weekIndex}
-              key={week.id}
-              onClick={handleCalendarEmptyClick}
-            >
-              <div className={styles.calendarWeekBackground}>
-                {week.dates.map((date) => (
-                  <div
-                    className={`${styles.calendarDayCell} ${
-                      isCurrentMonth(date, monthValue) ? "" : styles.outsideMonthDay
-                    }`}
-                    data-calendar-date={date}
-                    key={date}
-                  >
-                    <div className={styles.calendarDayNumber}>
-                      {getDateDayLabel(date)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className={styles.calendarOwnerGroupList}>
-                {week.ownerLanes.length === 0 ? (
-                  <div className={styles.calendarEmptyWeek}>등록된 작업 일정이 없습니다.</div>
-                ) : null}
-                {week.ownerLanes.map((ownerLane) => (
-                  <div className={styles.calendarOwnerLane} key={ownerLane.id}>
-                    <div className={styles.calendarOwnerGrid}>
-                      {ownerLane.groups.map((ownerGroup) => (
-                        <div
-                          className={styles.calendarOwnerBar}
-                          data-calendar-block-click
-                          key={ownerGroup.id}
-                          style={{
-                            gridColumn: `${ownerGroup.startColumn} / ${ownerGroup.endColumn}`,
-                          }}
-                        >
-                          {ownerGroup.ownerName}
-                        </div>
-                      ))}
-                    </div>
+          <div className={styles.calendarGrid} ref={calendarGridRef}>
+            {calendarWeeks.map((week, weekIndex) => (
+              <section
+                className={styles.calendarWeekRow}
+                data-calendar-week-index={weekIndex}
+                key={week.id}
+                onClick={handleCalendarEmptyClick}
+              >
+                <div className={styles.calendarWeekBackground}>
+                  {week.dates.map((date) => (
                     <div
-                      className={styles.calendarWorkGrid}
-                      style={{
-                        gridTemplateRows: `repeat(${ownerLane.laneCount}, minmax(74px, auto))`,
-                      }}
+                      className={`${styles.calendarDayCell} ${
+                        isCurrentMonth(date, monthValue) ? "" : styles.outsideMonthDay
+                      }`}
+                      data-calendar-date={date}
+                      key={date}
                     >
-                      {ownerLane.groups
-                        .flatMap((ownerGroup) => ownerGroup.segments)
-                        .map((segment) => {
-                          const event = segment.event;
-
-                          return (
-                            <article
-                              className={`${styles.calendarEventCard} ${
-                                dragState?.eventId === event.id
-                                  ? styles.draggingCalendarEvent
-                                  : ""
-                              }`}
-                              data-calendar-block-click
-                              key={`${event.id}-${segment.startDate}-${segment.endDate}`}
-                              onPointerDown={(pointerEvent) =>
-                                startEventDrag(event, "move", pointerEvent)
-                              }
-                              onClick={(clickEvent) => {
-                                clickEvent.stopPropagation();
-                                if (!dragClickSuppressedRef.current) {
-                                  openEditModal(event);
-                                }
-                              }}
-                              style={{
-                                gridColumn: `${segment.startColumn} / ${segment.endColumn}`,
-                                gridRow: segment.lane + 1,
-                              }}
-                            >
-                              {segment.isStart ? (
-                                <button
-                                  aria-label="일정 시작일 조절"
-                                  className={styles.calendarResizeHandleStart}
-                                  type="button"
-                                  onPointerDown={(pointerEvent) =>
-                                    startEventDrag(event, "resize-start", pointerEvent)
-                                  }
-                                />
-                              ) : null}
-                              <div className={styles.calendarEventTitle}>
-                                {event.title || "작업 미입력"}
-                              </div>
-                              <div className={styles.calendarEventMeta}>
-                                <span>
-                                  {event.siteName || event.address || "작업 장소 미입력"}
-                                </span>
-                                <span>
-                                  남 {event.requiredMen} / 여 {event.requiredWomen}
-                                </span>
-                              </div>
-                              {event.memo ? (
-                                <div className={styles.calendarEventMemo}>{event.memo}</div>
-                              ) : null}
-                              {segment.isEnd ? (
-                                <button
-                                  aria-label="일정 종료일 조절"
-                                  className={styles.calendarResizeHandleEnd}
-                                  type="button"
-                                  onPointerDown={(pointerEvent) =>
-                                    startEventDrag(event, "resize-end", pointerEvent)
-                                  }
-                                />
-                              ) : null}
-                            </article>
-                          );
-                        })}
+                      <div className={styles.calendarDayNumber}>
+                        {getDateDayLabel(date)}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))}
+                  ))}
+                </div>
+
+                <div className={styles.calendarOwnerGroupList}>
+                  {week.ownerLanes.length === 0 ? (
+                    <div className={styles.calendarEmptyWeek}>등록된 작업 일정이 없습니다.</div>
+                  ) : null}
+                  {week.ownerLanes.map((ownerLane) => (
+                    <div className={styles.calendarOwnerLane} key={ownerLane.id}>
+                      <div className={styles.calendarOwnerGrid}>
+                        {ownerLane.groups.map((ownerGroup) => (
+                          <div
+                            className={styles.calendarOwnerBar}
+                            data-calendar-block-click
+                            key={ownerGroup.id}
+                            style={{
+                              gridColumn: `${ownerGroup.startColumn} / ${ownerGroup.endColumn}`,
+                            }}
+                          >
+                            {ownerGroup.ownerName}
+                          </div>
+                        ))}
+                      </div>
+                      <div
+                        className={styles.calendarWorkGrid}
+                        style={{
+                          gridTemplateRows: `repeat(${ownerLane.laneCount}, minmax(74px, auto))`,
+                        }}
+                      >
+                        {ownerLane.groups
+                          .flatMap((ownerGroup) => ownerGroup.segments)
+                          .map((segment) => {
+                            const event = segment.event;
+
+                            return (
+                              <article
+                                className={`${styles.calendarEventCard} ${
+                                  dragState?.eventId === event.id
+                                    ? styles.draggingCalendarEvent
+                                    : ""
+                                }`}
+                                data-calendar-block-click
+                                key={`${event.id}-${segment.startDate}-${segment.endDate}`}
+                                onPointerDown={(pointerEvent) =>
+                                  startEventDrag(event, "move", pointerEvent)
+                                }
+                                onClick={(clickEvent) => {
+                                  clickEvent.stopPropagation();
+                                  if (!dragClickSuppressedRef.current) {
+                                    openEditModal(event);
+                                  }
+                                }}
+                                style={{
+                                  gridColumn: `${segment.startColumn} / ${segment.endColumn}`,
+                                  gridRow: segment.lane + 1,
+                                }}
+                              >
+                                {segment.isStart ? (
+                                  <button
+                                    aria-label="일정 시작일 조절"
+                                    className={styles.calendarResizeHandleStart}
+                                    type="button"
+                                    onPointerDown={(pointerEvent) =>
+                                      startEventDrag(event, "resize-start", pointerEvent)
+                                    }
+                                  />
+                                ) : null}
+                                <div className={styles.calendarEventTitle}>
+                                  {event.title || "작업 미입력"}
+                                </div>
+                                <div className={styles.calendarEventMeta}>
+                                  <span>
+                                    {event.siteName || event.address || "작업 장소 미입력"}
+                                  </span>
+                                  <span>
+                                    남 {event.requiredMen} / 여 {event.requiredWomen}
+                                  </span>
+                                </div>
+                                {event.memo ? (
+                                  <div className={styles.calendarEventMemo}>{event.memo}</div>
+                                ) : null}
+                                {segment.isEnd ? (
+                                  <button
+                                    aria-label="일정 종료일 조절"
+                                    className={styles.calendarResizeHandleEnd}
+                                    type="button"
+                                    onPointerDown={(pointerEvent) =>
+                                      startEventDrag(event, "resize-end", pointerEvent)
+                                    }
+                                  />
+                                ) : null}
+                              </article>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         </div>
-        <div className={styles.calendarMobileAgenda}>
+        <div
+          className={`${styles.calendarMobileAgenda} ${
+            calendarViewMode === "agenda" ? styles.calendarAgendaActive : ""
+          }`}
+        >
           {agendaDays.map((agendaDay) => (
             <section className={styles.mobileAgendaDay} key={agendaDay.id}>
               <div className={styles.mobileAgendaDayHeader}>
