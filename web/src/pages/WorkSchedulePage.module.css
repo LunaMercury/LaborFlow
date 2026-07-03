@@ -870,10 +870,11 @@
 }
 
 .draggingScheduleTaskCard {
+  background: #f4f8f7;
   border-color: #176b5d;
-  box-shadow: 0 14px 30px rgba(23, 107, 93, 0.14);
-  opacity: 0.82;
-  transform: scale(0.992);
+  box-shadow: inset 3px 0 0 #176b5d;
+  opacity: 0.45;
+  transform: scale(0.985);
 }
 
 .scheduleTaskHeader {
@@ -886,30 +887,42 @@
 .scheduleTaskOrderHandle {
   align-items: center;
   appearance: none;
-  background: #f4f8f7;
-  border: 1px solid #c8d4e0;
-  border-radius: 999px;
-  color: #4f5d6b;
+  background: transparent;
+  border: 0;
+  color: #a8b3bf;
   display: flex;
   flex: 0 0 auto;
-  font-size: 17px;
-  font-weight: 900;
   height: 34px;
   justify-content: center;
-  line-height: 1;
+  padding: 0;
   touch-action: none;
-  width: 34px;
+  width: 24px;
 }
 
 .scheduleTaskOrderHandle:hover {
-  background: #edf6f3;
-  border-color: #9bb7ca;
   color: #176b5d;
   cursor: grab;
 }
 
 .scheduleTaskOrderHandle:active {
   cursor: grabbing;
+}
+
+.scheduleTaskOrderIcon {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  width: 16px;
+}
+
+.scheduleTaskOrderIcon span {
+  background: currentColor;
+  border-radius: 999px;
+  display: block;
+  height: 2px;
+  width: 16px;
 }
 
 .scheduleTaskHeaderContent {
@@ -1371,6 +1384,59 @@
   will-change: transform;
   width: 220px;
   z-index: 300;
+}
+
+.scheduleTaskDragPreview {
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #176b5d;
+  border-radius: 8px;
+  box-shadow: 0 20px 42px rgba(23, 32, 42, 0.2);
+  contain: layout paint;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  justify-content: center;
+  left: 0;
+  max-width: 340px;
+  min-height: 76px;
+  min-width: 240px;
+  padding: 11px 13px;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  transform: translate3d(14px, 14px, 0);
+  will-change: transform;
+  z-index: 320;
+}
+
+.scheduleTaskDragPreview strong {
+  color: #17202a;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.25;
+  max-width: 100%;
+}
+
+.scheduleTaskDragPreview strong span,
+.scheduleTaskDragPreview p,
+.scheduleTaskDragPreview small {
+  color: #4f5d6b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.scheduleTaskDragPreview p {
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scheduleTaskDragPreview small {
+  color: #176b5d;
 }
 
 .scheduleTaskMemo span {
