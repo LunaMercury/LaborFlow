@@ -877,6 +877,14 @@
   transform: scale(0.985);
 }
 
+.scheduleTaskDropBefore {
+  box-shadow: 0 -4px 0 #176b5d;
+}
+
+.scheduleTaskDropAfter {
+  box-shadow: 0 4px 0 #176b5d;
+}
+
 .scheduleTaskHeader {
   align-items: flex-start;
   display: flex;
@@ -1398,14 +1406,14 @@
   gap: 5px;
   justify-content: center;
   left: 0;
-  max-width: 340px;
-  min-height: 76px;
-  min-width: 240px;
-  padding: 11px 13px;
+  min-height: 74px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 14px;
   pointer-events: none;
   position: fixed;
   top: 0;
-  transform: translate3d(14px, 14px, 0);
+  transform: translate3d(0, 0, 0);
   will-change: transform;
   z-index: 320;
 }

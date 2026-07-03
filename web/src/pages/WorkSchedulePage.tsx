@@ -67,11 +67,15 @@ type DraggingWorkerState = {
 
 type DraggingTaskState = {
   address: string;
+  height: number;
+  offsetX: number;
+  offsetY: number;
   ownerName: string;
   requiredMen: number;
   requiredWomen: number;
   taskId: string;
   title: string;
+  width: number;
 };
 
 type TaskOrderDropPosition = "after" | "before";
@@ -650,6 +654,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const taskDragPreviewRef = useRef<HTMLDivElement | null>(null);
   const taskDragFrameRef = useRef<number | null>(null);
   const taskDragPointRef = useRef({ x: 0, y: 0 });
+  const taskOrderDropTargetRef = useRef<{
+    position: TaskOrderDropPosition;
+    targetTaskId: string;
+  } | null>(null);
+  const taskOrderDropTargetElementRef = useRef<HTMLElement | null>(null);
   const tasksRef = useRef<ScheduleTask[]>([]);
   const draggingWorkerIds = useMemo(
     () => new Set(draggingWorker?.workerIds ?? []),
@@ -793,7 +802,49 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     });
   };
 
-  const moveTaskOrderPreview = (clientX: number, clientY: number) => {
+  const clearTaskOrderDropIndicator = () => {
+    const currentElement = taskOrderDropTargetElementRef.current;
+
+    if (currentElement) {
+      currentElement.classList.remove(
+        styles.scheduleTaskDropAfter,
+        styles.scheduleTaskDropBefore,
+      );
+    }
+
+    taskOrderDropTargetElementRef.current = null;
+  };
+
+  const updateTaskOrderDropTarget = (
+    targetCard: HTMLElement,
+    targetTaskId: string,
+    position: TaskOrderDropPosition,
+  ) => {
+    const currentTarget = taskOrderDropTargetRef.current;
+
+    if (
+      currentTarget?.targetTaskId === targetTaskId &&
+      currentTarget.position === position &&
+      taskOrderDropTargetElementRef.current === targetCard
+    ) {
+      return;
+    }
+
+    clearTaskOrderDropIndicator();
+    taskOrderDropTargetRef.current = { position, targetTaskId };
+    taskOrderDropTargetElementRef.current = targetCard;
+    targetCard.classList.add(
+      position === "before"
+        ? styles.scheduleTaskDropBefore
+        : styles.scheduleTaskDropAfter,
+    );
+  };
+
+  const moveTaskOrderPreview = (
+    clientX: number,
+    clientY: number,
+    nextDraggingTask = draggingTask,
+  ) => {
     taskDragPointRef.current = { x: clientX, y: clientY };
 
     if (taskDragFrameRef.current !== null) {
@@ -808,8 +859,12 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         return;
       }
 
-      previewElement.style.transform = `translate3d(${taskDragPointRef.current.x + 14}px, ${
-        taskDragPointRef.current.y + 14
+      const currentDraggingTask = nextDraggingTask ?? draggingTask;
+      const offsetX = currentDraggingTask?.offsetX ?? 14;
+      const offsetY = currentDraggingTask?.offsetY ?? 14;
+
+      previewElement.style.transform = `translate3d(${taskDragPointRef.current.x - offsetX}px, ${
+        taskDragPointRef.current.y - offsetY
       }px, 0)`;
     });
   };
@@ -826,6 +881,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     const targetTaskId = targetCard?.dataset.scheduleTaskId;
 
     if (!targetCard || !targetTaskId || targetTaskId === draggingTask.taskId) {
+      taskOrderDropTargetRef.current = null;
+      clearTaskOrderDropIndicator();
       return;
     }
 
@@ -833,17 +890,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     const position: TaskOrderDropPosition =
       clientY < targetRect.top + targetRect.height / 2 ? "before" : "after";
 
-    setTasks((currentTasks) => {
-      const nextTasks = reorderTasks(
-        currentTasks,
-        draggingTask.taskId,
-        targetTaskId,
-        position,
-      );
-      tasksRef.current = nextTasks;
-
-      return nextTasks;
-    });
+    updateTaskOrderDropTarget(targetCard, targetTaskId, position);
   };
 
   const startTaskOrderDrag = (
@@ -858,15 +905,25 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
 
     event.preventDefault();
     event.stopPropagation();
-    moveTaskOrderPreview(event.clientX, event.clientY);
-    setDraggingTask({
+    const sourceCard = event.currentTarget.closest<HTMLElement>(
+      "[data-schedule-task-id]",
+    );
+    const sourceRect = sourceCard?.getBoundingClientRect();
+    const nextDraggingTask: DraggingTaskState = {
       address: taskDetailDraft.address || task.address,
+      height: sourceRect?.height ?? 180,
+      offsetX: sourceRect ? event.clientX - sourceRect.left : 14,
+      offsetY: sourceRect ? event.clientY - sourceRect.top : 14,
       ownerName: task.ownerName,
       requiredMen: requiredCounts.men,
       requiredWomen: requiredCounts.women,
       taskId: task.id,
       title: taskDetailDraft.title || task.title || "작업 미입력",
-    });
+      width: sourceRect?.width ?? 320,
+    };
+
+    moveTaskOrderPreview(event.clientX, event.clientY, nextDraggingTask);
+    setDraggingTask(nextDraggingTask);
     setStatusMessage("작업 순서를 조정하는 중입니다.");
   };
 
@@ -881,8 +938,25 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     };
 
     const finishTaskOrderDrag = () => {
-      const nextTaskIds = tasksRef.current.map((task) => task.id);
-      saveCachedTaskOrder(loginId, selectedDate, nextTaskIds);
+      const dropTarget = taskOrderDropTargetRef.current;
+      const nextTasks = dropTarget
+        ? reorderTasks(
+            tasksRef.current,
+            draggingTask.taskId,
+            dropTarget.targetTaskId,
+            dropTarget.position,
+          )
+        : tasksRef.current;
+
+      tasksRef.current = nextTasks;
+      setTasks(nextTasks);
+      saveCachedTaskOrder(
+        loginId,
+        selectedDate,
+        nextTasks.map((task) => task.id),
+      );
+      taskOrderDropTargetRef.current = null;
+      clearTaskOrderDropIndicator();
       setDraggingTask(null);
       setStatusMessage("작업 순서를 이 브라우저에 저장했습니다.");
     };
@@ -899,6 +973,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         taskDragFrameRef.current = null;
       }
 
+      taskOrderDropTargetRef.current = null;
+      clearTaskOrderDropIndicator();
       document.removeEventListener("pointermove", handlePointerMove);
       document.removeEventListener("pointerup", finishTaskOrderDrag);
       document.removeEventListener("pointercancel", finishTaskOrderDrag);
@@ -2500,9 +2576,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             className={styles.scheduleTaskDragPreview}
             ref={taskDragPreviewRef}
             style={{
-              transform: `translate3d(${taskDragPointRef.current.x + 14}px, ${
-                taskDragPointRef.current.y + 14
+              height: draggingTask.height,
+              transform: `translate3d(${taskDragPointRef.current.x - draggingTask.offsetX}px, ${
+                taskDragPointRef.current.y - draggingTask.offsetY
               }px, 0)`,
+              width: draggingTask.width,
             }}
           >
             <strong>
