@@ -87,6 +87,14 @@
   outline: 0;
 }
 
+.calendarControls input[type="month"]::-webkit-clear-button {
+  display: none;
+}
+
+.calendarControls input[type="month"]::-ms-clear {
+  display: none;
+}
+
 .calendarViewToggle {
   align-items: center;
   background: #edf2f6;
@@ -197,6 +205,10 @@
   background: #f8fafc;
 }
 
+.todayCalendarDay {
+  background: #eef2f6;
+}
+
 .calendarDayNumber {
   align-items: center;
   color: #2f3f50;
@@ -211,10 +223,19 @@
   color: #a8b3bf;
 }
 
+.todayCalendarDay .calendarDayNumber {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 999px;
+  color: #17202a;
+  min-width: 28px;
+  padding: 0 8px;
+}
+
 .calendarOwnerGroupList {
   background:
-    linear-gradient(to right, rgba(200, 212, 224, 0.42) 1px, transparent 1px)
-      0 0 / calc(100% / 7) 100%,
+    linear-gradient(to right, rgba(200, 212, 224, 0.42) 1px, transparent 1px) 0
+      0 / calc(100% / 7) 100%,
     #ffffff;
   display: flex;
   flex: 1;
@@ -499,7 +520,7 @@
   font-weight: 900;
   justify-content: center;
   min-height: 34px;
-  padding: 0 14px;
+  margin-right: 20px;
 }
 
 .scheduleDeleteButton:hover {
@@ -696,6 +717,12 @@
   flex-direction: column;
   gap: 10px;
   padding: 12px;
+}
+
+.todayAgendaDay {
+  background: #f4f7fa;
+  border-color: #aebdcb;
+  box-shadow: inset 0 0 0 1px rgba(174, 189, 203, 0.35);
 }
 
 .mobileAgendaDayHeader {

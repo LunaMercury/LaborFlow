@@ -275,11 +275,15 @@ function FarmOwnerSearchField({
                 onClick={() => selectOwner(farmOwner)}
               >
                 <strong>{farmOwner.displayName}</strong>
-                {farmOwner.businessName ? <span>{farmOwner.businessName}</span> : null}
+                {farmOwner.businessName ? (
+                  <span>{farmOwner.businessName}</span>
+                ) : null}
               </button>
             ))
           ) : (
-            <div className={styles.scheduleOwnerEmpty}>검색 결과가 없습니다.</div>
+            <div className={styles.scheduleOwnerEmpty}>
+              검색 결과가 없습니다.
+            </div>
           )}
         </div>
       ) : null}
@@ -307,6 +311,10 @@ function diffDays(leftDate: string, rightDate: string) {
 
 function getMonthInputValue(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function isValidMonthInputValue(value: string) {
+  return /^\d{4}-\d{2}$/.test(value);
 }
 
 function getMonthLabel(monthValue: string) {
@@ -364,7 +372,10 @@ function groupTasksIntoEvents(tasks: DatedScheduleTask[]) {
 
   for (const task of tasks) {
     const groupKey = createEventGroupKey(task);
-    tasksByGroupKey.set(groupKey, [...(tasksByGroupKey.get(groupKey) ?? []), task]);
+    tasksByGroupKey.set(groupKey, [
+      ...(tasksByGroupKey.get(groupKey) ?? []),
+      task,
+    ]);
   }
 
   const events: CalendarEvent[] = [];
@@ -409,8 +420,9 @@ function groupTasksIntoEvents(tasks: DatedScheduleTask[]) {
 }
 
 function chunkVisibleDates(visibleDates: string[]) {
-  return Array.from({ length: Math.ceil(visibleDates.length / 7) }, (_, index) =>
-    visibleDates.slice(index * 7, index * 7 + 7),
+  return Array.from(
+    { length: Math.ceil(visibleDates.length / 7) },
+    (_, index) => visibleDates.slice(index * 7, index * 7 + 7),
   );
 }
 
@@ -425,7 +437,8 @@ function createEventSegment(
     return null;
   }
 
-  const startDate = event.startDate > weekStartDate ? event.startDate : weekStartDate;
+  const startDate =
+    event.startDate > weekStartDate ? event.startDate : weekStartDate;
   const endDate = event.endDate < weekEndDate ? event.endDate : weekEndDate;
   const startIndex = weekDates.indexOf(startDate);
   const endIndex = weekDates.indexOf(endDate);
@@ -457,7 +470,9 @@ function assignSegmentLanes(segments: CalendarEventSegment[]) {
         left.event.title.localeCompare(right.event.title, "ko-KR"),
     )
     .map((segment) => {
-      const lane = laneEndColumns.findIndex((endColumn) => segment.startColumn >= endColumn);
+      const lane = laneEndColumns.findIndex(
+        (endColumn) => segment.startColumn >= endColumn,
+      );
       const nextLane = lane >= 0 ? lane : laneEndColumns.length;
       laneEndColumns[nextLane] = segment.endColumn;
 
@@ -465,7 +480,10 @@ function assignSegmentLanes(segments: CalendarEventSegment[]) {
     });
 }
 
-function assignOwnerLanes(ownerGroups: CalendarOwnerGroup[], weekIndex: number) {
+function assignOwnerLanes(
+  ownerGroups: CalendarOwnerGroup[],
+  weekIndex: number,
+) {
   const ownerLanes: CalendarOwnerLane[] = [];
   const laneEndColumns: number[] = [];
 
@@ -488,7 +506,10 @@ function assignOwnerLanes(ownerGroups: CalendarOwnerGroup[], weekIndex: number) 
   return ownerLanes;
 }
 
-function createCalendarWeeks(events: CalendarEvent[], visibleDates: string[]): CalendarWeek[] {
+function createCalendarWeeks(
+  events: CalendarEvent[],
+  visibleDates: string[],
+): CalendarWeek[] {
   return chunkVisibleDates(visibleDates).map((weekDates, weekIndex) => {
     const ownerSegments = new Map<
       string,
@@ -523,7 +544,9 @@ function createCalendarWeeks(events: CalendarEvent[], visibleDates: string[]): C
           laneCount: Math.max(...segments.map((segment) => segment.lane)) + 1,
           ownerName: ownerGroup.ownerName,
           segments,
-          startColumn: Math.min(...segments.map((segment) => segment.startColumn)),
+          startColumn: Math.min(
+            ...segments.map((segment) => segment.startColumn),
+          ),
         };
       })
       .sort(
@@ -556,14 +579,21 @@ function getAgendaDateLabel(date: string) {
 }
 
 function getDefaultCalendarViewMode(): CalendarViewMode {
-  if (typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches) {
+  if (
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 720px)").matches
+  ) {
     return "agenda";
   }
 
   return "calendar";
 }
 
-function createAgendaDays(events: CalendarEvent[], visibleDates: string[], monthValue: string) {
+function createAgendaDays(
+  events: CalendarEvent[],
+  visibleDates: string[],
+  monthValue: string,
+) {
   return visibleDates
     .filter((date) => isCurrentMonth(date, monthValue))
     .map<CalendarAgendaDay>((date) => ({
@@ -601,7 +631,10 @@ function getPointerColumnIndex(
   anchorIndex?: number,
 ) {
   const columnWidth = rect.width / 7;
-  const rawColumn = Math.min(6.999, Math.max(0, (clientX - rect.left) / columnWidth));
+  const rawColumn = Math.min(
+    6.999,
+    Math.max(0, (clientX - rect.left) / columnWidth),
+  );
 
   if (mode === "move" || anchorIndex === undefined) {
     return Math.min(6, Math.max(0, Math.floor(rawColumn)));
@@ -624,7 +657,10 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
   const dragPreviewStateRef = useRef<CalendarDragPreview | null>(null);
   const dragClickSuppressedRef = useRef(false);
   const editFormRef = useRef<HTMLFormElement | null>(null);
-  const latestMovePointRef = useRef<{ clientX: number; clientY: number } | null>(null);
+  const latestMovePointRef = useRef<{
+    clientX: number;
+    clientY: number;
+  } | null>(null);
   const [calendarViewMode, setCalendarViewMode] = useState<CalendarViewMode>(
     getDefaultCalendarViewMode,
   );
@@ -632,7 +668,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
   const [dragState, setDragState] = useState<CalendarDragState | null>(null);
-  const [dragPreview, setDragPreview] = useState<CalendarDragPreview | null>(null);
+  const [dragPreview, setDragPreview] = useState<CalendarDragPreview | null>(
+    null,
+  );
   const [createModalDate, setCreateModalDate] = useState<string | null>(null);
   const [createDraft, setCreateDraft] = useState<ScheduleCreateDraft>(() =>
     createEmptyScheduleDraft(toInputDate(new Date())),
@@ -643,7 +681,11 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
   const [isUpdatingSchedule, setIsUpdatingSchedule] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
-  const visibleDates = useMemo(() => createVisibleDates(monthValue), [monthValue]);
+  const todayDate = useMemo(() => toInputDate(new Date()), []);
+  const visibleDates = useMemo(
+    () => createVisibleDates(monthValue),
+    [monthValue],
+  );
   const calendarWeeks = useMemo(
     () => createCalendarWeeks(events, visibleDates),
     [events, visibleDates],
@@ -655,13 +697,24 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
   const dragPreviewEvent = useMemo(
     () =>
       dragPreview
-        ? events.find((calendarEvent) => calendarEvent.id === dragPreview.eventId) ?? null
+        ? (events.find(
+            (calendarEvent) => calendarEvent.id === dragPreview.eventId,
+          ) ?? null)
         : null,
     [dragPreview, events],
   );
   useEffect(() => {
     dragPreviewStateRef.current = dragPreview;
   }, [dragPreview]);
+
+  const changeMonthValue = (nextMonthValue: string) => {
+    if (!isValidMonthInputValue(nextMonthValue)) {
+      return;
+    }
+
+    setMonthValue(nextMonthValue);
+  };
+
   const calculateDragPreviewStyle = (
     preview: CalendarDragPreview,
     previewEvent: CalendarEvent,
@@ -675,8 +728,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
       };
     }
 
-    const weekRows =
-      calendarGridRef.current?.querySelectorAll<HTMLElement>("[data-calendar-week-index]");
+    const weekRows = calendarGridRef.current?.querySelectorAll<HTMLElement>(
+      "[data-calendar-week-index]",
+    );
 
     if (weekRows) {
       for (const weekRow of weekRows) {
@@ -726,8 +780,10 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
           break;
         }
 
-        const left = rect.left + (previewSegment.startColumn - 1) * columnWidth + 8;
-        const right = rect.left + (previewSegment.endColumn - 1) * columnWidth - 8;
+        const left =
+          rect.left + (previewSegment.startColumn - 1) * columnWidth + 8;
+        const right =
+          rect.left + (previewSegment.endColumn - 1) * columnWidth - 8;
 
         return {
           height: preview.height,
@@ -810,7 +866,12 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
 
   const moveMonth = (months: number) => {
     const [year, month] = monthValue.split("-").map(Number);
-    setMonthValue(getMonthInputValue(new Date(year, month - 1 + months, 1)));
+    const baseDate =
+      Number.isFinite(year) && Number.isFinite(month)
+        ? new Date(year, month - 1 + months, 1)
+        : new Date();
+
+    changeMonthValue(getMonthInputValue(baseDate));
   };
 
   const createAdjustedEvent = (
@@ -847,8 +908,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
     mode: CalendarDragState["mode"],
     event: CalendarEvent,
   ) => {
-    const weekRows =
-      calendarGridRef.current?.querySelectorAll<HTMLElement>("[data-calendar-week-index]");
+    const weekRows = calendarGridRef.current?.querySelectorAll<HTMLElement>(
+      "[data-calendar-week-index]",
+    );
 
     if (!weekRows) {
       return undefined;
@@ -872,7 +934,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
         clientX,
         rect,
         mode,
-        mode === "move" ? undefined : getResizeAnchorIndex(event, mode, weekDates),
+        mode === "move"
+          ? undefined
+          : getResizeAnchorIndex(event, mode, weekDates),
       );
 
       return visibleDates[weekIndex * 7 + columnIndex];
@@ -882,8 +946,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
   };
 
   const resolveDateFromCalendarPoint = (clientX: number, clientY: number) => {
-    const weekRows =
-      calendarGridRef.current?.querySelectorAll<HTMLElement>("[data-calendar-week-index]");
+    const weekRows = calendarGridRef.current?.querySelectorAll<HTMLElement>(
+      "[data-calendar-week-index]",
+    );
 
     if (!weekRows) {
       return undefined;
@@ -1024,7 +1089,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
       setCreateModalDate(null);
       setReloadToken((token) => token + 1);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "일정을 등록하지 못했습니다.");
+      window.alert(
+        error instanceof Error ? error.message : "일정을 등록하지 못했습니다.",
+      );
     } finally {
       setIsCreatingSchedule(false);
     }
@@ -1050,7 +1117,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
         ? {
             ...currentDraft,
             workTypeCodes: currentDraft.workTypeCodes.includes(workTypeCode)
-              ? currentDraft.workTypeCodes.filter((code) => code !== workTypeCode)
+              ? currentDraft.workTypeCodes.filter(
+                  (code) => code !== workTypeCode,
+                )
               : [...currentDraft.workTypeCodes, workTypeCode],
           }
         : currentDraft,
@@ -1062,7 +1131,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
       return;
     }
 
-    const formData = editFormRef.current ? new FormData(editFormRef.current) : null;
+    const formData = editFormRef.current
+      ? new FormData(editFormRef.current)
+      : null;
     const title = String(formData?.get("title") ?? "").trim();
     const address = String(formData?.get("address") ?? "").trim();
     const memo = String(formData?.get("memo") ?? "").trim();
@@ -1142,7 +1213,11 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
       setEditDraft(null);
       setReloadToken((token) => token + 1);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "작업내용을 저장하지 못했습니다.");
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "작업내용을 저장하지 못했습니다.",
+      );
     } finally {
       setIsUpdatingSchedule(false);
     }
@@ -1153,7 +1228,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
       return;
     }
 
-    const shouldDelete = window.confirm("이 일정을 삭제할까요? 삭제한 일정은 되돌릴 수 없습니다.");
+    const shouldDelete = window.confirm(
+      "이 일정을 삭제할까요? 삭제한 일정은 되돌릴 수 없습니다.",
+    );
     if (!shouldDelete) {
       return;
     }
@@ -1162,14 +1239,18 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
     try {
       await deleteScheduleTaskRange(loginId, { taskIds: editingEvent.taskIds });
       setEvents((currentEvents) =>
-        currentEvents.filter((calendarEvent) => calendarEvent.id !== editingEvent.id),
+        currentEvents.filter(
+          (calendarEvent) => calendarEvent.id !== editingEvent.id,
+        ),
       );
       setStatusMessage("일정을 삭제했습니다.");
       setEditingEvent(null);
       setEditDraft(null);
       setReloadToken((token) => token + 1);
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "일정을 삭제하지 못했습니다.");
+      window.alert(
+        error instanceof Error ? error.message : "일정을 삭제하지 못했습니다.",
+      );
     } finally {
       setIsUpdatingSchedule(false);
     }
@@ -1205,7 +1286,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
         const latestPoint = latestMovePointRef.current;
         const previewState = dragPreviewStateRef.current;
         const previewEvent = previewState
-          ? events.find((calendarEvent) => calendarEvent.id === previewState.eventId)
+          ? events.find(
+              (calendarEvent) => calendarEvent.id === previewState.eventId,
+            )
           : null;
 
         dragPreviewFrameRef.current = null;
@@ -1231,14 +1314,25 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
       return;
     }
 
-    const currentEvent = events.find((calendarEvent) => calendarEvent.id === dragState.eventId);
+    const currentEvent = events.find(
+      (calendarEvent) => calendarEvent.id === dragState.eventId,
+    );
 
     if (currentEvent) {
-      const targetElement = document.elementFromPoint(event.clientX, event.clientY);
-      const dateCell = targetElement?.closest<HTMLElement>("[data-calendar-date]");
+      const targetElement = document.elementFromPoint(
+        event.clientX,
+        event.clientY,
+      );
+      const dateCell = targetElement?.closest<HTMLElement>(
+        "[data-calendar-date]",
+      );
       const targetDate =
-        resolveDateFromPointer(event.clientX, event.clientY, dragState.mode, currentEvent) ??
-        dateCell?.dataset.calendarDate;
+        resolveDateFromPointer(
+          event.clientX,
+          event.clientY,
+          dragState.mode,
+          currentEvent,
+        ) ?? dateCell?.dataset.calendarDate;
 
       if (targetDate) {
         const adjustedEvent = createAdjustedEvent(
@@ -1253,7 +1347,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
         ) {
           setEvents((currentEvents) =>
             currentEvents.map((calendarEvent) =>
-              calendarEvent.id === adjustedEvent.id ? adjustedEvent : calendarEvent,
+              calendarEvent.id === adjustedEvent.id
+                ? adjustedEvent
+                : calendarEvent,
             ),
           );
           setStatusMessage("일정 변경을 저장하는 중입니다.");
@@ -1320,7 +1416,8 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
     pointerEvent.preventDefault();
     pointerEvent.stopPropagation();
     const sourceElement =
-      pointerEvent.currentTarget.closest<HTMLElement>("article") ?? pointerEvent.currentTarget;
+      pointerEvent.currentTarget.closest<HTMLElement>("article") ??
+      pointerEvent.currentTarget;
     const sourceRect = sourceElement.getBoundingClientRect();
     dragClickSuppressedRef.current = mode !== "move";
     const nextPreview = {
@@ -1343,7 +1440,10 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
 
   return (
     <main className={styles.tableMainContent}>
-      <section className={styles.calendarPanel} aria-labelledby="schedule-title">
+      <section
+        className={styles.calendarPanel}
+        aria-labelledby="schedule-title"
+      >
         <div className={styles.calendarHeader}>
           <div>
             <p className={styles.sectionLabel}>일정 관리</p>
@@ -1354,19 +1454,22 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
           </div>
           <div className={styles.calendarControls}>
             <button type="button" onClick={() => moveMonth(-1)}>
-              이전
+              ◀ 이전
             </button>
             <input
               aria-label="일정 월 선택"
               type="month"
               value={monthValue}
-              onChange={(event) => setMonthValue(event.target.value)}
+              onChange={(event) => changeMonthValue(event.target.value)}
             />
-            <button type="button" onClick={() => setMonthValue(getMonthInputValue(new Date()))}>
+            <button
+              type="button"
+              onClick={() => changeMonthValue(getMonthInputValue(new Date()))}
+            >
               오늘
             </button>
             <button type="button" onClick={() => moveMonth(1)}>
-              다음
+              다음 ▶
             </button>
             <div
               aria-label="일정 보기 방식"
@@ -1376,7 +1479,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
               <button
                 aria-pressed={calendarViewMode === "calendar"}
                 className={
-                  calendarViewMode === "calendar" ? styles.selectedCalendarViewButton : ""
+                  calendarViewMode === "calendar"
+                    ? styles.selectedCalendarViewButton
+                    : ""
                 }
                 type="button"
                 onClick={() => setCalendarViewMode("calendar")}
@@ -1386,7 +1491,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
               <button
                 aria-pressed={calendarViewMode === "agenda"}
                 className={
-                  calendarViewMode === "agenda" ? styles.selectedCalendarViewButton : ""
+                  calendarViewMode === "agenda"
+                    ? styles.selectedCalendarViewButton
+                    : ""
                 }
                 type="button"
                 onClick={() => setCalendarViewMode("agenda")}
@@ -1420,8 +1527,10 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                   {week.dates.map((date) => (
                     <div
                       className={`${styles.calendarDayCell} ${
-                        isCurrentMonth(date, monthValue) ? "" : styles.outsideMonthDay
-                      }`}
+                        isCurrentMonth(date, monthValue)
+                          ? ""
+                          : styles.outsideMonthDay
+                      } ${date === todayDate ? styles.todayCalendarDay : ""}`}
                       data-calendar-date={date}
                       key={date}
                     >
@@ -1434,10 +1543,15 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
 
                 <div className={styles.calendarOwnerGroupList}>
                   {week.ownerLanes.length === 0 ? (
-                    <div className={styles.calendarEmptyWeek}>등록된 작업 일정이 없습니다.</div>
+                    <div className={styles.calendarEmptyWeek}>
+                      등록된 작업 일정이 없습니다.
+                    </div>
                   ) : null}
                   {week.ownerLanes.map((ownerLane) => (
-                    <div className={styles.calendarOwnerLane} key={ownerLane.id}>
+                    <div
+                      className={styles.calendarOwnerLane}
+                      key={ownerLane.id}
+                    >
                       <div className={styles.calendarOwnerGrid}>
                         {ownerLane.groups.map((ownerGroup) => (
                           <div
@@ -1492,7 +1606,11 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                                     className={styles.calendarResizeHandleStart}
                                     type="button"
                                     onPointerDown={(pointerEvent) =>
-                                      startEventDrag(event, "resize-start", pointerEvent)
+                                      startEventDrag(
+                                        event,
+                                        "resize-start",
+                                        pointerEvent,
+                                      )
                                     }
                                   />
                                 ) : null}
@@ -1501,14 +1619,19 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                                 </div>
                                 <div className={styles.calendarEventMeta}>
                                   <span>
-                                    {event.siteName || event.address || "작업 장소 미입력"}
+                                    {event.siteName ||
+                                      event.address ||
+                                      "작업 장소 미입력"}
                                   </span>
                                   <span>
-                                    남 {event.requiredMen} / 여 {event.requiredWomen}
+                                    남 {event.requiredMen} / 여{" "}
+                                    {event.requiredWomen}
                                   </span>
                                 </div>
                                 {event.memo ? (
-                                  <div className={styles.calendarEventMemo}>{event.memo}</div>
+                                  <div className={styles.calendarEventMemo}>
+                                    {event.memo}
+                                  </div>
                                 ) : null}
                                 {segment.isEnd ? (
                                   <button
@@ -1516,7 +1639,11 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                                     className={styles.calendarResizeHandleEnd}
                                     type="button"
                                     onPointerDown={(pointerEvent) =>
-                                      startEventDrag(event, "resize-end", pointerEvent)
+                                      startEventDrag(
+                                        event,
+                                        "resize-end",
+                                        pointerEvent,
+                                      )
                                     }
                                   />
                                 ) : null}
@@ -1537,7 +1664,12 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
           }`}
         >
           {agendaDays.map((agendaDay) => (
-            <section className={styles.mobileAgendaDay} key={agendaDay.id}>
+            <section
+              className={`${styles.mobileAgendaDay} ${
+                agendaDay.date === todayDate ? styles.todayAgendaDay : ""
+              }`}
+              key={agendaDay.id}
+            >
               <div className={styles.mobileAgendaDayHeader}>
                 <div>
                   <strong>{getAgendaDateLabel(agendaDay.date)}</strong>
@@ -1560,7 +1692,9 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                       type="button"
                       onClick={() => openEditModal(event)}
                     >
-                      <span className={styles.mobileAgendaOwner}>{event.ownerName}</span>
+                      <span className={styles.mobileAgendaOwner}>
+                        {event.ownerName}
+                      </span>
                       <span className={styles.mobileAgendaTitle}>
                         {event.title || "작업 미입력"}
                       </span>
@@ -1572,13 +1706,17 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                         {event.timeRange ? ` · ${event.timeRange}` : ""}
                       </span>
                       {event.memo ? (
-                        <span className={styles.mobileAgendaMemo}>{event.memo}</span>
+                        <span className={styles.mobileAgendaMemo}>
+                          {event.memo}
+                        </span>
                       ) : null}
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className={styles.mobileAgendaEmpty}>등록된 작업 일정이 없습니다.</div>
+                <div className={styles.mobileAgendaEmpty}>
+                  등록된 작업 일정이 없습니다.
+                </div>
               )}
             </section>
           ))}
@@ -1833,6 +1971,14 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                 <div className={styles.scheduleEditHeaderActions}>
                   <div className={styles.scheduleCreateActions}>
                     <button
+                      className={styles.scheduleDeleteButton}
+                      disabled={isUpdatingSchedule}
+                      type="button"
+                      onClick={deleteEditSchedule}
+                    >
+                      삭제
+                    </button>
+                    <button
                       className={styles.scheduleCreatePrimaryButton}
                       disabled={isUpdatingSchedule}
                       type="button"
@@ -1849,14 +1995,6 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                       취소
                     </button>
                   </div>
-                  <button
-                    className={styles.scheduleDeleteButton}
-                    disabled={isUpdatingSchedule}
-                    type="button"
-                    onClick={deleteEditSchedule}
-                  >
-                    삭제
-                  </button>
                 </div>
               </div>
 
@@ -2026,11 +2164,14 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                   "작업 장소 미입력"}
               </span>
               <span>
-                남 {dragPreviewEvent.requiredMen} / 여 {dragPreviewEvent.requiredWomen}
+                남 {dragPreviewEvent.requiredMen} / 여{" "}
+                {dragPreviewEvent.requiredWomen}
               </span>
             </div>
             {dragPreviewEvent.memo ? (
-              <div className={styles.calendarEventMemo}>{dragPreviewEvent.memo}</div>
+              <div className={styles.calendarEventMemo}>
+                {dragPreviewEvent.memo}
+              </div>
             ) : null}
           </article>
         ) : null}
