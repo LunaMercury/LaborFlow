@@ -2,6 +2,7 @@ package com.laborflow.core.schedule.dao;
 
 import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
 import com.laborflow.core.schedule.dto.ScheduleAssignmentResponse;
+import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -78,12 +79,73 @@ public class JdbcScheduleDao implements ScheduleDao {
     }
 
     @Override
+    public boolean farmOwnerBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID farmOwnerUuid) {
+        Integer count = jdbcTemplate.queryForObject(
+            """
+            SELECT count(*)
+            FROM public.labor_agency_farm_owner_profile
+            WHERE agency_owner_uuid = ?
+                AND farm_owner_uuid = ?
+                AND status = 'ACTIVE'
+            """,
+            Integer.class,
+            agencyOwnerUuid,
+            farmOwnerUuid
+        );
+
+        return count != null && count > 0;
+    }
+
+    @Override
+    public List<FarmOwnerOptionResponse> findFarmOwners(UUID agencyOwnerUuid, String query) {
+        String normalizedQuery = query == null ? "" : query.trim();
+        String likeQuery = "%" + normalizedQuery + "%";
+
+        return jdbcTemplate.query(
+            """
+            SELECT
+                fo.uuid,
+                COALESCE(fp.local_name, fp.local_nickname, fp.local_business_name, fo.canonical_name, '') AS display_name,
+                COALESCE(fp.local_business_name, fo.canonical_business_name, '') AS business_name
+            FROM public.labor_agency_farm_owner_profile fp
+            JOIN public.farm_owner fo ON fo.uuid = fp.farm_owner_uuid
+            WHERE fp.agency_owner_uuid = ?
+                AND fp.status = 'ACTIVE'
+                AND fo.status = 'ACTIVE'
+                AND (
+                    ? = ''
+                    OR COALESCE(fp.local_name, '') ILIKE ?
+                    OR COALESCE(fp.local_nickname, '') ILIKE ?
+                    OR COALESCE(fp.local_business_name, '') ILIKE ?
+                    OR COALESCE(fo.canonical_name, '') ILIKE ?
+                    OR COALESCE(fo.canonical_business_name, '') ILIKE ?
+                )
+            ORDER BY display_name, business_name
+            LIMIT 20
+            """,
+            (resultSet, rowNumber) -> new FarmOwnerOptionResponse(
+                resultSet.getObject("uuid", UUID.class),
+                resultSet.getString("display_name"),
+                resultSet.getString("business_name")
+            ),
+            agencyOwnerUuid,
+            normalizedQuery,
+            likeQuery,
+            likeQuery,
+            likeQuery,
+            likeQuery,
+            likeQuery
+        );
+    }
+
+    @Override
     public List<ScheduleTaskResponse> findTasks(UUID agencyOwnerUuid, LocalDate workDate) {
         List<ScheduleTaskProjection> tasks = jdbcTemplate.query(
             """
             SELECT
                 d.uuid,
                 s.uuid AS work_site_uuid,
+                s.owner_uuid,
                 s.work_description,
                 COALESCE(fp.local_name, fp.local_nickname, fp.local_business_name, fo.canonical_name, '') AS owner_name,
                 COALESCE(s.site_name, '') AS site_name,
@@ -124,6 +186,7 @@ public class JdbcScheduleDao implements ScheduleDao {
             .map(task -> new ScheduleTaskResponse(
                 task.id(),
                 task.workSiteId(),
+                task.ownerUuid(),
                 task.title(),
                 task.ownerName(),
                 task.siteName(),
@@ -149,6 +212,7 @@ public class JdbcScheduleDao implements ScheduleDao {
     public void updateTask(
         UUID agencyOwnerUuid,
         UUID scheduleDayUuid,
+        UUID ownerUuid,
         String title,
         String address,
         int requiredMen,
@@ -159,7 +223,8 @@ public class JdbcScheduleDao implements ScheduleDao {
             """
             UPDATE public.farm_work_site
             SET work_description = ?,
-                farm_address = ?
+                farm_address = ?,
+                owner_uuid = COALESCE(?, owner_uuid)
             FROM public.work_schedule_day d
             WHERE d.work_site_uuid = public.farm_work_site.uuid
                 AND public.farm_work_site.agency_owner_uuid = ?
@@ -167,6 +232,7 @@ public class JdbcScheduleDao implements ScheduleDao {
             """,
             title,
             address,
+            ownerUuid,
             agencyOwnerUuid,
             scheduleDayUuid
         );
@@ -278,6 +344,345 @@ public class JdbcScheduleDao implements ScheduleDao {
         }
     }
 
+    @Override
+    public UUID createTask(
+        UUID agencyOwnerUuid,
+        UUID farmOwnerUuid,
+        LocalDate startDate,
+        LocalDate endDate,
+        String title,
+        String siteName,
+        String address,
+        int requiredMen,
+        int requiredWomen,
+        LocalTime startTime,
+        LocalTime endTime,
+        String memo,
+        List<String> workTypeCodes
+    ) {
+        UUID workSiteUuid = UUID.randomUUID();
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.farm_work_site (
+                uuid,
+                owner_uuid,
+                site_name,
+                farm_address,
+                male_required_count,
+                female_required_count,
+                work_description,
+                work_start_date,
+                work_end_date,
+                daily_start_time,
+                daily_end_time,
+                memo,
+                agency_owner_uuid,
+                status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+            """,
+            workSiteUuid,
+            farmOwnerUuid,
+            siteName,
+            address,
+            requiredMen,
+            requiredWomen,
+            title,
+            startDate,
+            endDate,
+            startTime,
+            endTime,
+            memo,
+            agencyOwnerUuid
+        );
+
+        for (String workTypeCode : workTypeCodes) {
+            jdbcTemplate.update(
+                """
+                INSERT INTO public.farm_work_site_work_type (
+                    work_site_uuid,
+                    work_type_uuid
+                )
+                SELECT ?, wt.uuid
+                FROM public.work_type wt
+                WHERE wt.code = ? AND wt.status = 'ACTIVE'
+                ON CONFLICT DO NOTHING
+                """,
+                workSiteUuid,
+                workTypeCode
+            );
+        }
+
+        UUID firstScheduleDayUuid = null;
+        for (LocalDate workDate : enumerateDates(startDate, endDate)) {
+            UUID scheduleDayUuid = UUID.randomUUID();
+            if (firstScheduleDayUuid == null) {
+                firstScheduleDayUuid = scheduleDayUuid;
+            }
+
+            jdbcTemplate.update(
+                """
+                INSERT INTO public.work_schedule_day (
+                    uuid,
+                    work_site_uuid,
+                    work_date,
+                    daily_start_time,
+                    daily_end_time,
+                    male_required_count,
+                    female_required_count,
+                    memo,
+                    status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+                """,
+                scheduleDayUuid,
+                workSiteUuid,
+                workDate,
+                startTime,
+                endTime,
+                requiredMen,
+                requiredWomen,
+                memo
+            );
+        }
+
+        return firstScheduleDayUuid;
+    }
+
+    @Override
+    public void rescheduleTaskRange(
+        UUID agencyOwnerUuid,
+        List<UUID> scheduleDayUuids,
+        LocalDate startDate,
+        LocalDate endDate
+    ) {
+        List<ScheduleDayRecord> scheduleDays = findScheduleDayRecords(agencyOwnerUuid, scheduleDayUuids);
+        if (scheduleDays.size() != scheduleDayUuids.stream().distinct().count()) {
+            throw new IllegalArgumentException("Schedule day was not found.");
+        }
+
+        UUID workSiteUuid = scheduleDays.get(0).workSiteUuid();
+        if (scheduleDays.stream().anyMatch(scheduleDay -> !scheduleDay.workSiteUuid().equals(workSiteUuid))) {
+            throw new IllegalArgumentException("Schedule days must belong to one work site.");
+        }
+
+        List<LocalDate> targetDates = enumerateDates(startDate, endDate);
+        ensureTargetDatesAreAvailable(workSiteUuid, scheduleDayUuids, targetDates);
+
+        for (int index = 0; index < scheduleDays.size(); index++) {
+            LocalDate temporaryDate = startDate.minusDays(10_000L + index);
+            updateScheduleDayDate(scheduleDays.get(index).uuid(), temporaryDate);
+        }
+
+        int reusableCount = Math.min(scheduleDays.size(), targetDates.size());
+        for (int index = 0; index < reusableCount; index++) {
+            updateScheduleDayDate(scheduleDays.get(index).uuid(), targetDates.get(index));
+        }
+
+        if (scheduleDays.size() > targetDates.size()) {
+            deleteScheduleDays(scheduleDays.subList(targetDates.size(), scheduleDays.size()));
+        }
+
+        if (targetDates.size() > scheduleDays.size()) {
+            ScheduleDayRecord template = scheduleDays.get(scheduleDays.size() - 1);
+            for (int index = scheduleDays.size(); index < targetDates.size(); index++) {
+                insertScheduleDayFromTemplate(template, targetDates.get(index));
+            }
+        }
+
+        refreshWorkSiteDateRange(workSiteUuid);
+    }
+
+    @Override
+    public void deleteTaskRange(UUID agencyOwnerUuid, List<UUID> scheduleDayUuids) {
+        List<ScheduleDayRecord> scheduleDays = findScheduleDayRecords(agencyOwnerUuid, scheduleDayUuids);
+        if (scheduleDays.size() != scheduleDayUuids.stream().distinct().count()) {
+            throw new IllegalArgumentException("Schedule day was not found.");
+        }
+
+        UUID workSiteUuid = scheduleDays.get(0).workSiteUuid();
+        if (scheduleDays.stream().anyMatch(scheduleDay -> !scheduleDay.workSiteUuid().equals(workSiteUuid))) {
+            throw new IllegalArgumentException("Schedule days must belong to one work site.");
+        }
+
+        deleteScheduleDays(scheduleDays);
+        refreshWorkSiteDateRange(workSiteUuid);
+        archiveWorkSiteIfEmpty(workSiteUuid);
+    }
+
+    private List<ScheduleDayRecord> findScheduleDayRecords(UUID agencyOwnerUuid, List<UUID> scheduleDayUuids) {
+        String placeholders = String.join(",", scheduleDayUuids.stream().map(ignored -> "?").toList());
+        List<Object> params = new ArrayList<>();
+        params.add(agencyOwnerUuid);
+        params.addAll(scheduleDayUuids);
+
+        return jdbcTemplate.query(
+            """
+            SELECT
+                d.uuid,
+                d.work_site_uuid,
+                d.work_date,
+                d.daily_start_time,
+                d.daily_end_time,
+                d.male_required_count,
+                d.female_required_count,
+                d.memo,
+                d.status
+            FROM public.work_schedule_day d
+            JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
+            WHERE s.agency_owner_uuid = ?
+                AND d.uuid IN (%s)
+            ORDER BY d.work_date, d.created_at
+            """.formatted(placeholders),
+            (resultSet, rowNumber) -> new ScheduleDayRecord(
+                resultSet.getObject("uuid", UUID.class),
+                resultSet.getObject("work_site_uuid", UUID.class),
+                resultSet.getObject("work_date", LocalDate.class),
+                Optional.ofNullable(resultSet.getObject("daily_start_time", LocalTime.class)),
+                Optional.ofNullable(resultSet.getObject("daily_end_time", LocalTime.class)),
+                resultSet.getInt("male_required_count"),
+                resultSet.getInt("female_required_count"),
+                resultSet.getString("memo"),
+                resultSet.getString("status")
+            ),
+            params.toArray()
+        );
+    }
+
+    private List<LocalDate> enumerateDates(LocalDate startDate, LocalDate endDate) {
+        List<LocalDate> dates = new ArrayList<>();
+        LocalDate currentDate = startDate;
+
+        while (!currentDate.isAfter(endDate)) {
+            dates.add(currentDate);
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return dates;
+    }
+
+    private void ensureTargetDatesAreAvailable(
+        UUID workSiteUuid,
+        List<UUID> scheduleDayUuids,
+        List<LocalDate> targetDates
+    ) {
+        String datePlaceholders = String.join(",", targetDates.stream().map(ignored -> "?").toList());
+        String uuidPlaceholders = String.join(",", scheduleDayUuids.stream().map(ignored -> "?").toList());
+        List<Object> params = new ArrayList<>();
+        params.add(workSiteUuid);
+        params.addAll(targetDates);
+        params.addAll(scheduleDayUuids);
+
+        Integer count = jdbcTemplate.queryForObject(
+            """
+            SELECT count(*)
+            FROM public.work_schedule_day
+            WHERE work_site_uuid = ?
+                AND work_date IN (%s)
+                AND uuid NOT IN (%s)
+            """.formatted(datePlaceholders, uuidPlaceholders),
+            Integer.class,
+            params.toArray()
+        );
+
+        if (count != null && count > 0) {
+            throw new IllegalArgumentException("Target schedule dates already exist.");
+        }
+    }
+
+    private void updateScheduleDayDate(UUID scheduleDayUuid, LocalDate workDate) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.work_schedule_day
+            SET work_date = ?
+            WHERE uuid = ?
+            """,
+            workDate,
+            scheduleDayUuid
+        );
+        jdbcTemplate.update(
+            """
+            UPDATE public.work_schedule_assignment
+            SET work_date = ?
+            WHERE schedule_day_uuid = ?
+            """,
+            workDate,
+            scheduleDayUuid
+        );
+    }
+
+    private void deleteScheduleDays(List<ScheduleDayRecord> scheduleDays) {
+        for (ScheduleDayRecord scheduleDay : scheduleDays) {
+            jdbcTemplate.update(
+                "DELETE FROM public.work_schedule_day WHERE uuid = ?",
+                scheduleDay.uuid()
+            );
+        }
+    }
+
+    private void insertScheduleDayFromTemplate(ScheduleDayRecord template, LocalDate workDate) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.work_schedule_day (
+                work_site_uuid,
+                work_date,
+                daily_start_time,
+                daily_end_time,
+                male_required_count,
+                female_required_count,
+                memo,
+                status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+            ON CONFLICT (work_site_uuid, work_date) DO NOTHING
+            """,
+            template.workSiteUuid(),
+            workDate,
+            template.startTime().orElse(null),
+            template.endTime().orElse(null),
+            template.requiredMen(),
+            template.requiredWomen(),
+            template.memo()
+        );
+    }
+
+    private void refreshWorkSiteDateRange(UUID workSiteUuid) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.farm_work_site
+            SET work_start_date = range_dates.start_date,
+                work_end_date = range_dates.end_date
+            FROM (
+                SELECT MIN(work_date) AS start_date, MAX(work_date) AS end_date
+                FROM public.work_schedule_day
+                WHERE work_site_uuid = ?
+                    AND status = 'ACTIVE'
+            ) range_dates
+            WHERE uuid = ?
+            """,
+            workSiteUuid,
+            workSiteUuid
+        );
+    }
+
+    private void archiveWorkSiteIfEmpty(UUID workSiteUuid) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.farm_work_site
+            SET status = 'ARCHIVED'
+            WHERE uuid = ?
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM public.work_schedule_day
+                    WHERE work_site_uuid = ?
+                        AND status = 'ACTIVE'
+                )
+            """,
+            workSiteUuid,
+            workSiteUuid
+        );
+    }
+
     private Map<UUID, List<String>> findWorkTypeCodesBySiteUuid(List<UUID> siteUuids) {
         Map<UUID, List<String>> workTypeCodesBySiteUuid = new LinkedHashMap<>();
         for (UUID siteUuid : siteUuids) {
@@ -340,6 +745,7 @@ public class JdbcScheduleDao implements ScheduleDao {
         return new ScheduleTaskProjection(
             resultSet.getObject("uuid", UUID.class),
             resultSet.getObject("work_site_uuid", UUID.class),
+            resultSet.getObject("owner_uuid", UUID.class),
             resultSet.getString("work_description"),
             resultSet.getString("owner_name"),
             resultSet.getString("site_name"),
@@ -379,6 +785,7 @@ public class JdbcScheduleDao implements ScheduleDao {
     private record ScheduleTaskProjection(
         UUID id,
         UUID workSiteId,
+        UUID ownerUuid,
         String title,
         String ownerName,
         String siteName,
@@ -388,6 +795,19 @@ public class JdbcScheduleDao implements ScheduleDao {
         String memo,
         LocalTime startTime,
         LocalTime endTime
+    ) {
+    }
+
+    private record ScheduleDayRecord(
+        UUID uuid,
+        UUID workSiteUuid,
+        LocalDate workDate,
+        Optional<LocalTime> startTime,
+        Optional<LocalTime> endTime,
+        int requiredMen,
+        int requiredWomen,
+        String memo,
+        String status
     ) {
     }
 }

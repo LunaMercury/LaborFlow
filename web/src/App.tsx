@@ -4,6 +4,7 @@ import { Header } from "./components/Header";
 import { servicePages } from "./data/servicePages";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { ScheduleCalendarPage } from "./pages/ScheduleCalendarPage";
 import { ServicePage } from "./pages/ServicePage";
 import { TeamsPage } from "./pages/TeamsPage";
 import { WorkersPage } from "./pages/WorkersPage";
@@ -54,6 +55,7 @@ export default function App() {
   const isProtectedServicePath = Object.hasOwn(servicePages, currentPath);
   const isWorkersPage = currentPath === "/workers";
   const isTeamsPage = currentPath === "/teams" || currentPath === "/team";
+  const isSchedulePage = currentPath === "/schedule";
   const isWorkSchedulePage = currentPath === "/work-schedule";
   const shouldShowLoginPage =
     !isLoggedIn && (
@@ -61,6 +63,7 @@ export default function App() {
       isProtectedServicePath ||
       isWorkersPage ||
       isTeamsPage ||
+      isSchedulePage ||
       isWorkSchedulePage
     );
   const isServicePage = isLoggedIn && isProtectedServicePath;
@@ -82,6 +85,8 @@ export default function App() {
         />
       ) : isLoggedIn && isTeamsPage ? (
         <TeamsPage loginId={readDemoSession()?.loginId ?? "test"} />
+      ) : isLoggedIn && isSchedulePage ? (
+        <ScheduleCalendarPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isWorkSchedulePage ? (
         <WorkSchedulePage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isServicePage ? (

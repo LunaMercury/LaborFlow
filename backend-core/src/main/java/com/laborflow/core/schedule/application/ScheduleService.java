@@ -1,11 +1,16 @@
 package com.laborflow.core.schedule.application;
 
 import com.laborflow.core.schedule.dao.ScheduleDao;
+import com.laborflow.core.schedule.dto.CreateScheduleTaskRequest;
+import com.laborflow.core.schedule.dto.DeleteScheduleTaskRangeRequest;
+import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
+import com.laborflow.core.schedule.dto.RescheduleTaskRangeRequest;
 import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
 import com.laborflow.core.schedule.dto.ScheduleTaskListResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import com.laborflow.core.schedule.dto.UpdateScheduleTaskRequest;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +28,49 @@ public class ScheduleService {
     public ScheduleTaskListResponse getTasks(String loginId, LocalDate workDate) {
         UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
         return new ScheduleTaskListResponse(scheduleDao.findTasks(agencyOwnerUuid, workDate));
+    }
+
+    public List<FarmOwnerOptionResponse> getFarmOwners(String loginId, String query) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        return scheduleDao.findFarmOwners(agencyOwnerUuid, normalizeOptionalText(query));
+    }
+
+    @Transactional
+    public ScheduleTaskResponse createTask(String loginId, CreateScheduleTaskRequest request) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        if (request.ownerUuid() == null || !scheduleDao.farmOwnerBelongsToAgencyOwner(agencyOwnerUuid, request.ownerUuid())) {
+            throw new IllegalArgumentException("Farm owner was not found.");
+        }
+
+        LocalDate startDate = request.startDate();
+        LocalDate endDate = request.endDate();
+        if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("Schedule range is invalid.");
+        }
+
+        if (startDate.plusDays(369).isBefore(endDate)) {
+            throw new IllegalArgumentException("Schedule range is too long.");
+        }
+
+        validateTimeRange(request.startTime(), request.endTime());
+        UUID scheduleDayUuid = scheduleDao.createTask(
+            agencyOwnerUuid,
+            request.ownerUuid(),
+            startDate,
+            endDate,
+            normalizeRequiredText(request.title()),
+            normalizeOptionalText(request.siteName()),
+            normalizeRequiredText(request.address()),
+            normalizeRequiredCount(request.requiredMen()),
+            normalizeRequiredCount(request.requiredWomen()),
+            request.startTime(),
+            request.endTime(),
+            normalizeOptionalText(request.memo()),
+            normalizeWorkTypeCodes(request.workTypeCodes())
+        );
+
+        return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, startDate)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
     }
 
     @Transactional
@@ -44,10 +92,15 @@ public class ScheduleService {
             agencyOwnerUuid,
             request.assignments()
         );
+        UUID ownerUuid = request.ownerUuid();
+        if (ownerUuid != null && !scheduleDao.farmOwnerBelongsToAgencyOwner(agencyOwnerUuid, ownerUuid)) {
+            throw new IllegalArgumentException("Farm owner was not found.");
+        }
 
         scheduleDao.updateTask(
             agencyOwnerUuid,
             scheduleDayUuid,
+            ownerUuid,
             normalizeRequiredText(request.title()),
             normalizeRequiredText(request.address()),
             requiredMen,
@@ -59,6 +112,31 @@ public class ScheduleService {
 
         return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
             .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+    }
+
+    @Transactional
+    public void rescheduleTaskRange(String loginId, RescheduleTaskRangeRequest request) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        List<UUID> taskIds = normalizeTaskIds(request.taskIds());
+        LocalDate startDate = request.startDate();
+        LocalDate endDate = request.endDate();
+
+        if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("Schedule range is invalid.");
+        }
+
+        if (startDate.plusDays(369).isBefore(endDate)) {
+            throw new IllegalArgumentException("Schedule range is too long.");
+        }
+
+        scheduleDao.rescheduleTaskRange(agencyOwnerUuid, taskIds, startDate, endDate);
+    }
+
+    @Transactional
+    public void deleteTaskRange(String loginId, DeleteScheduleTaskRangeRequest request) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        List<UUID> taskIds = normalizeTaskIds(request.taskIds());
+        scheduleDao.deleteTaskRange(agencyOwnerUuid, taskIds);
     }
 
     private UUID findAgencyOwnerUuid(String loginId) {
@@ -108,12 +186,31 @@ public class ScheduleService {
         return value;
     }
 
+    private void validateTimeRange(LocalTime startTime, LocalTime endTime) {
+        if (startTime != null && endTime != null && !endTime.isAfter(startTime)) {
+            throw new IllegalArgumentException("Schedule time range is invalid.");
+        }
+    }
+
     private List<String> normalizeWorkTypeCodes(List<String> workTypeCodes) {
         return new LinkedHashSet<>(workTypeCodes == null ? List.<String>of() : workTypeCodes)
             .stream()
             .map(this::normalizeOptionalText)
             .filter(value -> value != null)
             .toList();
+    }
+
+    private List<UUID> normalizeTaskIds(List<UUID> taskIds) {
+        List<UUID> normalizedTaskIds = new LinkedHashSet<>(taskIds == null ? List.<UUID>of() : taskIds)
+            .stream()
+            .filter(taskId -> taskId != null)
+            .toList();
+
+        if (normalizedTaskIds.isEmpty()) {
+            throw new IllegalArgumentException("At least one schedule day is required.");
+        }
+
+        return normalizedTaskIds;
     }
 
     private String normalizeRequiredText(String value) {

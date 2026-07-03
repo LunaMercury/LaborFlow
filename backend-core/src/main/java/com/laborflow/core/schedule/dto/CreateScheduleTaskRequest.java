@@ -1,21 +1,22 @@
 package com.laborflow.core.schedule.dto;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
-public record ScheduleTaskResponse(
-    UUID id,
-    UUID workSiteId,
+public record CreateScheduleTaskRequest(
     UUID ownerUuid,
+    LocalDate startDate,
+    LocalDate endDate,
     String title,
-    String ownerName,
     String siteName,
     String address,
-    String timeRange,
     int requiredMen,
     int requiredWomen,
-    List<String> workTypeCodes,
+    LocalTime startTime,
+    LocalTime endTime,
     String memo,
-    List<ScheduleAssignmentResponse> assignments
+    List<String> workTypeCodes
 ) {
 }

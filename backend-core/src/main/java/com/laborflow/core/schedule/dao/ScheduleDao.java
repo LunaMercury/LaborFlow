@@ -1,8 +1,10 @@
 package com.laborflow.core.schedule.dao;
 
 import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
+import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +16,10 @@ public interface ScheduleDao {
 
     boolean workerProfileBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID workerProfileUuid);
 
+    boolean farmOwnerBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID farmOwnerUuid);
+
+    List<FarmOwnerOptionResponse> findFarmOwners(UUID agencyOwnerUuid, String query);
+
     List<ScheduleTaskResponse> findTasks(UUID agencyOwnerUuid, LocalDate workDate);
 
     Optional<ScheduleTaskResponse> findTask(UUID agencyOwnerUuid, UUID scheduleDayUuid, LocalDate workDate);
@@ -21,6 +27,7 @@ public interface ScheduleDao {
     void updateTask(
         UUID agencyOwnerUuid,
         UUID scheduleDayUuid,
+        UUID ownerUuid,
         String title,
         String address,
         int requiredMen,
@@ -35,4 +42,29 @@ public interface ScheduleDao {
         UUID scheduleDayUuid,
         List<ScheduleAssignmentRequest> assignments
     );
+
+    UUID createTask(
+        UUID agencyOwnerUuid,
+        UUID farmOwnerUuid,
+        LocalDate startDate,
+        LocalDate endDate,
+        String title,
+        String siteName,
+        String address,
+        int requiredMen,
+        int requiredWomen,
+        LocalTime startTime,
+        LocalTime endTime,
+        String memo,
+        List<String> workTypeCodes
+    );
+
+    void rescheduleTaskRange(
+        UUID agencyOwnerUuid,
+        List<UUID> scheduleDayUuids,
+        LocalDate startDate,
+        LocalDate endDate
+    );
+
+    void deleteTaskRange(UUID agencyOwnerUuid, List<UUID> scheduleDayUuids);
 }
