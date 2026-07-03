@@ -29,6 +29,7 @@ import {
 import scheduleStyles from "./WorkSchedulePage.module.css";
 
 const styles = { ...appStyles, ...scheduleStyles };
+const TASK_ORDER_STORAGE_PREFIX = "laborflow.workSchedule.taskOrder";
 
 type WorkSchedulePageProps = {
   loginId: string;
@@ -63,6 +64,8 @@ type DraggingWorkerState = {
   label: string;
   workerIds: string[];
 };
+
+type TaskOrderDropPosition = "after" | "before";
 
 type WorkerTeamGroup = {
   displayOrder: number;
@@ -131,6 +134,99 @@ function addDaysToInputValue(value: string, days: number) {
   const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+function getTaskOrderStorageKey(loginId: string, selectedDate: string) {
+  return `${TASK_ORDER_STORAGE_PREFIX}:${loginId}:${selectedDate}`;
+}
+
+function loadCachedTaskOrder(loginId: string, selectedDate: string) {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(
+      getTaskOrderStorageKey(loginId, selectedDate),
+    );
+    const parsedValue = rawValue ? JSON.parse(rawValue) : [];
+
+    return Array.isArray(parsedValue)
+      ? parsedValue.filter((taskId): taskId is string => typeof taskId === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCachedTaskOrder(
+  loginId: string,
+  selectedDate: string,
+  taskIds: string[],
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      getTaskOrderStorageKey(loginId, selectedDate),
+      JSON.stringify(taskIds),
+    );
+  } catch {
+    // Local cache is a convenience only; failing to persist must not block scheduling.
+  }
+}
+
+function applyCachedTaskOrder(
+  tasks: ScheduleTask[],
+  loginId: string,
+  selectedDate: string,
+) {
+  const cachedTaskIds = loadCachedTaskOrder(loginId, selectedDate);
+
+  if (cachedTaskIds.length === 0) {
+    return tasks;
+  }
+
+  const taskById = new Map(tasks.map((task) => [task.id, task]));
+  const orderedTasks = cachedTaskIds
+    .map((taskId) => taskById.get(taskId))
+    .filter((task): task is ScheduleTask => Boolean(task));
+  const orderedTaskIds = new Set(orderedTasks.map((task) => task.id));
+  const newTasks = tasks.filter((task) => !orderedTaskIds.has(task.id));
+
+  return [...orderedTasks, ...newTasks];
+}
+
+function reorderTasks(
+  tasks: ScheduleTask[],
+  draggedTaskId: string,
+  targetTaskId: string,
+  position: TaskOrderDropPosition,
+) {
+  if (draggedTaskId === targetTaskId) {
+    return tasks;
+  }
+
+  const draggedTask = tasks.find((task) => task.id === draggedTaskId);
+
+  if (!draggedTask) {
+    return tasks;
+  }
+
+  const remainingTasks = tasks.filter((task) => task.id !== draggedTaskId);
+  const targetIndex = remainingTasks.findIndex((task) => task.id === targetTaskId);
+
+  if (targetIndex < 0) {
+    return tasks;
+  }
+
+  const insertIndex = position === "before" ? targetIndex : targetIndex + 1;
+  const nextTasks = [...remainingTasks];
+  nextTasks.splice(insertIndex, 0, draggedTask);
+
+  return nextTasks;
 }
 
 function getPreviousDateInputValue(value: string) {
@@ -531,6 +627,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const [editingWorkerDraft, setEditingWorkerDraft] =
     useState<EditingWorkerDraft | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -539,11 +636,16 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const dragPreviewRef = useRef<HTMLDivElement | null>(null);
   const dragFrameRef = useRef<number | null>(null);
   const dragPointRef = useRef({ x: 0, y: 0 });
+  const tasksRef = useRef<ScheduleTask[]>([]);
   const draggingWorkerIds = useMemo(
     () => new Set(draggingWorker?.workerIds ?? []),
     [draggingWorker],
   );
   const isDraggingWorkers = draggingWorkerIds.size > 0;
+
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   useEffect(() => {
     let isMounted = true;
@@ -558,14 +660,16 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
           return;
         }
 
+        const orderedTasks = applyCachedTaskOrder(nextTasks, loginId, selectedDate);
+
         setWorkers(nextWorkers);
         setWorkTypes(nextWorkTypes);
-        setTasks(nextTasks);
-        setPersistedTasks(nextTasks);
-        setAssignedWorkerIdsByTaskId(createAssignmentDrafts(nextTasks));
-        setRequiredCountsByTaskId(createRequiredCountDrafts(nextTasks));
-        setMemoByTaskId(createMemoDrafts(nextTasks));
-        setTaskDetailDraftsByTaskId(createTaskDetailDrafts(nextTasks));
+        setTasks(orderedTasks);
+        setPersistedTasks(orderedTasks);
+        setAssignedWorkerIdsByTaskId(createAssignmentDrafts(orderedTasks));
+        setRequiredCountsByTaskId(createRequiredCountDrafts(orderedTasks));
+        setMemoByTaskId(createMemoDrafts(orderedTasks));
+        setTaskDetailDraftsByTaskId(createTaskDetailDrafts(orderedTasks));
         setEditingRequiredCount(null);
         setEditingTaskMemoId(null);
         setEditingTaskId(null);
@@ -674,6 +778,77 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       return nextTaskIds;
     });
   };
+
+  const moveDraggingTask = (clientX: number, clientY: number) => {
+    if (!draggingTaskId) {
+      return;
+    }
+
+    const targetElement = document.elementFromPoint(clientX, clientY);
+    const targetCard = targetElement?.closest<HTMLElement>("[data-schedule-task-id]");
+    const targetTaskId = targetCard?.dataset.scheduleTaskId;
+
+    if (!targetCard || !targetTaskId || targetTaskId === draggingTaskId) {
+      return;
+    }
+
+    const targetRect = targetCard.getBoundingClientRect();
+    const position: TaskOrderDropPosition =
+      clientY < targetRect.top + targetRect.height / 2 ? "before" : "after";
+
+    setTasks((currentTasks) => {
+      const nextTasks = reorderTasks(
+        currentTasks,
+        draggingTaskId,
+        targetTaskId,
+        position,
+      );
+      tasksRef.current = nextTasks;
+
+      return nextTasks;
+    });
+  };
+
+  const startTaskOrderDrag = (
+    taskId: string,
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    setDraggingTaskId(taskId);
+    setStatusMessage("작업 순서를 조정하는 중입니다.");
+  };
+
+  useEffect(() => {
+    if (!draggingTaskId) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      moveDraggingTask(event.clientX, event.clientY);
+    };
+
+    const finishTaskOrderDrag = () => {
+      const nextTaskIds = tasksRef.current.map((task) => task.id);
+      saveCachedTaskOrder(loginId, selectedDate, nextTaskIds);
+      setDraggingTaskId(null);
+      setStatusMessage("작업 순서를 이 브라우저에 저장했습니다.");
+    };
+
+    document.addEventListener("pointermove", handlePointerMove);
+    document.addEventListener("pointerup", finishTaskOrderDrag, { once: true });
+    document.addEventListener("pointercancel", finishTaskOrderDrag, { once: true });
+
+    return () => {
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", finishTaskOrderDrag);
+      document.removeEventListener("pointercancel", finishTaskOrderDrag);
+    };
+  }, [draggingTaskId, loginId, selectedDate]);
 
   const getRequiredCounts = (task: ScheduleTask) =>
     requiredCountsByTaskId[task.id] ?? {
@@ -2012,8 +2187,22 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                 );
 
                 return (
-                  <div className={styles.scheduleTaskCard} key={task.id}>
+                  <div
+                    className={`${styles.scheduleTaskCard} ${
+                      draggingTaskId === task.id ? styles.draggingScheduleTaskCard : ""
+                    }`}
+                    data-schedule-task-id={task.id}
+                    key={task.id}
+                  >
                     <div className={styles.scheduleTaskHeader}>
+                      <button
+                        aria-label={`${taskDetailDraft.title || task.title} 작업 순서 이동`}
+                        className={styles.scheduleTaskOrderHandle}
+                        type="button"
+                        onPointerDown={(event) => startTaskOrderDrag(task.id, event)}
+                      >
+                        ☰
+                      </button>
                       <div className={styles.scheduleTaskHeaderContent}>
                         {isEditingTask ? (
                           <div className={styles.scheduleTaskInlineEditor}>
