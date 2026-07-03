@@ -635,6 +635,134 @@
   font-weight: 900;
 }
 
+.calendarMobileAgenda {
+  display: none;
+}
+
+.mobileAgendaDay {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.mobileAgendaDayHeader {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.mobileAgendaDayHeader > div {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.mobileAgendaDayHeader strong {
+  color: #17202a;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.mobileAgendaDayHeader span {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mobileAgendaDayHeader button {
+  align-items: center;
+  background: #176b5d;
+  border: 1px solid #176b5d;
+  border-radius: 8px;
+  color: #ffffff;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 18px;
+  font-weight: 900;
+  height: 34px;
+  justify-content: center;
+  width: 38px;
+}
+
+.mobileAgendaDayHeader button:hover {
+  cursor: pointer;
+}
+
+.mobileAgendaEventList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobileAgendaEventCard {
+  align-items: stretch;
+  background: #fff7e7;
+  border: 1px solid #dfc48b;
+  border-radius: 8px;
+  color: #17202a;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: flex-start;
+  min-width: 0;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.mobileAgendaEventCard:hover {
+  border-color: #8c6a25;
+  box-shadow: 0 8px 18px rgba(140, 106, 37, 0.12);
+  cursor: pointer;
+}
+
+.mobileAgendaOwner {
+  color: #176b5d;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.mobileAgendaTitle {
+  color: #17202a;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.mobileAgendaMeta,
+.mobileAgendaMemo,
+.mobileAgendaEmpty {
+  color: #4f5d6b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.mobileAgendaMemo {
+  color: #687789;
+  white-space: pre-wrap;
+}
+
+.mobileAgendaEmpty {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px dashed #c8d4e0;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
 @media (max-width: 900px) {
   .calendarHeader {
     align-items: stretch;
@@ -658,5 +786,64 @@
   .scheduleCreateDateRow,
   .scheduleCreateTwoColumn {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .calendarPanel {
+    gap: 12px;
+  }
+
+  .calendarHeader {
+    min-height: auto;
+    padding: 12px;
+  }
+
+  .calendarHeader h1 {
+    font-size: 23px;
+  }
+
+  .calendarControls {
+    width: 100%;
+  }
+
+  .calendarControls input {
+    flex: 1;
+    min-width: 150px;
+  }
+
+  .calendarWeekHeader,
+  .calendarGrid {
+    display: none;
+  }
+
+  .calendarMobileAgenda {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .scheduleCreateOverlay {
+    align-items: stretch;
+    padding: 14px;
+  }
+
+  .scheduleCreateModal {
+    max-height: calc(100vh - 28px);
+  }
+
+  .scheduleCreateHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .scheduleEditHeaderActions {
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .scheduleCreateActions {
+    justify-content: flex-start;
   }
 }

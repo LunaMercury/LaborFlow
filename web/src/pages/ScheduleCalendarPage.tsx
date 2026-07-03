@@ -87,6 +87,12 @@ type CalendarWeek = {
   ownerLanes: CalendarOwnerLane[];
 };
 
+type CalendarAgendaDay = {
+  date: string;
+  events: CalendarEvent[];
+  id: string;
+};
+
 type CalendarDragState = {
   eventId: string;
   mode: "move" | "resize-end" | "resize-start";
@@ -540,6 +546,29 @@ function getDateDayLabel(date: string) {
   return String(parseInputDate(date).getDate());
 }
 
+function getAgendaDateLabel(date: string) {
+  const parsedDate = parseInputDate(date);
+  const dayName = DAY_NAMES[parsedDate.getDay()];
+
+  return `${parsedDate.getMonth() + 1}월 ${parsedDate.getDate()}일 ${dayName}`;
+}
+
+function createAgendaDays(events: CalendarEvent[], visibleDates: string[], monthValue: string) {
+  return visibleDates
+    .filter((date) => isCurrentMonth(date, monthValue))
+    .map<CalendarAgendaDay>((date) => ({
+      date,
+      events: events
+        .filter((event) => event.startDate <= date && event.endDate >= date)
+        .sort(
+          (left, right) =>
+            left.ownerName.localeCompare(right.ownerName, "ko-KR") ||
+            left.title.localeCompare(right.title, "ko-KR"),
+        ),
+      id: date,
+    }));
+}
+
 function getResizeAnchorIndex(
   event: CalendarEvent,
   mode: CalendarDragState["mode"],
@@ -605,6 +634,10 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
   const calendarWeeks = useMemo(
     () => createCalendarWeeks(events, visibleDates),
     [events, visibleDates],
+  );
+  const agendaDays = useMemo(
+    () => createAgendaDays(events, visibleDates, monthValue),
+    [events, monthValue, visibleDates],
   );
   const dragPreviewEvent = useMemo(
     () =>
@@ -1450,6 +1483,54 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                   </div>
                 ))}
               </div>
+            </section>
+          ))}
+        </div>
+        <div className={styles.calendarMobileAgenda}>
+          {agendaDays.map((agendaDay) => (
+            <section className={styles.mobileAgendaDay} key={agendaDay.id}>
+              <div className={styles.mobileAgendaDayHeader}>
+                <div>
+                  <strong>{getAgendaDateLabel(agendaDay.date)}</strong>
+                  <span>{agendaDay.events.length}건</span>
+                </div>
+                <button
+                  aria-label={`${getAgendaDateLabel(agendaDay.date)} 일정 추가`}
+                  type="button"
+                  onClick={() => openCreateModal(agendaDay.date)}
+                >
+                  +
+                </button>
+              </div>
+              {agendaDay.events.length > 0 ? (
+                <div className={styles.mobileAgendaEventList}>
+                  {agendaDay.events.map((event) => (
+                    <button
+                      className={styles.mobileAgendaEventCard}
+                      key={`${agendaDay.date}-${event.id}`}
+                      type="button"
+                      onClick={() => openEditModal(event)}
+                    >
+                      <span className={styles.mobileAgendaOwner}>{event.ownerName}</span>
+                      <span className={styles.mobileAgendaTitle}>
+                        {event.title || "작업 미입력"}
+                      </span>
+                      <span className={styles.mobileAgendaMeta}>
+                        {event.siteName || event.address || "작업 장소 미입력"}
+                      </span>
+                      <span className={styles.mobileAgendaMeta}>
+                        남 {event.requiredMen} / 여 {event.requiredWomen}
+                        {event.timeRange ? ` · ${event.timeRange}` : ""}
+                      </span>
+                      {event.memo ? (
+                        <span className={styles.mobileAgendaMemo}>{event.memo}</span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.mobileAgendaEmpty}>등록된 작업 일정이 없습니다.</div>
+              )}
             </section>
           ))}
         </div>
