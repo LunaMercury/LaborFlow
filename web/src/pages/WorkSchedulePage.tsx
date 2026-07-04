@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -659,6 +660,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     targetTaskId: string;
   } | null>(null);
   const taskOrderDropTargetElementRef = useRef<HTMLElement | null>(null);
+  const pendingTaskOrderAnimationRef = useRef<Map<string, DOMRect> | null>(null);
   const tasksRef = useRef<ScheduleTask[]>([]);
   const draggingWorkerIds = useMemo(
     () => new Set(draggingWorker?.workerIds ?? []),
@@ -668,6 +670,79 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
 
   useEffect(() => {
     tasksRef.current = tasks;
+  }, [tasks]);
+
+  const getTaskCardRects = () => {
+    const taskCardRects = new Map<string, DOMRect>();
+
+    document
+      .querySelectorAll<HTMLElement>("[data-schedule-task-id]")
+      .forEach((taskCard) => {
+        const taskId = taskCard.dataset.scheduleTaskId;
+
+        if (taskId) {
+          taskCardRects.set(taskId, taskCard.getBoundingClientRect());
+        }
+      });
+
+    return taskCardRects;
+  };
+
+  useLayoutEffect(() => {
+    const previousRects = pendingTaskOrderAnimationRef.current;
+
+    if (!previousRects) {
+      return;
+    }
+
+    pendingTaskOrderAnimationRef.current = null;
+    const animatedElements: HTMLElement[] = [];
+
+    document
+      .querySelectorAll<HTMLElement>("[data-schedule-task-id]")
+      .forEach((taskCard) => {
+        const taskId = taskCard.dataset.scheduleTaskId;
+        const previousRect = taskId ? previousRects.get(taskId) : undefined;
+
+        if (!previousRect) {
+          return;
+        }
+
+        const nextRect = taskCard.getBoundingClientRect();
+        const deltaX = previousRect.left - nextRect.left;
+        const deltaY = previousRect.top - nextRect.top;
+
+        if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) {
+          return;
+        }
+
+        taskCard.style.transition = "none";
+        taskCard.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`;
+        taskCard.style.willChange = "transform";
+        animatedElements.push(taskCard);
+      });
+
+    if (animatedElements.length === 0) {
+      return;
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      for (const taskCard of animatedElements) {
+        const clearAnimationStyles = () => {
+          taskCard.style.transition = "";
+          taskCard.style.transform = "";
+          taskCard.style.willChange = "";
+          taskCard.removeEventListener("transitionend", clearAnimationStyles);
+        };
+
+        taskCard.style.transition = "transform 220ms cubic-bezier(0.2, 0, 0, 1)";
+        taskCard.style.transform = "";
+        taskCard.addEventListener("transitionend", clearAnimationStyles);
+        window.setTimeout(clearAnimationStyles, 280);
+      }
+    });
+
+    return () => window.cancelAnimationFrame(animationFrameId);
   }, [tasks]);
 
   useEffect(() => {
@@ -939,6 +1014,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
 
     const finishTaskOrderDrag = () => {
       const dropTarget = taskOrderDropTargetRef.current;
+      const previousRects = dropTarget ? getTaskCardRects() : null;
       const nextTasks = dropTarget
         ? reorderTasks(
             tasksRef.current,
@@ -949,7 +1025,12 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         : tasksRef.current;
 
       tasksRef.current = nextTasks;
-      setTasks(nextTasks);
+
+      if (dropTarget) {
+        pendingTaskOrderAnimationRef.current = previousRects;
+        setTasks(nextTasks);
+      }
+
       saveCachedTaskOrder(
         loginId,
         selectedDate,
