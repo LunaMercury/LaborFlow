@@ -1,0 +1,7 @@
+interface:
+  display_name: "LaborFlow Orchestrator"
+  short_description: "Apply LaborFlow workflow gates."
+  default_prompt: "Use $laborflow-orchestrator to plan and verify a LaborFlow code change."
+
+policy:
+  allow_implicit_invocation: true
