@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import {
   createWorker,
+  deleteWorkerProfile,
   updateWorkerProfile,
 } from "../api/workforceApi";
 import type { WorkTypeOption } from "../data/workTypeOptions";
@@ -17,6 +18,7 @@ type WorkerProfileModalProps = {
   worker?: WorkerRow;
   workTypeOptions: WorkTypeOption[];
   onClose: () => void;
+  onDeleted?: (workers: WorkerRow[]) => void;
   onSaved: (workers: WorkerRow[]) => void;
 };
 
@@ -83,6 +85,7 @@ export function WorkerProfileModal({
   worker,
   workTypeOptions,
   onClose,
+  onDeleted,
   onSaved,
 }: WorkerProfileModalProps) {
   const formId = `worker-profile-${mode}-form`;
@@ -114,6 +117,36 @@ export function WorkerProfileModal({
     worker?.workTypeRatings ?? {},
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!isEditMode || !worker?.profileUuid) {
+      return;
+    }
+
+    const shouldDelete = window.confirm(
+      "이 작업자를 삭제할까요? DB에서는 삭제 시각만 기록하고 목록에서 숨깁니다.",
+    );
+    if (!shouldDelete) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const workers = await deleteWorkerProfile(loginId, worker.profileUuid);
+      if (onDeleted) {
+        onDeleted(workers);
+      } else {
+        onSaved(workers);
+      }
+      onClose();
+    } catch (error) {
+      window.alert(
+        error instanceof Error ? error.message : "작업자를 삭제하지 못했습니다.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -239,6 +272,16 @@ export function WorkerProfileModal({
             >
               취소
             </button>
+            {isEditMode && worker?.profileUuid ? (
+              <button
+                className={styles.dangerActionButton}
+                disabled={isSubmitting}
+                type="button"
+                onClick={handleDelete}
+              >
+                삭제
+              </button>
+            ) : null}
           </div>
         </div>
 

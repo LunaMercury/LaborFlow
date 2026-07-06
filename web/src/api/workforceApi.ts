@@ -121,6 +121,25 @@ export async function updateWorkerTeam(
   return body.workers;
 }
 
+export async function deleteWorkerTeam(
+  loginId: string,
+  teamUuid: string,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/worker-teams/${teamUuid}?loginId=${encodeURIComponent(loginId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "팀을 삭제하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
+}
+
 export async function updateWorkerWorkTypes(
   loginId: string,
   profileUuid: string,
@@ -221,6 +240,25 @@ export async function updateWorkerProfile(
 
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response, "작업자 정보를 저장하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
+}
+
+export async function deleteWorkerProfile(
+  loginId: string,
+  profileUuid: string,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/worker-profiles/${profileUuid}?loginId=${encodeURIComponent(loginId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "작업자를 삭제하지 못했습니다."));
   }
 
   const body = (await response.json()) as WorkerListResponse;

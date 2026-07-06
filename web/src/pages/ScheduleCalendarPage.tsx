@@ -1229,7 +1229,7 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
     }
 
     const shouldDelete = window.confirm(
-      "이 일정을 삭제할까요? 삭제한 일정은 되돌릴 수 없습니다.",
+      "이 일정을 삭제할까요? DB에서는 삭제 시각만 기록하고 목록에서 숨깁니다.",
     );
     if (!shouldDelete) {
       return;

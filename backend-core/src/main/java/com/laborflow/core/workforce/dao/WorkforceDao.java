@@ -75,4 +75,8 @@ public interface WorkforceDao {
     UUID createWorkerTeam(UUID agencyOwnerUuid, String teamName, List<UUID> workerProfileUuids);
 
     void updateWorkerTeam(UUID agencyOwnerUuid, UUID teamUuid, String teamName, List<UUID> workerProfileUuids);
+
+    void softDeleteWorkerProfile(String loginId, UUID workerProfileUuid);
+
+    void softDeleteWorkerTeam(String loginId, UUID teamUuid);
 }

@@ -179,12 +179,28 @@
   padding: 0 10px;
 }
 
+.deleteTeamButton {
+  align-items: center;
+  appearance: none;
+  background: #fff7ed;
+  border: 1px solid #d97706;
+  border-radius: 6px;
+  color: #92400e;
+  display: flex;
+  font-size: 13px;
+  font-weight: 900;
+  height: 30px;
+  justify-content: center;
+  padding: 0 10px;
+}
+
 .collapseTeamButton:hover {
   background: #f8fafc;
   cursor: pointer;
 }
 
-.editTeamButton:hover {
+.editTeamButton:hover,
+.deleteTeamButton:hover {
   background: #f8fafc;
   cursor: pointer;
 }

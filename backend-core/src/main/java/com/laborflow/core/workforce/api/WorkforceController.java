@@ -13,6 +13,7 @@ import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerListResponse;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -70,6 +71,15 @@ public class WorkforceController {
         return workforceService.getWorkers(loginId);
     }
 
+    @DeleteMapping("/worker-teams/{teamUuid}")
+    public WorkerListResponse deleteWorkerTeam(
+        @PathVariable UUID teamUuid,
+        @RequestParam(defaultValue = "test") String loginId
+    ) {
+        workforceService.deleteWorkerTeam(loginId, teamUuid);
+        return workforceService.getWorkers(loginId);
+    }
+
     @PatchMapping("/worker-profiles/{profileUuid}")
     public WorkerListResponse updateWorkerProfile(
         @PathVariable UUID profileUuid,
@@ -77,6 +87,15 @@ public class WorkforceController {
         @RequestBody UpdateWorkerProfileRequest request
     ) {
         workforceService.updateWorkerProfile(loginId, profileUuid, request);
+        return workforceService.getWorkers(loginId);
+    }
+
+    @DeleteMapping("/worker-profiles/{profileUuid}")
+    public WorkerListResponse deleteWorkerProfile(
+        @PathVariable UUID profileUuid,
+        @RequestParam(defaultValue = "test") String loginId
+    ) {
+        workforceService.deleteWorkerProfile(loginId, profileUuid);
         return workforceService.getWorkers(loginId);
     }
 

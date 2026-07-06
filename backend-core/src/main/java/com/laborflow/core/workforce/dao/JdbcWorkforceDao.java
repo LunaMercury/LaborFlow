@@ -51,16 +51,21 @@ public class JdbcWorkforceDao implements WorkforceDao {
             LEFT JOIN public.worker w ON w.uuid = p.worker_uuid
             LEFT JOIN public.labor_agency_worker_payment_profile pay
                 ON pay.worker_profile_uuid = p.uuid
+                AND pay.deleted_at IS NULL
             LEFT JOIN public.labor_agency_worker_team_member tm
                 ON tm.worker_profile_uuid = p.uuid
                 AND tm.status = 'ACTIVE'
+                AND tm.deleted_at IS NULL
                 AND (tm.active_from IS NULL OR tm.active_from <= CURRENT_DATE)
                 AND (tm.active_to IS NULL OR tm.active_to >= CURRENT_DATE)
             LEFT JOIN public.labor_agency_worker_team t
                 ON t.uuid = tm.team_uuid
                 AND t.agency_owner_uuid = p.agency_owner_uuid
                 AND t.status = 'ACTIVE'
+                AND t.deleted_at IS NULL
             WHERE a.login_id = ?
+                AND p.status = 'ACTIVE'
+                AND p.deleted_at IS NULL
             ORDER BY
                 COALESCE(t.sort_order, 2147483647),
                 COALESCE(tm.display_order, 2147483647),
@@ -165,7 +170,10 @@ public class JdbcWorkforceDao implements WorkforceDao {
             SELECT count(*)
             FROM public.labor_agency_worker_profile p
             JOIN public.app_account a ON a.labor_agency_owner_uuid = p.agency_owner_uuid
-            WHERE a.login_id = ? AND p.uuid = ?
+            WHERE a.login_id = ?
+                AND p.uuid = ?
+                AND p.status = 'ACTIVE'
+                AND p.deleted_at IS NULL
             """,
             Integer.class,
             loginId,
@@ -185,6 +193,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             WHERE a.login_id = ?
                 AND t.uuid = ?
                 AND t.status = 'ACTIVE'
+                AND t.deleted_at IS NULL
             """,
             Integer.class,
             loginId,
@@ -200,7 +209,10 @@ public class JdbcWorkforceDao implements WorkforceDao {
             """
             SELECT count(*)
             FROM public.labor_agency_worker_profile
-            WHERE agency_owner_uuid = ? AND worker_uuid = ?
+            WHERE agency_owner_uuid = ?
+                AND worker_uuid = ?
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
             """,
             Integer.class,
             agencyOwnerUuid,
@@ -304,6 +316,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             SET local_name = ?,
                 local_nickname = ?
             WHERE uuid = ?
+                AND deleted_at IS NULL
             """,
             name,
             nickname,
@@ -321,6 +334,8 @@ public class JdbcWorkforceDao implements WorkforceDao {
             WHERE a.login_id = ?
                 AND p.uuid <> ?
                 AND p.local_phone_hash = encode(digest(?, 'sha256'), 'hex')
+                AND p.status = 'ACTIVE'
+                AND p.deleted_at IS NULL
             """,
             Integer.class,
             loginId,
@@ -339,6 +354,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             SET local_phone_encrypted = ?,
                 local_phone_hash = encode(digest(?, 'sha256'), 'hex')
             WHERE uuid = ?
+                AND deleted_at IS NULL
             """,
             phone,
             phoneHashSource,
@@ -353,6 +369,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             UPDATE public.labor_agency_worker_profile
             SET pickup_location = ?
             WHERE uuid = ?
+                AND deleted_at IS NULL
             """,
             pickupLocation,
             workerProfileUuid
@@ -368,6 +385,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             FROM public.labor_agency_worker_profile p
             WHERE p.worker_uuid = w.uuid
                 AND p.uuid = ?
+                AND p.deleted_at IS NULL
             """,
             gender,
             workerProfileUuid
@@ -384,6 +402,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             FROM public.labor_agency_worker_profile p
             WHERE p.worker_uuid = w.uuid
                 AND p.uuid = ?
+                AND p.deleted_at IS NULL
             """,
             gender,
             age,
@@ -409,6 +428,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 available_days_mask = ?,
                 availability_memo = ?
             WHERE uuid = ?
+                AND deleted_at IS NULL
             """,
             pickupLocation,
             privateMemo,
@@ -446,6 +466,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 account_number_encrypted = EXCLUDED.account_number_encrypted,
                 account_number_hash = EXCLUDED.account_number_hash,
                 account_holder_name = EXCLUDED.account_holder_name,
+                deleted_at = NULL,
                 verification_status = CASE
                     WHEN public.labor_agency_worker_payment_profile.account_number_hash IS DISTINCT FROM EXCLUDED.account_number_hash
                         OR public.labor_agency_worker_payment_profile.bank_code IS DISTINCT FROM EXCLUDED.bank_code
@@ -470,7 +491,13 @@ public class JdbcWorkforceDao implements WorkforceDao {
         Map<String, Integer> workTypeRatings
     ) {
         jdbcTemplate.update(
-            "DELETE FROM public.labor_agency_worker_work_skill WHERE worker_profile_uuid = ?",
+            """
+            UPDATE public.labor_agency_worker_work_skill
+            SET deleted_at = COALESCE(deleted_at, now()),
+                updated_at = now()
+            WHERE worker_profile_uuid = ?
+                AND deleted_at IS NULL
+            """,
             workerProfileUuid
         );
 
@@ -486,7 +513,10 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 SELECT ?, uuid, ?
                 FROM public.work_type
                 WHERE code = ? AND status = 'ACTIVE'
-                ON CONFLICT (worker_profile_uuid, work_type_uuid) DO NOTHING
+                ON CONFLICT (worker_profile_uuid, work_type_uuid) DO UPDATE
+                SET rating = EXCLUDED.rating,
+                    deleted_at = NULL,
+                    updated_at = now()
                 """,
                 workerProfileUuid,
                 rating,
@@ -514,6 +544,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
                     SELECT MAX(sort_order) + 10
                     FROM public.labor_agency_worker_team
                     WHERE agency_owner_uuid = ?
+                        AND deleted_at IS NULL
                 ), 10)
             )
             RETURNING uuid
@@ -534,12 +565,15 @@ public class JdbcWorkforceDao implements WorkforceDao {
             UPDATE public.labor_agency_worker_team_member tm
             SET status = 'INACTIVE',
                 active_to = CURRENT_DATE,
+                deleted_at = COALESCE(tm.deleted_at, now()),
                 updated_at = now()
             FROM public.labor_agency_worker_profile p
             WHERE tm.worker_profile_uuid = p.uuid
                 AND p.agency_owner_uuid = ?
+                AND p.deleted_at IS NULL
                 AND tm.worker_profile_uuid IN (%s)
                 AND tm.status = 'ACTIVE'
+                AND tm.deleted_at IS NULL
             """.formatted(placeholders),
             deactivateParams.toArray()
         );
@@ -561,6 +595,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
             WHERE uuid = ?
                 AND agency_owner_uuid = ?
                 AND status = 'ACTIVE'
+                AND deleted_at IS NULL
             """,
             teamName,
             leaderWorkerProfileUuid,
@@ -573,9 +608,11 @@ public class JdbcWorkforceDao implements WorkforceDao {
             UPDATE public.labor_agency_worker_team_member
             SET status = 'INACTIVE',
                 active_to = CURRENT_DATE,
+                deleted_at = COALESCE(deleted_at, now()),
                 updated_at = now()
             WHERE team_uuid = ?
                 AND status = 'ACTIVE'
+                AND deleted_at IS NULL
             """,
             teamUuid
         );
@@ -590,18 +627,108 @@ public class JdbcWorkforceDao implements WorkforceDao {
             UPDATE public.labor_agency_worker_team_member tm
             SET status = 'INACTIVE',
                 active_to = CURRENT_DATE,
+                deleted_at = COALESCE(tm.deleted_at, now()),
                 updated_at = now()
             FROM public.labor_agency_worker_profile p
             WHERE tm.worker_profile_uuid = p.uuid
                 AND p.agency_owner_uuid = ?
+                AND p.deleted_at IS NULL
                 AND tm.team_uuid <> ?
                 AND tm.worker_profile_uuid IN (%s)
                 AND tm.status = 'ACTIVE'
+                AND tm.deleted_at IS NULL
             """.formatted(placeholders),
             deactivateParams.toArray()
         );
 
         upsertTeamMembers(teamUuid, workerProfileUuids);
+    }
+
+    @Override
+    public void softDeleteWorkerProfile(String loginId, UUID workerProfileUuid) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_team_member tm
+            SET status = 'INACTIVE',
+                active_to = CURRENT_DATE,
+                deleted_at = COALESCE(tm.deleted_at, now()),
+                updated_at = now()
+            FROM public.labor_agency_worker_profile p
+            JOIN public.app_account a ON a.labor_agency_owner_uuid = p.agency_owner_uuid
+            WHERE tm.worker_profile_uuid = p.uuid
+                AND a.login_id = ?
+                AND p.uuid = ?
+                AND tm.status = 'ACTIVE'
+                AND tm.deleted_at IS NULL
+            """,
+            loginId,
+            workerProfileUuid
+        );
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_payment_profile
+            SET deleted_at = COALESCE(deleted_at, now()),
+                updated_at = now()
+            WHERE worker_profile_uuid = ?
+                AND deleted_at IS NULL
+            """,
+            workerProfileUuid
+        );
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_profile p
+            SET status = 'ARCHIVED',
+                deleted_at = COALESCE(p.deleted_at, now()),
+                updated_at = now()
+            FROM public.app_account a
+            WHERE a.labor_agency_owner_uuid = p.agency_owner_uuid
+                AND a.login_id = ?
+                AND p.uuid = ?
+                AND p.deleted_at IS NULL
+            """,
+            loginId,
+            workerProfileUuid
+        );
+    }
+
+    @Override
+    public void softDeleteWorkerTeam(String loginId, UUID teamUuid) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_team_member tm
+            SET status = 'INACTIVE',
+                active_to = CURRENT_DATE,
+                deleted_at = COALESCE(tm.deleted_at, now()),
+                updated_at = now()
+            FROM public.labor_agency_worker_team t
+            JOIN public.app_account a ON a.labor_agency_owner_uuid = t.agency_owner_uuid
+            WHERE tm.team_uuid = t.uuid
+                AND a.login_id = ?
+                AND t.uuid = ?
+                AND tm.status = 'ACTIVE'
+                AND tm.deleted_at IS NULL
+            """,
+            loginId,
+            teamUuid
+        );
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_team t
+            SET status = 'ARCHIVED',
+                deleted_at = COALESCE(t.deleted_at, now()),
+                updated_at = now()
+            FROM public.app_account a
+            WHERE a.labor_agency_owner_uuid = t.agency_owner_uuid
+                AND a.login_id = ?
+                AND t.uuid = ?
+                AND t.deleted_at IS NULL
+            """,
+            loginId,
+            teamUuid
+        );
     }
 
     private void upsertTeamMembers(UUID teamUuid, List<UUID> workerProfileUuids) {
@@ -624,6 +751,7 @@ public class JdbcWorkforceDao implements WorkforceDao {
                     active_from = CURRENT_DATE,
                     active_to = NULL,
                     status = 'ACTIVE',
+                    deleted_at = NULL,
                     updated_at = now()
                 """,
                 teamUuid,
@@ -648,6 +776,8 @@ public class JdbcWorkforceDao implements WorkforceDao {
             FROM public.labor_agency_worker_work_skill s
             JOIN public.work_type wt ON wt.uuid = s.work_type_uuid
             WHERE s.worker_profile_uuid IN (%s)
+                AND s.deleted_at IS NULL
+                AND wt.status = 'ACTIVE'
             ORDER BY wt.name
             """.formatted(placeholders),
             resultSet -> {
@@ -675,6 +805,8 @@ public class JdbcWorkforceDao implements WorkforceDao {
             FROM public.labor_agency_worker_work_skill s
             JOIN public.work_type wt ON wt.uuid = s.work_type_uuid
             WHERE s.worker_profile_uuid IN (%s)
+                AND s.deleted_at IS NULL
+                AND wt.status = 'ACTIVE'
             ORDER BY wt.name
             """.formatted(placeholders),
             resultSet -> {

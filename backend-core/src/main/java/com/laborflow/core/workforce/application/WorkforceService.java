@@ -59,6 +59,16 @@ public class WorkforceService {
     }
 
     @Transactional
+    public void deleteWorkerTeam(String loginId, UUID teamUuid) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        if (!workforceDao.workerTeamBelongsToLoginId(normalizedLoginId, teamUuid)) {
+            throw new IllegalArgumentException("Worker team was not found.");
+        }
+
+        workforceDao.softDeleteWorkerTeam(normalizedLoginId, teamUuid);
+    }
+
+    @Transactional
     public void createWorker(String loginId, CreateWorkerRequest request) {
         String normalizedLoginId = normalizeLoginId(loginId);
         UUID agencyOwnerUuid = workforceDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
@@ -181,6 +191,14 @@ public class WorkforceService {
             workTypeCodes,
             normalizeWorkTypeRatings(workTypeCodes, request.workTypeRatings())
         );
+    }
+
+    @Transactional
+    public void deleteWorkerProfile(String loginId, UUID workerProfileUuid) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        ensureWorkerProfileBelongsToLoginId(normalizedLoginId, workerProfileUuid);
+
+        workforceDao.softDeleteWorkerProfile(normalizedLoginId, workerProfileUuid);
     }
 
     @Transactional

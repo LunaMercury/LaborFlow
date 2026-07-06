@@ -586,6 +586,10 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
           }
           workTypeOptions={workTypes}
           onClose={() => setProfileModalState(null)}
+          onDeleted={(nextWorkers) => {
+            setWorkers(nextWorkers);
+            setStatusMessage("작업자를 삭제했습니다.");
+          }}
           onSaved={(nextWorkers) => {
             setWorkers(nextWorkers);
             setStatusMessage(

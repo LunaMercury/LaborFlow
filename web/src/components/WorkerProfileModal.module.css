@@ -375,7 +375,8 @@
 }
 
 .primaryActionButton,
-.secondaryActionButton {
+.secondaryActionButton,
+.dangerActionButton {
   align-items: center;
   border-radius: 8px;
   display: flex;
@@ -399,14 +400,23 @@
   color: #2f3f50;
 }
 
+.dangerActionButton {
+  background: #fff7ed;
+  border: 1px solid #d97706;
+  color: #92400e;
+  margin-left: 18px;
+}
+
 .primaryActionButton:hover,
-.secondaryActionButton:hover {
+.secondaryActionButton:hover,
+.dangerActionButton:hover {
   cursor: pointer;
   filter: brightness(0.97);
 }
 
 .primaryActionButton:disabled,
-.secondaryActionButton:disabled {
+.secondaryActionButton:disabled,
+.dangerActionButton:disabled {
   cursor: default;
   opacity: 0.6;
 }

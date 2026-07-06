@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchWorkers } from "../api/workforceApi";
+import { deleteWorkerTeam, fetchWorkers } from "../api/workforceApi";
 import appStyles from "../App.module.css";
 import {
   TeamCompositionModal,
@@ -146,6 +146,25 @@ export function TeamsPage({ loginId }: TeamsPageProps) {
     });
   };
 
+  const removeTeam = async (team: WorkerTeam) => {
+    const shouldDelete = window.confirm(
+      `${team.name} 팀을 삭제할까요? DB에서는 삭제 시각만 기록하고 목록에서 숨깁니다.`,
+    );
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      const nextWorkers = await deleteWorkerTeam(loginId, team.uuid);
+      setWorkers(nextWorkers);
+      setStatusMessage("팀을 삭제했습니다.");
+    } catch (error) {
+      window.alert(
+        error instanceof Error ? error.message : "팀을 삭제하지 못했습니다.",
+      );
+    }
+  };
+
   return (
     <main className={styles.tableMainContent}>
       <section className={styles.teamsPanel} aria-labelledby="teams-title">
@@ -204,6 +223,13 @@ export function TeamsPage({ loginId }: TeamsPageProps) {
                         }
                       >
                         수정
+                      </button>
+                      <button
+                        className={styles.deleteTeamButton}
+                        type="button"
+                        onClick={() => removeTeam(team)}
+                      >
+                        삭제
                       </button>
                       <button
                         aria-label={

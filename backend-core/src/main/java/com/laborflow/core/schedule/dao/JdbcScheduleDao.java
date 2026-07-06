@@ -52,7 +52,10 @@ public class JdbcScheduleDao implements ScheduleDao {
             SELECT count(*)
             FROM public.work_schedule_day d
             JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
-            WHERE s.agency_owner_uuid = ? AND d.uuid = ?
+            WHERE s.agency_owner_uuid = ?
+                AND d.uuid = ?
+                AND s.deleted_at IS NULL
+                AND d.deleted_at IS NULL
             """,
             Integer.class,
             agencyOwnerUuid,
@@ -68,7 +71,10 @@ public class JdbcScheduleDao implements ScheduleDao {
             """
             SELECT count(*)
             FROM public.labor_agency_worker_profile
-            WHERE agency_owner_uuid = ? AND uuid = ?
+            WHERE agency_owner_uuid = ?
+                AND uuid = ?
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
             """,
             Integer.class,
             agencyOwnerUuid,
@@ -87,6 +93,7 @@ public class JdbcScheduleDao implements ScheduleDao {
             WHERE agency_owner_uuid = ?
                 AND farm_owner_uuid = ?
                 AND status = 'ACTIVE'
+                AND deleted_at IS NULL
             """,
             Integer.class,
             agencyOwnerUuid,
@@ -111,7 +118,9 @@ public class JdbcScheduleDao implements ScheduleDao {
             JOIN public.farm_owner fo ON fo.uuid = fp.farm_owner_uuid
             WHERE fp.agency_owner_uuid = ?
                 AND fp.status = 'ACTIVE'
+                AND fp.deleted_at IS NULL
                 AND fo.status = 'ACTIVE'
+                AND fo.deleted_at IS NULL
                 AND (
                     ? = ''
                     OR COALESCE(fp.local_name, '') ILIKE ?
@@ -161,9 +170,14 @@ public class JdbcScheduleDao implements ScheduleDao {
             LEFT JOIN public.labor_agency_farm_owner_profile fp
                 ON fp.agency_owner_uuid = s.agency_owner_uuid
                 AND fp.farm_owner_uuid = s.owner_uuid
+                AND fp.status = 'ACTIVE'
+                AND fp.deleted_at IS NULL
             WHERE s.agency_owner_uuid = ?
                 AND s.status = 'ACTIVE'
+                AND s.deleted_at IS NULL
                 AND d.status = 'ACTIVE'
+                AND d.deleted_at IS NULL
+                AND fo.deleted_at IS NULL
                 AND d.work_date = ?
             ORDER BY d.daily_start_time NULLS LAST, s.work_description, d.created_at
             """,
@@ -228,7 +242,9 @@ public class JdbcScheduleDao implements ScheduleDao {
             FROM public.work_schedule_day d
             WHERE d.work_site_uuid = public.farm_work_site.uuid
                 AND public.farm_work_site.agency_owner_uuid = ?
+                AND public.farm_work_site.deleted_at IS NULL
                 AND d.uuid = ?
+                AND d.deleted_at IS NULL
             """,
             title,
             address,
@@ -247,7 +263,9 @@ public class JdbcScheduleDao implements ScheduleDao {
             FROM public.farm_work_site s
             WHERE s.uuid = d.work_site_uuid
                 AND s.agency_owner_uuid = ?
+                AND s.deleted_at IS NULL
                 AND d.uuid = ?
+                AND d.deleted_at IS NULL
             """,
             requiredMen,
             requiredWomen,
@@ -261,12 +279,16 @@ public class JdbcScheduleDao implements ScheduleDao {
     public void replaceTaskWorkTypes(UUID agencyOwnerUuid, UUID scheduleDayUuid, List<String> workTypeCodes) {
         jdbcTemplate.update(
             """
-            DELETE FROM public.farm_work_site_work_type swt
-            USING public.work_schedule_day d, public.farm_work_site s
+            UPDATE public.farm_work_site_work_type swt
+            SET deleted_at = COALESCE(swt.deleted_at, now())
+            FROM public.work_schedule_day d, public.farm_work_site s
             WHERE swt.work_site_uuid = d.work_site_uuid
                 AND s.uuid = d.work_site_uuid
                 AND s.agency_owner_uuid = ?
+                AND s.deleted_at IS NULL
                 AND d.uuid = ?
+                AND d.deleted_at IS NULL
+                AND swt.deleted_at IS NULL
             """,
             agencyOwnerUuid,
             scheduleDayUuid
@@ -284,8 +306,11 @@ public class JdbcScheduleDao implements ScheduleDao {
                 JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
                 JOIN public.work_type wt ON wt.code = ? AND wt.status = 'ACTIVE'
                 WHERE s.agency_owner_uuid = ?
+                    AND s.deleted_at IS NULL
                     AND d.uuid = ?
-                ON CONFLICT DO NOTHING
+                    AND d.deleted_at IS NULL
+                ON CONFLICT (work_site_uuid, work_type_uuid) DO UPDATE
+                SET deleted_at = NULL
                 """,
                 workTypeCode,
                 agencyOwnerUuid,
@@ -302,8 +327,12 @@ public class JdbcScheduleDao implements ScheduleDao {
     ) {
         jdbcTemplate.update(
             """
-            DELETE FROM public.work_schedule_assignment
-            WHERE agency_owner_uuid = ? AND schedule_day_uuid = ?
+            UPDATE public.work_schedule_assignment
+            SET deleted_at = COALESCE(deleted_at, now()),
+                updated_at = now()
+            WHERE agency_owner_uuid = ?
+                AND schedule_day_uuid = ?
+                AND deleted_at IS NULL
             """,
             agencyOwnerUuid,
             scheduleDayUuid
@@ -332,7 +361,9 @@ public class JdbcScheduleDao implements ScheduleDao {
                 FROM public.work_schedule_day d
                 JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
                 WHERE s.agency_owner_uuid = ?
+                    AND s.deleted_at IS NULL
                     AND d.uuid = ?
+                    AND d.deleted_at IS NULL
                 """,
                 agencyOwnerUuid,
                 assignment.workerProfileUuid(),
@@ -406,7 +437,8 @@ public class JdbcScheduleDao implements ScheduleDao {
                 SELECT ?, wt.uuid
                 FROM public.work_type wt
                 WHERE wt.code = ? AND wt.status = 'ACTIVE'
-                ON CONFLICT DO NOTHING
+                ON CONFLICT (work_site_uuid, work_type_uuid) DO UPDATE
+                SET deleted_at = NULL
                 """,
                 workSiteUuid,
                 workTypeCode
@@ -531,7 +563,9 @@ public class JdbcScheduleDao implements ScheduleDao {
             FROM public.work_schedule_day d
             JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
             WHERE s.agency_owner_uuid = ?
+                AND s.deleted_at IS NULL
                 AND d.uuid IN (%s)
+                AND d.deleted_at IS NULL
             ORDER BY d.work_date, d.created_at
             """.formatted(placeholders),
             (resultSet, rowNumber) -> new ScheduleDayRecord(
@@ -580,6 +614,7 @@ public class JdbcScheduleDao implements ScheduleDao {
             WHERE work_site_uuid = ?
                 AND work_date IN (%s)
                 AND uuid NOT IN (%s)
+                AND deleted_at IS NULL
             """.formatted(datePlaceholders, uuidPlaceholders),
             Integer.class,
             params.toArray()
@@ -596,6 +631,7 @@ public class JdbcScheduleDao implements ScheduleDao {
             UPDATE public.work_schedule_day
             SET work_date = ?
             WHERE uuid = ?
+                AND deleted_at IS NULL
             """,
             workDate,
             scheduleDayUuid
@@ -605,6 +641,7 @@ public class JdbcScheduleDao implements ScheduleDao {
             UPDATE public.work_schedule_assignment
             SET work_date = ?
             WHERE schedule_day_uuid = ?
+                AND deleted_at IS NULL
             """,
             workDate,
             scheduleDayUuid
@@ -614,7 +651,23 @@ public class JdbcScheduleDao implements ScheduleDao {
     private void deleteScheduleDays(List<ScheduleDayRecord> scheduleDays) {
         for (ScheduleDayRecord scheduleDay : scheduleDays) {
             jdbcTemplate.update(
-                "DELETE FROM public.work_schedule_day WHERE uuid = ?",
+                """
+                UPDATE public.work_schedule_assignment
+                SET deleted_at = COALESCE(deleted_at, now()),
+                    updated_at = now()
+                WHERE schedule_day_uuid = ?
+                    AND deleted_at IS NULL
+                """,
+                scheduleDay.uuid()
+            );
+            jdbcTemplate.update(
+                """
+                UPDATE public.work_schedule_day
+                SET status = 'ARCHIVED',
+                    deleted_at = COALESCE(deleted_at, now())
+                WHERE uuid = ?
+                    AND deleted_at IS NULL
+                """,
                 scheduleDay.uuid()
             );
         }
@@ -634,7 +687,7 @@ public class JdbcScheduleDao implements ScheduleDao {
                 status
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
-            ON CONFLICT (work_site_uuid, work_date) DO NOTHING
+            ON CONFLICT (work_site_uuid, work_date) WHERE deleted_at IS NULL DO NOTHING
             """,
             template.workSiteUuid(),
             workDate,
@@ -657,8 +710,10 @@ public class JdbcScheduleDao implements ScheduleDao {
                 FROM public.work_schedule_day
                 WHERE work_site_uuid = ?
                     AND status = 'ACTIVE'
+                    AND deleted_at IS NULL
             ) range_dates
             WHERE uuid = ?
+                AND deleted_at IS NULL
             """,
             workSiteUuid,
             workSiteUuid
@@ -669,13 +724,16 @@ public class JdbcScheduleDao implements ScheduleDao {
         jdbcTemplate.update(
             """
             UPDATE public.farm_work_site
-            SET status = 'ARCHIVED'
+            SET status = 'ARCHIVED',
+                deleted_at = COALESCE(deleted_at, now())
             WHERE uuid = ?
+                AND deleted_at IS NULL
                 AND NOT EXISTS (
                     SELECT 1
                     FROM public.work_schedule_day
                     WHERE work_site_uuid = ?
                         AND status = 'ACTIVE'
+                        AND deleted_at IS NULL
                 )
             """,
             workSiteUuid,
@@ -696,6 +754,8 @@ public class JdbcScheduleDao implements ScheduleDao {
             FROM public.farm_work_site_work_type swt
             JOIN public.work_type wt ON wt.uuid = swt.work_type_uuid
             WHERE swt.work_site_uuid IN (%s)
+                AND swt.deleted_at IS NULL
+                AND wt.status = 'ACTIVE'
             ORDER BY wt.name
             """.formatted(placeholders),
             resultSet -> {
@@ -721,10 +781,14 @@ public class JdbcScheduleDao implements ScheduleDao {
 
         jdbcTemplate.query(
             """
-            SELECT schedule_day_uuid, worker_profile_uuid, assignment_area, worker_count
-            FROM public.work_schedule_assignment
-            WHERE schedule_day_uuid IN (%s)
-            ORDER BY created_at
+            SELECT a.schedule_day_uuid, a.worker_profile_uuid, a.assignment_area, a.worker_count
+            FROM public.work_schedule_assignment a
+            JOIN public.labor_agency_worker_profile p ON p.uuid = a.worker_profile_uuid
+            WHERE a.schedule_day_uuid IN (%s)
+                AND a.deleted_at IS NULL
+                AND p.status = 'ACTIVE'
+                AND p.deleted_at IS NULL
+            ORDER BY a.created_at
             """.formatted(placeholders),
             resultSet -> {
                 UUID scheduleDayUuid = resultSet.getObject("schedule_day_uuid", UUID.class);
