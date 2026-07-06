@@ -1030,14 +1030,16 @@
 .scheduleTaskApplyButton:hover,
 .scheduleTaskResetButton:hover,
 .scheduleTaskCollapseButton:hover,
-.schedulePreviousAssignmentsButton:hover {
+.schedulePreviousAssignmentsButton:hover,
+.scheduleTaskDeleteButton:hover {
   cursor: pointer;
   filter: brightness(0.97);
 }
 
 .scheduleTaskApplyButton:disabled,
 .scheduleTaskResetButton:disabled,
-.schedulePreviousAssignmentsButton:disabled {
+.schedulePreviousAssignmentsButton:disabled,
+.scheduleTaskDeleteButton:disabled {
   opacity: 0.6;
 }
 
@@ -1082,6 +1084,31 @@
   display: flex;
   gap: 6px;
   justify-content: center;
+}
+
+.scheduleTaskDeleteButton {
+  align-items: center;
+  appearance: none;
+  background: #f8fafc;
+  border: 1px solid #e5a66a;
+  border-radius: 999px;
+  color: #9a5a19;
+  display: flex;
+  flex-shrink: 0;
+  height: 24px;
+  justify-content: center;
+  padding: 0;
+  width: 24px;
+}
+
+.scheduleTaskDeleteIcon {
+  display: block;
+  height: 15px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+  width: 15px;
 }
 
 .scheduleTaskInlineEditor {

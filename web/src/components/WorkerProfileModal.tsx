@@ -96,8 +96,12 @@ export function WorkerProfileModal({
   const [age, setAge] = useState(
     worker?.age === null || worker?.age === undefined ? "" : String(worker.age),
   );
-  const [gender, setGender] = useState<GenderValue>(toFormGender(worker?.gender));
-  const [pickupLocation, setPickupLocation] = useState(worker?.pickupLocation ?? "");
+  const [gender, setGender] = useState<GenderValue>(
+    toFormGender(worker?.gender),
+  );
+  const [pickupLocation, setPickupLocation] = useState(
+    worker?.pickupLocation ?? "",
+  );
   const [memo, setMemo] = useState(worker?.memo ?? "");
   const [isActive, setIsActive] = useState(worker?.isActive ?? true);
   const [availableDaysMask, setAvailableDaysMask] = useState(
@@ -108,14 +112,18 @@ export function WorkerProfileModal({
   );
   const [bankCode, setBankCode] = useState(worker?.bankCode ?? "");
   const [bankName, setBankName] = useState(worker?.bankName ?? "");
-  const [accountNumber, setAccountNumber] = useState(worker?.accountNumber ?? "");
+  const [accountNumber, setAccountNumber] = useState(
+    worker?.accountNumber ?? "",
+  );
   const [accountHolderName, setAccountHolderName] = useState(
     worker?.accountHolderName ?? "",
   );
-  const [workTypeCodes, setWorkTypeCodes] = useState(worker?.workTypeCodes ?? []);
-  const [workTypeRatings, setWorkTypeRatings] = useState<Record<string, number>>(
-    worker?.workTypeRatings ?? {},
+  const [workTypeCodes, setWorkTypeCodes] = useState(
+    worker?.workTypeCodes ?? [],
   );
+  const [workTypeRatings, setWorkTypeRatings] = useState<
+    Record<string, number>
+  >(worker?.workTypeRatings ?? {});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDelete = async () => {
@@ -141,7 +149,9 @@ export function WorkerProfileModal({
       onClose();
     } catch (error) {
       window.alert(
-        error instanceof Error ? error.message : "작업자를 삭제하지 못했습니다.",
+        error instanceof Error
+          ? error.message
+          : "작업자를 삭제하지 못했습니다.",
       );
     } finally {
       setIsSubmitting(false);
@@ -165,7 +175,10 @@ export function WorkerProfileModal({
     }
 
     const ageValue = age.trim() ? Number(age) : null;
-    if (ageValue !== null && (!Number.isInteger(ageValue) || ageValue < 0 || ageValue > 150)) {
+    if (
+      ageValue !== null &&
+      (!Number.isInteger(ageValue) || ageValue < 0 || ageValue > 150)
+    ) {
       window.alert("나이는 0부터 150 사이의 숫자로 입력해주세요.");
       return;
     }
@@ -215,7 +228,9 @@ export function WorkerProfileModal({
       onClose();
     } catch (error) {
       window.alert(
-        error instanceof Error ? error.message : "작업자 정보를 저장하지 못했습니다.",
+        error instanceof Error
+          ? error.message
+          : "작업자 정보를 저장하지 못했습니다.",
       );
     } finally {
       setIsSubmitting(false);
@@ -256,6 +271,16 @@ export function WorkerProfileModal({
             </h2>
           </div>
           <div className={styles.modalHeaderActions}>
+            {isEditMode && worker?.profileUuid ? (
+              <button
+                className={styles.dangerActionButton}
+                disabled={isSubmitting}
+                type="button"
+                onClick={handleDelete}
+              >
+                삭제
+              </button>
+            ) : null}
             <button
               className={styles.primaryActionButton}
               disabled={isSubmitting}
@@ -272,16 +297,6 @@ export function WorkerProfileModal({
             >
               취소
             </button>
-            {isEditMode && worker?.profileUuid ? (
-              <button
-                className={styles.dangerActionButton}
-                disabled={isSubmitting}
-                type="button"
-                onClick={handleDelete}
-              >
-                삭제
-              </button>
-            ) : null}
           </div>
         </div>
 
@@ -354,7 +369,10 @@ export function WorkerProfileModal({
               <div className={styles.formField}>
                 <span>성별</span>
                 <input name="gender" type="hidden" value={gender} />
-                <div className={styles.genderButtonGroup} aria-label="성별 선택">
+                <div
+                  className={styles.genderButtonGroup}
+                  aria-label="성별 선택"
+                >
                   <button
                     aria-pressed={gender === "M"}
                     className={`${styles.genderButton} ${
@@ -378,11 +396,16 @@ export function WorkerProfileModal({
                 </div>
               </div>
 
-              <div className={`${styles.availabilitySection} ${styles.fullWidthField}`}>
+              <div
+                className={`${styles.availabilitySection} ${styles.fullWidthField}`}
+              >
                 <div className={styles.availabilityHeader}>
                   <div>
                     <span>작업자 활성화</span>
-                    <p>장기 휴식, 평일/주말 가능 여부를 사무소 기준으로 관리합니다.</p>
+                    <p>
+                      장기 휴식, 평일/주말 가능 여부를 사무소 기준으로
+                      관리합니다.
+                    </p>
                   </div>
                   <label className={styles.availabilityToggle}>
                     <input
@@ -395,13 +418,22 @@ export function WorkerProfileModal({
                 </div>
 
                 <div className={styles.availabilityPresetRow}>
-                  <button type="button" onClick={() => setAvailableDaysMask(EVERY_DAY_MASK)}>
+                  <button
+                    type="button"
+                    onClick={() => setAvailableDaysMask(EVERY_DAY_MASK)}
+                  >
                     매일
                   </button>
-                  <button type="button" onClick={() => setAvailableDaysMask(WEEKDAY_MASK)}>
+                  <button
+                    type="button"
+                    onClick={() => setAvailableDaysMask(WEEKDAY_MASK)}
+                  >
                     평일만
                   </button>
-                  <button type="button" onClick={() => setAvailableDaysMask(WEEKEND_MASK)}>
+                  <button
+                    type="button"
+                    onClick={() => setAvailableDaysMask(WEEKEND_MASK)}
+                  >
                     주말만
                   </button>
                   <button type="button" onClick={() => setAvailableDaysMask(0)}>
@@ -409,7 +441,10 @@ export function WorkerProfileModal({
                   </button>
                 </div>
 
-                <div className={styles.availableDayGrid} aria-label="출근 가능 요일">
+                <div
+                  className={styles.availableDayGrid}
+                  aria-label="출근 가능 요일"
+                >
                   {weekdayOptions.map((option) => {
                     const isSelected = (availableDaysMask & option.bit) !== 0;
 
@@ -437,7 +472,9 @@ export function WorkerProfileModal({
                     placeholder="예: 7월 초까지 휴식, 토요일 오전만 가능"
                     type="text"
                     value={availabilityMemo}
-                    onChange={(event) => setAvailabilityMemo(event.target.value)}
+                    onChange={(event) =>
+                      setAvailabilityMemo(event.target.value)
+                    }
                   />
                 </label>
               </div>
@@ -452,7 +489,9 @@ export function WorkerProfileModal({
                 />
               </label>
 
-              <div className={`${styles.paymentSection} ${styles.fullWidthField}`}>
+              <div
+                className={`${styles.paymentSection} ${styles.fullWidthField}`}
+              >
                 <div className={styles.paymentHeader}>
                   <span>계좌 정보</span>
                   <p>계좌 인증 없이 입력 보조만 제공합니다.</p>
@@ -481,7 +520,9 @@ export function WorkerProfileModal({
                       type="text"
                       value={accountNumber}
                       onChange={(event) =>
-                        setAccountNumber(normalizeAccountNumber(event.target.value))
+                        setAccountNumber(
+                          normalizeAccountNumber(event.target.value),
+                        )
                       }
                     />
                   </label>
@@ -491,7 +532,9 @@ export function WorkerProfileModal({
                       placeholder="예금주명"
                       type="text"
                       value={accountHolderName}
-                      onChange={(event) => setAccountHolderName(event.target.value)}
+                      onChange={(event) =>
+                        setAccountHolderName(event.target.value)
+                      }
                     />
                   </label>
                 </div>

@@ -12,6 +12,7 @@ import type { WorkTypeOption } from "../data/workTypeOptions";
 type WorkerWorkTypeCellProps = {
   selectedCodes: string[];
   selectedRatings?: Record<string, number>;
+  showRatings?: boolean;
   workTypeOptions: WorkTypeOption[];
   onChange: (nextCodes: string[], nextRatings: Record<string, number>) => void;
 };
@@ -21,6 +22,7 @@ const normalizeSearchText = (value: string) => value.trim().toLocaleLowerCase("k
 export function WorkerWorkTypeCell({
   selectedCodes,
   selectedRatings = {},
+  showRatings = true,
   workTypeOptions,
   onChange,
 }: WorkerWorkTypeCellProps) {
@@ -181,6 +183,7 @@ export function WorkerWorkTypeCell({
           selectedWorkTypes.map((workType) => (
             <div className={styles.workTypePillRow} key={workType.code}>
               <span className={styles.workTypePillLabel}>{workType.name}</span>
+              {showRatings ? (
               <div
                 aria-label={`${workType.name} 별점`}
                 className={styles.workTypeRatingButtons}
@@ -207,6 +210,7 @@ export function WorkerWorkTypeCell({
                   );
                 })}
               </div>
+              ) : null}
               <button
                 aria-label={`${workType.name} 삭제`}
                 className={styles.workTypeRemoveButton}

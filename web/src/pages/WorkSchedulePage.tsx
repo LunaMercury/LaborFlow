@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
+  deleteScheduleTaskRange,
   fetchScheduleTasks,
   updateScheduleTask,
   type ScheduleAssignment,
@@ -211,6 +212,12 @@ function applyCachedTaskOrder(
   const newTasks = tasks.filter((task) => !orderedTaskIds.has(task.id));
 
   return [...orderedTasks, ...newTasks];
+}
+
+function withoutRecordKey<T>(record: Record<string, T>, key: string) {
+  return Object.fromEntries(
+    Object.entries(record).filter(([entryKey]) => entryKey !== key),
+  ) as Record<string, T>;
 }
 
 function reorderTasks(
@@ -1259,6 +1266,69 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       currentTaskId === taskId ? null : currentTaskId,
     );
     setStatusMessage("마지막 저장 상태로 되돌렸습니다.");
+  };
+
+  const deleteTask = async (task: ScheduleTask) => {
+    const shouldDelete = window.confirm(
+      "이 일정을 삭제하시겠습니까? 삭제 후 목록에서 숨겨집니다.",
+    );
+    if (!shouldDelete) {
+      return;
+    }
+
+    setSavingTaskId(task.id);
+    setStatusMessage("");
+
+    try {
+      await deleteScheduleTaskRange(loginId, { taskIds: [task.id] });
+
+      setTasks((currentTasks) => {
+        const nextTasks = currentTasks.filter(
+          (currentTask) => currentTask.id !== task.id,
+        );
+        saveCachedTaskOrder(
+          loginId,
+          selectedDate,
+          nextTasks.map((currentTask) => currentTask.id),
+        );
+
+        return nextTasks;
+      });
+      setPersistedTasks((currentTasks) =>
+        currentTasks.filter((currentTask) => currentTask.id !== task.id),
+      );
+      setAssignedWorkerIdsByTaskId((currentAssignments) =>
+        withoutRecordKey(currentAssignments, task.id),
+      );
+      setRequiredCountsByTaskId((currentCounts) =>
+        withoutRecordKey(currentCounts, task.id),
+      );
+      setMemoByTaskId((currentMemos) => withoutRecordKey(currentMemos, task.id));
+      setTaskDetailDraftsByTaskId((currentDrafts) =>
+        withoutRecordKey(currentDrafts, task.id),
+      );
+      setCollapsedTaskIds((currentTaskIds) => {
+        const nextTaskIds = new Set(currentTaskIds);
+        nextTaskIds.delete(task.id);
+        return nextTaskIds;
+      });
+      setEditingRequiredCount((currentEdit) =>
+        currentEdit?.taskId === task.id ? null : currentEdit,
+      );
+      setEditingTaskMemoId((currentTaskId) =>
+        currentTaskId === task.id ? null : currentTaskId,
+      );
+      setEditingTaskId((currentTaskId) =>
+        currentTaskId === task.id ? null : currentTaskId,
+      );
+      setStatusMessage("일정을 삭제했습니다.");
+    } catch (error) {
+      setStatusMessage(
+        error instanceof Error ? error.message : "일정을 삭제하지 못했습니다.",
+      );
+    } finally {
+      setSavingTaskId(null);
+    }
   };
 
   const importPreviousDayAssignments = async (task: ScheduleTask) => {
@@ -2525,6 +2595,27 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                             {isEditingTask ? (
                               <div className={styles.scheduleTaskEditActions}>
                                 <button
+                                  aria-label={`${task.title} 일정 삭제`}
+                                  className={styles.scheduleTaskDeleteButton}
+                                  disabled={savingTaskId === task.id}
+                                  type="button"
+                                  onClick={() => deleteTask(task)}
+                                >
+                                  <svg
+                                    aria-hidden="true"
+                                    className={styles.scheduleTaskDeleteIcon}
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path d="M9 4h6" />
+                                    <path d="M10 4l1-1h2l1 1" />
+                                    <path d="M5 7h14" />
+                                    <path d="M8 7l1 13h6l1-13" />
+                                    <path d="M10.5 11v5" />
+                                    <path d="M13.5 11v5" />
+                                  </svg>
+                                </button>
+                                <button
                                   aria-label={`${task.title} 작업 수정 취소`}
                                   className={styles.inlineCancelButton}
                                   type="button"
@@ -2574,6 +2665,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                           <WorkerWorkTypeCell
                             selectedCodes={taskDetailDraft.workTypeCodes}
                             selectedRatings={{}}
+                            showRatings={false}
                             workTypeOptions={workTypes}
                             onChange={(nextWorkTypeCodes) =>
                               setTaskDetailDraftsByTaskId((currentDrafts) => ({
