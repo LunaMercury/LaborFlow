@@ -1,0 +1,126 @@
+.sectionLabel {
+  color: #176b5d;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.formsPanel {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 1040px;
+  width: 100%;
+}
+
+.formsHeader {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  width: 100%;
+}
+
+.formsHeader h1 {
+  color: #17202a;
+  font-size: 32px;
+  line-height: 1.22;
+  margin: 0;
+}
+
+.formsDescription {
+  color: #4f5d6b;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.55;
+  margin: 10px 0 0;
+  max-width: 720px;
+}
+
+.formList {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  width: 100%;
+}
+
+.formItem {
+  align-items: center;
+  border-bottom: 1px solid #e5ebf1;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 86px;
+  padding: 16px 18px;
+}
+
+.formItem:last-child {
+  border-bottom: 0;
+}
+
+.formTextGroup {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.formTextGroup h2 {
+  color: #17202a;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.formTextGroup p {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 6px 0 0;
+}
+
+.formDownloadButton {
+  align-items: center;
+  appearance: none;
+  background: #176b5d;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+.formDownloadButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+@media (max-width: 720px) {
+  .formsHeader h1 {
+    font-size: 28px;
+  }
+
+  .formItem {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .formDownloadButton {
+    width: 100%;
+  }
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import styles from "./App.module.css";
 import { Header } from "./components/Header";
 import { servicePages } from "./data/servicePages";
+import { FormsPage } from "./pages/FormsPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { ScheduleCalendarPage } from "./pages/ScheduleCalendarPage";
@@ -57,6 +58,7 @@ export default function App() {
   const isTeamsPage = currentPath === "/teams" || currentPath === "/team";
   const isSchedulePage = currentPath === "/schedule";
   const isWorkSchedulePage = currentPath === "/work-schedule";
+  const isFormsPage = currentPath === "/forms";
   const shouldShowLoginPage =
     !isLoggedIn && (
       currentPath === "/login" ||
@@ -64,7 +66,8 @@ export default function App() {
       isWorkersPage ||
       isTeamsPage ||
       isSchedulePage ||
-      isWorkSchedulePage
+      isWorkSchedulePage ||
+      isFormsPage
     );
   const isServicePage = isLoggedIn && isProtectedServicePath;
 
@@ -89,6 +92,8 @@ export default function App() {
         <ScheduleCalendarPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isWorkSchedulePage ? (
         <WorkSchedulePage loginId={readDemoSession()?.loginId ?? "test"} />
+      ) : isLoggedIn && isFormsPage ? (
+        <FormsPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isServicePage ? (
         <ServicePage path={currentPath} />
       ) : (
