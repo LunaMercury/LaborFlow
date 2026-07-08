@@ -16,9 +16,17 @@ public interface ClientsDao {
 
     boolean localPhoneExists(UUID agencyOwnerUuid, String phoneHashSource);
 
+    boolean localPhoneExistsExceptProfile(UUID agencyOwnerUuid, UUID profileUuid, String phoneHashSource);
+
+    Optional<UUID> findFarmOwnerUuidByProfileUuid(UUID agencyOwnerUuid, UUID profileUuid);
+
     UUID insertFarmOwner(ClientCreateValues values);
 
     void upsertFarmOwnerSensitiveProfile(UUID farmOwnerUuid, ClientCreateValues values);
 
     void insertClientProfile(UUID agencyOwnerUuid, UUID farmOwnerUuid, ClientCreateValues values);
+
+    void updateClientProfile(UUID agencyOwnerUuid, UUID profileUuid, ClientCreateValues values);
+
+    void softDeleteClientProfile(UUID agencyOwnerUuid, UUID profileUuid);
 }

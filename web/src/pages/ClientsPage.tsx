@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createClient, fetchClients, type Client } from "../api/clientsApi";
+import {
+  createClient,
+  deleteClient,
+  fetchClients,
+  updateClient,
+  type Client,
+} from "../api/clientsApi";
 import appStyles from "../App.module.css";
 import clientsStyles from "./ClientsPage.module.css";
 
@@ -17,6 +23,15 @@ type ClientFormState = {
   nickname: string;
   phone: string;
 };
+
+type ClientModalState =
+  | {
+      mode: "create";
+    }
+  | {
+      client: Client;
+      mode: "edit";
+    };
 
 const emptyClientForm: ClientFormState = {
   bankAccount: "",
@@ -67,7 +82,7 @@ function formatPhoneInput(value: string) {
 export function ClientsPage({ loginId }: ClientsPageProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedProfileUuid, setSelectedProfileUuid] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalState, setModalState] = useState<ClientModalState | null>(null);
   const [formState, setFormState] = useState<ClientFormState>(emptyClientForm);
   const [statusMessage, setStatusMessage] = useState("");
   const [formError, setFormError] = useState("");
@@ -138,15 +153,29 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
     setFormState(emptyClientForm);
     setFormError("");
     setCallImportMessage("");
-    setIsModalOpen(true);
+    setModalState({ mode: "create" });
   };
 
-  const closeCreateModal = () => {
+  const openEditModal = (client: Client) => {
+    setFormState({
+      bankAccount: client.bankAccount,
+      businessName: client.businessName,
+      memo: client.memo,
+      name: client.name,
+      nickname: client.nickname,
+      phone: client.phone,
+    });
+    setFormError("");
+    setCallImportMessage("");
+    setModalState({ client, mode: "edit" });
+  };
+
+  const closeClientModal = () => {
     if (isSaving) {
       return;
     }
 
-    setIsModalOpen(false);
+    setModalState(null);
     setFormError("");
     setCallImportMessage("");
   };
@@ -194,9 +223,19 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
     setFormError("");
 
     try {
-      const nextClients = await createClient(loginId, formState);
+      const nextClients =
+        modalState?.mode === "edit"
+          ? await updateClient(loginId, modalState.client.profileUuid, formState)
+          : await createClient(loginId, formState);
       setClients(nextClients);
       setSelectedProfileUuid((currentProfileUuid) => {
+        if (
+          modalState?.mode === "edit" &&
+          nextClients.some((client) => client.profileUuid === modalState.client.profileUuid)
+        ) {
+          return modalState.client.profileUuid;
+        }
+
         if (
           currentProfileUuid &&
           nextClients.some((client) => client.profileUuid === currentProfileUuid)
@@ -206,14 +245,48 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
 
         return nextClients[0]?.profileUuid ?? null;
       });
-      setStatusMessage("거래처가 등록되었습니다.");
-      setIsModalOpen(false);
+      setStatusMessage(
+        modalState?.mode === "edit"
+          ? "거래처 정보가 수정되었습니다."
+          : "거래처가 등록되었습니다.",
+      );
+      setModalState(null);
     } catch (error) {
       setFormError(
-        error instanceof Error ? error.message : "거래처를 등록하지 못했습니다.",
+        error instanceof Error ? error.message : "거래처 정보를 저장하지 못했습니다.",
       );
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const removeClient = async (client: Client) => {
+    const shouldDelete = window.confirm(
+      `${getClientDisplayName(client)} 거래처를 삭제하시겠습니까?\nDB에서 즉시 삭제하지 않고 목록에서 숨김 처리됩니다.`,
+    );
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      const nextClients = await deleteClient(loginId, client.profileUuid);
+      setClients(nextClients);
+      setSelectedProfileUuid((currentProfileUuid) => {
+        if (
+          currentProfileUuid &&
+          currentProfileUuid !== client.profileUuid &&
+          nextClients.some((nextClient) => nextClient.profileUuid === currentProfileUuid)
+        ) {
+          return currentProfileUuid;
+        }
+
+        return nextClients[0]?.profileUuid ?? null;
+      });
+      setStatusMessage("거래처가 삭제되었습니다.");
+    } catch (error) {
+      window.alert(
+        error instanceof Error ? error.message : "거래처를 삭제하지 못했습니다.",
+      );
     }
   };
 
@@ -278,8 +351,26 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
             {selectedClient ? (
               <>
                 <div className={styles.clientDetailHeader}>
-                  <h2>{getClientDisplayName(selectedClient)}</h2>
-                  <span>{selectedClient.workSites.length}개 작업장</span>
+                  <div className={styles.clientDetailTitle}>
+                    <h2>{getClientDisplayName(selectedClient)}</h2>
+                    <span>{selectedClient.workSites.length}개 작업장</span>
+                  </div>
+                  <div className={styles.clientDetailActions}>
+                    <button
+                      className={styles.editClientButton}
+                      type="button"
+                      onClick={() => openEditModal(selectedClient)}
+                    >
+                      수정
+                    </button>
+                    <button
+                      className={styles.deleteClientButton}
+                      type="button"
+                      onClick={() => removeClient(selectedClient)}
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
                 <div className={styles.clientDetailBody}>
                   <div className={styles.clientInfoGrid}>
@@ -349,13 +440,13 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
         </div>
       </section>
 
-      {isModalOpen ? (
+      {modalState ? (
         <div
           className={styles.clientModalBackdrop}
           role="presentation"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
-              closeCreateModal();
+              closeClientModal();
             }
           }}
         >
@@ -366,7 +457,9 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
             role="dialog"
           >
             <div className={styles.clientModalHeader}>
-              <h2 id="client-modal-title">거래처 추가</h2>
+              <h2 id="client-modal-title">
+                {modalState.mode === "edit" ? "거래처 정보 수정" : "거래처 추가"}
+              </h2>
               <div className={styles.clientModalActions}>
                 <button
                   className={styles.clientModalPrimaryButton}
@@ -374,12 +467,16 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                   type="button"
                   onClick={submitClient}
                 >
-                  {isSaving ? "등록 중" : "등록"}
+                  {isSaving
+                    ? "저장 중"
+                    : modalState.mode === "edit"
+                      ? "저장"
+                      : "등록"}
                 </button>
                 <button
                   className={styles.clientModalSecondaryButton}
                   type="button"
-                  onClick={closeCreateModal}
+                  onClick={closeClientModal}
                 >
                   취소
                 </button>
@@ -387,33 +484,35 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
             </div>
 
             <div className={styles.clientModalBody}>
-              <div className={styles.callImportBox}>
-                <div className={styles.callImportHeader}>
-                  <span className={styles.callImportTitle}>통화 기반 자동입력</span>
-                  <button
-                    className={styles.callImportButton}
-                    disabled={!isMobileCallImportAvailable}
-                    type="button"
-                    onClick={handleCallImport}
-                  >
-                    통화기록에서
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    accept="audio/*"
-                    hidden
-                    type="file"
-                    onChange={(event) => handleCallFileSelected(event.target.files)}
-                  />
+              {modalState.mode === "create" ? (
+                <div className={styles.callImportBox}>
+                  <div className={styles.callImportHeader}>
+                    <span className={styles.callImportTitle}>통화 기반 자동입력</span>
+                    <button
+                      className={styles.callImportButton}
+                      disabled={!isMobileCallImportAvailable}
+                      type="button"
+                      onClick={handleCallImport}
+                    >
+                      통화기록에서
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      accept="audio/*"
+                      hidden
+                      type="file"
+                      onChange={(event) => handleCallFileSelected(event.target.files)}
+                    />
+                  </div>
+                  <p className={styles.callImportDescription}>
+                    모바일 환경에서 녹음 파일을 선택하면, 이후 분석 파이프라인이 이
+                    입력폼을 자동완성하는 구조로 연결됩니다.
+                  </p>
+                  {callImportMessage ? (
+                    <p className={styles.callImportDescription}>{callImportMessage}</p>
+                  ) : null}
                 </div>
-                <p className={styles.callImportDescription}>
-                  모바일 환경에서 녹음 파일을 선택하면, 이후 분석 파이프라인이 이
-                  입력폼을 자동완성하는 구조로 연결됩니다.
-                </p>
-                {callImportMessage ? (
-                  <p className={styles.callImportDescription}>{callImportMessage}</p>
-                ) : null}
-              </div>
+              ) : null}
 
               <div className={styles.clientFormGrid}>
                 <div className={styles.clientFormField}>

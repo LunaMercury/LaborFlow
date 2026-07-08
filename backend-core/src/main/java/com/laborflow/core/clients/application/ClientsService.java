@@ -4,6 +4,7 @@ import com.laborflow.core.clients.dao.ClientCreateValues;
 import com.laborflow.core.clients.dao.ClientsDao;
 import com.laborflow.core.clients.dto.ClientListResponse;
 import com.laborflow.core.clients.dto.CreateClientRequest;
+import com.laborflow.core.clients.dto.UpdateClientRequest;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +26,14 @@ public class ClientsService {
         String normalizedLoginId = normalizeLoginId(loginId);
         UUID agencyOwnerUuid = clientsDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
             .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
-        ClientCreateValues values = normalizeCreateValues(request);
+        ClientCreateValues values = normalizeClientValues(
+            request.name(),
+            request.nickname(),
+            request.businessName(),
+            request.phone(),
+            request.bankAccount(),
+            request.memo()
+        );
 
         if (clientsDao.localPhoneExists(agencyOwnerUuid, values.phoneHashSource())) {
             throw new DuplicateClientPhoneException();
@@ -44,13 +52,53 @@ public class ClientsService {
         clientsDao.insertClientProfile(agencyOwnerUuid, farmOwnerUuid, values);
     }
 
-    private ClientCreateValues normalizeCreateValues(CreateClientRequest request) {
-        String name = normalizeOptionalText(request.name());
-        String nickname = normalizeOptionalText(request.nickname());
-        String businessName = normalizeOptionalText(request.businessName());
-        PhoneInput phone = normalizePhone(request.phone());
-        String bankAccount = normalizeBankAccount(request.bankAccount());
-        String memo = normalizeOptionalText(request.memo());
+    @Transactional
+    public void updateClient(String loginId, UUID profileUuid, UpdateClientRequest request) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        UUID agencyOwnerUuid = clientsDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
+        ClientCreateValues values = normalizeClientValues(
+            request.name(),
+            request.nickname(),
+            request.businessName(),
+            request.phone(),
+            request.bankAccount(),
+            request.memo()
+        );
+
+        clientsDao.findFarmOwnerUuidByProfileUuid(agencyOwnerUuid, profileUuid)
+            .orElseThrow(() -> new IllegalArgumentException("Client profile was not found."));
+
+        if (clientsDao.localPhoneExistsExceptProfile(agencyOwnerUuid, profileUuid, values.phoneHashSource())) {
+            throw new DuplicateClientPhoneException();
+        }
+
+        clientsDao.updateClientProfile(agencyOwnerUuid, profileUuid, values);
+    }
+
+    @Transactional
+    public void deleteClient(String loginId, UUID profileUuid) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        UUID agencyOwnerUuid = clientsDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
+
+        clientsDao.softDeleteClientProfile(agencyOwnerUuid, profileUuid);
+    }
+
+    private ClientCreateValues normalizeClientValues(
+        String rawName,
+        String rawNickname,
+        String rawBusinessName,
+        String rawPhone,
+        String rawBankAccount,
+        String rawMemo
+    ) {
+        String name = normalizeOptionalText(rawName);
+        String nickname = normalizeOptionalText(rawNickname);
+        String businessName = normalizeOptionalText(rawBusinessName);
+        PhoneInput phone = normalizePhone(rawPhone);
+        String bankAccount = normalizeBankAccount(rawBankAccount);
+        String memo = normalizeOptionalText(rawMemo);
 
         if (name == null && nickname == null && businessName == null && phone == null) {
             throw new IllegalArgumentException("Client identity is required.");

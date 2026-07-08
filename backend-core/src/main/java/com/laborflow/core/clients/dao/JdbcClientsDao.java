@@ -150,6 +150,50 @@ public class JdbcClientsDao implements ClientsDao {
     }
 
     @Override
+    public boolean localPhoneExistsExceptProfile(UUID agencyOwnerUuid, UUID profileUuid, String phoneHashSource) {
+        if (phoneHashSource == null) {
+            return false;
+        }
+
+        Integer count = jdbcTemplate.queryForObject(
+            """
+            SELECT count(*)
+            FROM public.labor_agency_farm_owner_profile
+            WHERE agency_owner_uuid = ?
+                AND uuid <> ?
+                AND local_phone_hash = encode(digest(?::text, 'sha256'), 'hex')
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
+            """,
+            Integer.class,
+            agencyOwnerUuid,
+            profileUuid,
+            phoneHashSource
+        );
+
+        return count != null && count > 0;
+    }
+
+    @Override
+    public Optional<UUID> findFarmOwnerUuidByProfileUuid(UUID agencyOwnerUuid, UUID profileUuid) {
+        List<UUID> farmOwnerUuids = jdbcTemplate.query(
+            """
+            SELECT farm_owner_uuid
+            FROM public.labor_agency_farm_owner_profile
+            WHERE agency_owner_uuid = ?
+                AND uuid = ?
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
+            """,
+            (resultSet, rowNumber) -> resultSet.getObject("farm_owner_uuid", UUID.class),
+            agencyOwnerUuid,
+            profileUuid
+        );
+
+        return farmOwnerUuids.stream().findFirst();
+    }
+
+    @Override
     public UUID insertFarmOwner(ClientCreateValues values) {
         return jdbcTemplate.queryForObject(
             """
@@ -247,6 +291,56 @@ public class JdbcClientsDao implements ClientsDao {
             values.bankAccountHashSource(),
             values.bankAccountHashSource(),
             values.memo()
+        );
+    }
+
+    @Override
+    public void updateClientProfile(UUID agencyOwnerUuid, UUID profileUuid, ClientCreateValues values) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_farm_owner_profile
+            SET local_name = ?,
+                local_nickname = ?,
+                local_business_name = ?,
+                local_phone_encrypted = ?,
+                local_phone_hash = CASE WHEN ?::text IS NULL THEN NULL ELSE encode(digest(?::text, 'sha256'), 'hex') END,
+                local_bank_account_encrypted = ?,
+                local_bank_account_hash = CASE WHEN ?::text IS NULL THEN NULL ELSE encode(digest(?::text, 'sha256'), 'hex') END,
+                private_memo = ?,
+                status = 'ACTIVE'
+            WHERE agency_owner_uuid = ?
+                AND uuid = ?
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
+            """,
+            values.name(),
+            values.nickname(),
+            values.businessName(),
+            values.phone(),
+            values.phoneHashSource(),
+            values.phoneHashSource(),
+            values.bankAccount(),
+            values.bankAccountHashSource(),
+            values.bankAccountHashSource(),
+            values.memo(),
+            agencyOwnerUuid,
+            profileUuid
+        );
+    }
+
+    @Override
+    public void softDeleteClientProfile(UUID agencyOwnerUuid, UUID profileUuid) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_farm_owner_profile
+            SET status = 'ARCHIVED',
+                deleted_at = now()
+            WHERE agency_owner_uuid = ?
+                AND uuid = ?
+                AND deleted_at IS NULL
+            """,
+            agencyOwnerUuid,
+            profileUuid
         );
     }
 

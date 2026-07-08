@@ -79,3 +79,46 @@ export async function createClient(
   const body = (await response.json()) as ClientListResponse;
   return body.clients;
 }
+
+export async function updateClient(
+  loginId: string,
+  profileUuid: string,
+  payload: CreateClientPayload,
+): Promise<Client[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/clients/${profileUuid}?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "PATCH",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "거래처 정보를 수정하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as ClientListResponse;
+  return body.clients;
+}
+
+export async function deleteClient(
+  loginId: string,
+  profileUuid: string,
+): Promise<Client[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/clients/${profileUuid}?loginId=${encodeURIComponent(loginId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "거래처를 삭제하지 못했습니다."));
+  }
+
+  const body = (await response.json()) as ClientListResponse;
+  return body.clients;
+}
