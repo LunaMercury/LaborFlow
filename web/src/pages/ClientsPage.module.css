@@ -110,10 +110,11 @@
   align-items: center;
   background: #f3f6f9;
   border-bottom: 1px solid #d9e2ec;
+  border-radius: 7px 7px 0 0;
   display: flex;
   justify-content: space-between;
   min-height: 48px;
-  padding: 0 16px;
+  padding: 5px 16px;
 }
 
 .clientListHeader h2,
