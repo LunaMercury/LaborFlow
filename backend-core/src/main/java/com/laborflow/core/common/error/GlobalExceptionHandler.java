@@ -1,5 +1,6 @@
 package com.laborflow.core.common.error;
 
+import com.laborflow.core.clients.application.DuplicateClientPhoneException;
 import com.laborflow.core.workforce.application.DuplicateWorkerPhoneException;
 import com.laborflow.core.workforce.application.InvalidWorkerPhoneException;
 import java.time.Instant;
@@ -16,6 +17,19 @@ public class GlobalExceptionHandler {
     ) {
         ApiErrorResponse response = new ApiErrorResponse(
             "DUPLICATE_WORKER_PHONE",
+            exception.getMessage(),
+            Instant.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(DuplicateClientPhoneException.class)
+    public ResponseEntity<ApiErrorResponse> handleDuplicateClientPhoneException(
+        DuplicateClientPhoneException exception
+    ) {
+        ApiErrorResponse response = new ApiErrorResponse(
+            "DUPLICATE_CLIENT_PHONE",
             exception.getMessage(),
             Instant.now()
         );

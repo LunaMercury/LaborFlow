@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import styles from "./App.module.css";
 import { Header } from "./components/Header";
 import { servicePages } from "./data/servicePages";
+import { ClientsPage } from "./pages/ClientsPage";
 import { FormsPage } from "./pages/FormsPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
@@ -56,6 +57,7 @@ export default function App() {
 
   const isProtectedServicePath = Object.hasOwn(servicePages, currentPath);
   const isWorkersPage = currentPath === "/workers";
+  const isClientsPage = currentPath === "/clients";
   const isTeamsPage = currentPath === "/teams" || currentPath === "/team";
   const isSchedulePage = currentPath === "/schedule";
   const isWorkSchedulePage = currentPath === "/work-schedule";
@@ -66,6 +68,7 @@ export default function App() {
       currentPath === "/login" ||
       isProtectedServicePath ||
       isWorkersPage ||
+      isClientsPage ||
       isTeamsPage ||
       isSchedulePage ||
       isWorkSchedulePage ||
@@ -89,6 +92,8 @@ export default function App() {
           loginId={readDemoSession()?.loginId ?? "test"}
           onNavigate={navigateTo}
         />
+      ) : isLoggedIn && isClientsPage ? (
+        <ClientsPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isTeamsPage ? (
         <TeamsPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isSchedulePage ? (

@@ -9,6 +9,7 @@ export const menuItems: NavigationItem[] = [
     label: "인력 현황",
     path: "/workers",
     children: [
+      { label: "거래처 목록", path: "/clients" },
       { label: "작업자 목록", path: "/workers" },
       { label: "팀 목록", path: "/teams" },
     ],
