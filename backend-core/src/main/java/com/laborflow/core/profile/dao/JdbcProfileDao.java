@@ -82,7 +82,7 @@ public class JdbcProfileDao implements ProfileDao {
             SET name = ?,
                 agency_name = ?,
                 business_registration_number_hash =
-                    CASE WHEN ? IS NULL THEN NULL ELSE encode(digest(?, 'sha256'), 'hex') END
+                    CASE WHEN ?::text IS NULL THEN NULL ELSE encode(digest(?::text, 'sha256'), 'hex') END
             WHERE uuid = ?
             """,
             values.ownerName(),
@@ -160,15 +160,15 @@ public class JdbcProfileDao implements ProfileDao {
             VALUES (
                 ?,
                 ?,
-                CASE WHEN ? IS NULL THEN NULL ELSE encode(digest(?, 'sha256'), 'hex') END,
+                CASE WHEN ?::text IS NULL THEN NULL ELSE encode(digest(?::text, 'sha256'), 'hex') END,
                 ?,
-                CASE WHEN ? IS NULL THEN NULL ELSE encode(digest(?, 'sha256'), 'hex') END,
+                CASE WHEN ?::text IS NULL THEN NULL ELSE encode(digest(?::text, 'sha256'), 'hex') END,
                 ?,
-                CASE WHEN ? IS NULL THEN NULL ELSE encode(digest(?, 'sha256'), 'hex') END,
+                CASE WHEN ?::text IS NULL THEN NULL ELSE encode(digest(?::text, 'sha256'), 'hex') END,
                 ?,
                 NULL,
                 ?,
-                CASE WHEN ? IS NULL THEN NULL ELSE encode(digest(?, 'sha256'), 'hex') END,
+                CASE WHEN ?::text IS NULL THEN NULL ELSE encode(digest(?::text, 'sha256'), 'hex') END,
                 ?,
                 ?,
                 ?
