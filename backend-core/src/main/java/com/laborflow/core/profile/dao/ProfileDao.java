@@ -7,4 +7,6 @@ public interface ProfileDao {
     Optional<ProfileResponse> findProfileByLoginId(String loginId);
 
     void updateProfile(String loginId, ProfileUpdateValues values);
+
+    void withdrawAccount(String loginId);
 }

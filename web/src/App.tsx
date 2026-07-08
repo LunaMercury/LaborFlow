@@ -98,7 +98,10 @@ export default function App() {
       ) : isLoggedIn && isFormsPage ? (
         <FormsPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isProfilePage ? (
-        <ProfilePage loginId={readDemoSession()?.loginId ?? "test"} />
+        <ProfilePage
+          loginId={readDemoSession()?.loginId ?? "test"}
+          onAccountWithdrawn={handleLogout}
+        />
       ) : isServicePage ? (
         <ServicePage path={currentPath} />
       ) : (

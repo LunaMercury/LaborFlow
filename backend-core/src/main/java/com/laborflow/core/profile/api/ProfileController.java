@@ -3,6 +3,7 @@ package com.laborflow.core.profile.api;
 import com.laborflow.core.profile.application.ProfileService;
 import com.laborflow.core.profile.dto.ProfileResponse;
 import com.laborflow.core.profile.dto.UpdateProfileRequest;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,5 +31,10 @@ public class ProfileController {
         @RequestBody UpdateProfileRequest request
     ) {
         return profileService.updateProfile(loginId, request);
+    }
+
+    @DeleteMapping
+    public void withdrawAccount(@RequestParam(defaultValue = "test") String loginId) {
+        profileService.withdrawAccount(loginId);
     }
 }

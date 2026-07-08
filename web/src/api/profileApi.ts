@@ -61,6 +61,19 @@ export async function updateProfile(
   return (await response.json()) as ProfileResponse;
 }
 
+export async function withdrawAccount(loginId: string): Promise<void> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/profile?loginId=${encodeURIComponent(loginId)}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "계정을 탈퇴 처리하지 못했습니다."));
+  }
+}
+
 async function parseErrorMessage(response: Response, fallbackMessage: string) {
   try {
     const body = (await response.json()) as { message?: string };

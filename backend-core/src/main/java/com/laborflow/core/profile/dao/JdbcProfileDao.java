@@ -95,6 +95,33 @@ public class JdbcProfileDao implements ProfileDao {
         upsertSensitiveProfile(ownerUuid, values);
     }
 
+    @Override
+    public void withdrawAccount(String loginId) {
+        UUID ownerUuid = findOwnerUuidByLoginId(loginId)
+            .orElseThrow(() -> new IllegalArgumentException("Profile was not found."));
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.app_account
+            SET status = 'ARCHIVED',
+                must_change_password = true
+            WHERE lower(login_id) = lower(?)
+                AND status <> 'ARCHIVED'
+            """,
+            loginId
+        );
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_owner
+            SET status = 'ARCHIVED'
+            WHERE uuid = ?
+                AND status <> 'ARCHIVED'
+            """,
+            ownerUuid
+        );
+    }
+
     private Optional<UUID> findOwnerUuidByLoginId(String loginId) {
         List<UUID> ownerUuids = jdbcTemplate.query(
             """

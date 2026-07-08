@@ -25,7 +25,7 @@ public class ProfileService {
         String normalizedLoginId = normalizeLoginId(loginId);
         String ownerName = normalizeRequiredText(request.ownerName());
         String businessRegistrationNumber = normalizeBusinessRegistrationNumber(request.businessRegistrationNumber());
-        String phone = normalizePhone(request.phone(), 10, 11);
+        String phone = normalizeRequiredPhone(request.phone(), 10, 11);
         String officePhone = normalizePhone(request.officePhone(), 8, 11);
         String bankAccount = normalizeBankAccount(request.bankAccount());
         String email = normalizeEmail(request.email());
@@ -54,6 +54,11 @@ public class ProfileService {
         );
 
         return getProfile(normalizedLoginId);
+    }
+
+    @Transactional
+    public void withdrawAccount(String loginId) {
+        profileDao.withdrawAccount(normalizeLoginId(loginId));
     }
 
     private String normalizeLoginId(String loginId) {
@@ -106,6 +111,15 @@ public class ProfileService {
         }
 
         return digits;
+    }
+
+    private String normalizeRequiredPhone(String phone, int minLength, int maxLength) {
+        String normalizedPhone = normalizePhone(phone, minLength, maxLength);
+        if (normalizedPhone == null) {
+            throw new IllegalArgumentException("Phone number is required.");
+        }
+
+        return normalizedPhone;
     }
 
     private String normalizeBusinessRegistrationNumber(String businessRegistrationNumber) {

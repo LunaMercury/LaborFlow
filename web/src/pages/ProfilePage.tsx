@@ -3,6 +3,7 @@ import appStyles from "../App.module.css";
 import {
   fetchProfile,
   updateProfile,
+  withdrawAccount,
   type ProfileResponse,
   type UpdateProfilePayload,
 } from "../api/profileApi";
@@ -10,6 +11,7 @@ import styles from "./ProfilePage.module.css";
 
 type ProfilePageProps = {
   loginId: string;
+  onAccountWithdrawn: () => void;
 };
 
 type ProfileFormState = UpdateProfilePayload & {
@@ -38,18 +40,6 @@ const emptyProfile: ProfileFormState = {
   phone: "",
   scheduleNotificationEnabled: true,
   twoFactorStatus: "DISABLED",
-};
-
-const roleLabels: Record<string, string> = {
-  ADMIN: "관리자",
-  LABOR_AGENCY_OWNER: "인력사무소 소장",
-};
-
-const statusLabels: Record<string, string> = {
-  ACTIVE: "활성",
-  ARCHIVED: "보관됨",
-  DISABLED: "비활성",
-  LOCKED: "잠김",
 };
 
 const twoFactorLabels: Record<string, string> = {
@@ -96,30 +86,38 @@ function toPayload(profile: ProfileFormState): UpdateProfilePayload {
   };
 }
 
-function formatRole(roleCodes: string) {
-  return (
-    roleCodes
-    .split(",")
-    .map((roleCode) => roleLabels[roleCode] ?? roleCode)
-    .filter(Boolean)
-    .join(", ")
-  ) || "권한 없음";
-}
-
-function formatStatus(status: string) {
-  return (statusLabels[status] ?? status) || "알 수 없음";
-}
-
 function formatTwoFactorStatus(status: string) {
   return (twoFactorLabels[status] ?? status) || "미설정";
 }
 
-export function ProfilePage({ loginId }: ProfilePageProps) {
+function EyeIcon() {
+  return (
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">
+      <path d="M2.2 12s3.5-6.5 9.8-6.5S21.8 12 21.8 12s-3.5 6.5-9.8 6.5S2.2 12 2.2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">
+      <path d="M2.2 12s3.5-6.5 9.8-6.5c2.4 0 4.4.9 5.9 2" />
+      <path d="M21.8 12s-3.5 6.5-9.8 6.5c-2.4 0-4.4-.9-5.9-2" />
+      <path d="M4 4l16 16" />
+      <path d="M9.9 9.9A3 3 0 0 0 14.1 14.1" />
+    </svg>
+  );
+}
+
+export function ProfilePage({ loginId, onAccountWithdrawn }: ProfilePageProps) {
   const [profile, setProfile] = useState<ProfileFormState>(emptyProfile);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -200,6 +198,33 @@ export function ProfilePage({ loginId }: ProfilePageProps) {
     }
   };
 
+  const handlePasswordChangeClick = () => {
+    setStatusMessage("비밀번호 변경은 인증 기능 연결 후 제공됩니다.");
+    setErrorMessage("");
+  };
+
+  const handleWithdrawClick = async () => {
+    const confirmed = window.confirm(
+      "계정을 탈퇴 처리하시겠습니까?\n\nDB에서 즉시 삭제하지 않고 계정 상태를 보관됨으로 변경합니다.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setStatusMessage("");
+    setErrorMessage("");
+    setIsWithdrawing(true);
+
+    try {
+      await withdrawAccount(loginId);
+      onAccountWithdrawn();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "계정을 탈퇴 처리하지 못했습니다.");
+      setIsWithdrawing(false);
+    }
+  };
+
   return (
     <main className={appStyles.tableMainContent}>
       <section className={styles.profilePanel} aria-labelledby="profile-title">
@@ -210,10 +235,6 @@ export function ProfilePage({ loginId }: ProfilePageProps) {
             <p className={styles.profileDescription}>
               계정, 연락처, 사무소, 정산 정보를 관리합니다. 민감정보는 별도 프로필 테이블에 저장됩니다.
             </p>
-          </div>
-          <div className={styles.profileStatusGroup}>
-            <span>{formatRole(profile.accountRole)}</span>
-            <strong>{formatStatus(profile.accountStatus)}</strong>
           </div>
         </div>
 
@@ -229,19 +250,39 @@ export function ProfilePage({ loginId }: ProfilePageProps) {
             <div className={styles.profileSectionHeader}>
               <h2>계정 정보</h2>
             </div>
-            <div className={styles.profileFieldGrid}>
+            <div className={styles.accountFieldGrid}>
               <label className={styles.profileField}>
                 <span>아이디</span>
                 <input readOnly type="text" value={profile.loginId || loginId} />
               </label>
-              <label className={styles.profileField}>
-                <span>권한</span>
-                <input readOnly type="text" value={formatRole(profile.accountRole)} />
-              </label>
-              <label className={styles.profileField}>
-                <span>계정 상태</span>
-                <input readOnly type="text" value={formatStatus(profile.accountStatus)} />
-              </label>
+              <div className={styles.passwordFieldRow}>
+                <label className={styles.profileField}>
+                  <span>비밀번호</span>
+                  <div className={styles.passwordInputWrapper}>
+                    <input
+                      disabled
+                      readOnly
+                      type={isPasswordVisible ? "text" : "password"}
+                      value={isPasswordVisible ? "보안상 표시 불가" : "**********"}
+                    />
+                    <button
+                      aria-label={isPasswordVisible ? "비밀번호 숨기기" : "비밀번호 보기"}
+                      className={styles.passwordVisibilityButton}
+                      type="button"
+                      onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
+                    >
+                      {isPasswordVisible ? <EyeIcon /> : <EyeOffIcon />}
+                    </button>
+                  </div>
+                </label>
+                <button
+                  className={styles.profileSecondaryButton}
+                  type="button"
+                  onClick={handlePasswordChangeClick}
+                >
+                  비밀번호 변경
+                </button>
+              </div>
             </div>
           </section>
 
@@ -265,10 +306,13 @@ export function ProfilePage({ loginId }: ProfilePageProps) {
                 />
               </label>
               <label className={styles.profileField}>
-                <span>휴대폰 번호</span>
+                <span>
+                  휴대폰 번호 <strong className={styles.requiredMark}>*</strong>
+                </span>
                 <input
                   disabled={isLoading}
                   inputMode="tel"
+                  required
                   type="tel"
                   value={profile.phone}
                   onChange={(event) => updateProfileField("phone", event.target.value)}
@@ -423,20 +467,35 @@ export function ProfilePage({ loginId }: ProfilePageProps) {
           <div className={styles.profileActions}>
             <button
               className={styles.profilePrimaryButton}
-              disabled={isLoading || isSaving}
+              disabled={isLoading || isSaving || isWithdrawing}
               type="submit"
             >
               {isSaving ? "저장 중" : "저장"}
             </button>
             <button
               className={styles.profileSecondaryButton}
-              disabled={isLoading || isSaving}
+              disabled={isLoading || isSaving || isWithdrawing}
               type="button"
               onClick={resetProfile}
             >
               되돌리기
             </button>
           </div>
+
+          <section className={styles.withdrawSection} aria-labelledby="withdraw-title">
+            <div>
+              <h2 id="withdraw-title">계정 탈퇴</h2>
+              <p>탈퇴 시 계정은 보관됨 상태로 전환되고 서비스 화면에서 제외됩니다.</p>
+            </div>
+            <button
+              className={styles.withdrawButton}
+              disabled={isLoading || isSaving || isWithdrawing}
+              type="button"
+              onClick={handleWithdrawClick}
+            >
+              {isWithdrawing ? "처리 중" : "탈퇴"}
+            </button>
+          </section>
         </form>
       </section>
     </main>

@@ -118,6 +118,21 @@
   padding: 16px;
 }
 
+.accountFieldGrid {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(180px, 1fr) minmax(320px, 2fr);
+  padding: 16px;
+}
+
+.passwordFieldRow {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .profileField,
 .profileToggle {
   align-items: stretch;
@@ -145,6 +160,48 @@
   min-height: 40px;
   padding: 0 12px;
   width: 100%;
+}
+
+.passwordInputWrapper {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+}
+
+.passwordInputWrapper input {
+  padding-right: 44px;
+}
+
+.passwordVisibilityButton {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #687789;
+  display: flex;
+  height: 34px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 6px;
+  width: 34px;
+}
+
+.passwordVisibilityButton:hover {
+  color: #176b5d;
+  cursor: pointer;
+}
+
+.passwordVisibilityButton svg {
+  fill: none;
+  height: 19px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+  width: 19px;
 }
 
 .profileField input:read-only {
@@ -232,13 +289,67 @@
 }
 
 .profilePrimaryButton:disabled,
-.profileSecondaryButton:disabled {
+.profileSecondaryButton:disabled,
+.withdrawButton:disabled {
   cursor: not-allowed;
   filter: none;
   opacity: 0.58;
 }
 
+.withdrawSection {
+  align-items: center;
+  background: #fffaf6;
+  border: 1px solid #e2c9b5;
+  border-radius: 8px;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 16px;
+}
+
+.withdrawSection h2 {
+  color: #6d3d20;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.withdrawSection p {
+  color: #735845;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.withdrawButton {
+  align-items: center;
+  appearance: none;
+  background: #a95b2c;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 42px;
+  min-width: 92px;
+  padding: 0 16px;
+}
+
+.withdrawButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
 @media (max-width: 840px) {
+  .accountFieldGrid {
+    grid-template-columns: 1fr;
+  }
+
   .profileFieldGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -260,5 +371,15 @@
   .profileActions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .passwordFieldRow,
+  .withdrawSection {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .passwordFieldRow {
+    display: flex;
   }
 }
