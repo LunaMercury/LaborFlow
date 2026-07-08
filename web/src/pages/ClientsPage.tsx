@@ -291,14 +291,32 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
 
     try {
       const nextClients = await updateClient(loginId, client.profileUuid, editFormState);
-      setClients(nextClients);
+      const updatedClient = nextClients.find(
+        (nextClient) => nextClient.profileUuid === client.profileUuid,
+      ) ?? {
+        ...client,
+        ...editFormState,
+      };
+      const nextVisibleClients = nextClients.some(
+        (nextClient) => nextClient.profileUuid === client.profileUuid,
+      )
+        ? nextClients
+        : clients.map((currentClient) =>
+            currentClient.profileUuid === client.profileUuid
+              ? updatedClient
+              : currentClient,
+          );
+
+      setClients(nextVisibleClients);
       setSelectedProfileUuid(client.profileUuid);
       setEditingProfileUuid(null);
-      setStatusMessage("거래처 정보를 저장했습니다.");
+      setEditFormState(emptyClientForm);
+      setStatusMessage("적용되었습니다.");
     } catch (error) {
-      setInlineError(
-        error instanceof Error ? error.message : "거래처 정보를 저장하지 못했습니다.",
-      );
+      const message =
+        error instanceof Error ? error.message : "거래처 정보를 저장하지 못했습니다.";
+      setInlineError(message);
+      setStatusMessage(message);
     } finally {
       setIsSaving(false);
     }
