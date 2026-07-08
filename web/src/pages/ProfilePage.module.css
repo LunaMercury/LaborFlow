@@ -1,0 +1,240 @@
+.sectionLabel {
+  color: #176b5d;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.profilePanel {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 1040px;
+  width: 100%;
+}
+
+.profileHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  width: 100%;
+}
+
+.profileHeader h1 {
+  color: #17202a;
+  font-size: 32px;
+  line-height: 1.22;
+  margin: 0;
+}
+
+.profileDescription {
+  color: #4f5d6b;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.55;
+  margin: 10px 0 0;
+  max-width: 720px;
+}
+
+.profileStatusGroup {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+.profileStatusGroup span,
+.profileStatusGroup strong,
+.profileStatusMessage {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.profileStatusGroup span {
+  color: #687789;
+}
+
+.profileStatusGroup strong {
+  color: #176b5d;
+}
+
+.profileStatusMessage {
+  color: #176b5d;
+  margin: 0 0 12px;
+}
+
+.profileForm {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: center;
+  width: 100%;
+}
+
+.profileSection {
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.profileSectionHeader {
+  align-items: center;
+  background: #edf2f6;
+  border-bottom: 1px solid #d9e2ec;
+  display: flex;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 16px;
+}
+
+.profileSectionHeader h2 {
+  color: #17202a;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.profileFieldGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 16px;
+}
+
+.profileField,
+.profileToggle {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
+  min-width: 0;
+}
+
+.profileField span,
+.profileToggle span {
+  color: #2f3f50;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.profileField input,
+.profileField select {
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  font-size: 14px;
+  min-height: 40px;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.profileField input:read-only {
+  background: #edf2f6;
+  color: #687789;
+}
+
+.profileField input:focus,
+.profileField select:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
+.profileToggle {
+  align-items: center;
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  flex-direction: row;
+  justify-content: flex-start;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.profileToggle input {
+  accent-color: #176b5d;
+  height: 16px;
+  width: 16px;
+}
+
+.fullWidthField {
+  grid-column: 1 / -1;
+}
+
+.profileActions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.profilePrimaryButton,
+.profileSecondaryButton {
+  align-items: center;
+  appearance: none;
+  border-radius: 8px;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 42px;
+  min-width: 92px;
+  padding: 0 16px;
+}
+
+.profilePrimaryButton {
+  background: #176b5d;
+  border: 0;
+  color: #ffffff;
+}
+
+.profileSecondaryButton {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  color: #2f3f50;
+}
+
+.profilePrimaryButton:hover,
+.profileSecondaryButton:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+@media (max-width: 840px) {
+  .profileFieldGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .profileHeader {
+    flex-direction: column;
+  }
+
+  .profileStatusGroup {
+    align-items: flex-start;
+  }
+
+  .profileFieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .profileActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -5,6 +5,7 @@ import { servicePages } from "./data/servicePages";
 import { FormsPage } from "./pages/FormsPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { ScheduleCalendarPage } from "./pages/ScheduleCalendarPage";
 import { ServicePage } from "./pages/ServicePage";
 import { TeamsPage } from "./pages/TeamsPage";
@@ -59,6 +60,7 @@ export default function App() {
   const isSchedulePage = currentPath === "/schedule";
   const isWorkSchedulePage = currentPath === "/work-schedule";
   const isFormsPage = currentPath === "/forms";
+  const isProfilePage = currentPath === "/profile";
   const shouldShowLoginPage =
     !isLoggedIn && (
       currentPath === "/login" ||
@@ -67,7 +69,8 @@ export default function App() {
       isTeamsPage ||
       isSchedulePage ||
       isWorkSchedulePage ||
-      isFormsPage
+      isFormsPage ||
+      isProfilePage
     );
   const isServicePage = isLoggedIn && isProtectedServicePath;
 
@@ -94,6 +97,8 @@ export default function App() {
         <WorkSchedulePage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isFormsPage ? (
         <FormsPage loginId={readDemoSession()?.loginId ?? "test"} />
+      ) : isLoggedIn && isProfilePage ? (
+        <ProfilePage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isServicePage ? (
         <ServicePage path={currentPath} />
       ) : (
