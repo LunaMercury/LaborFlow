@@ -39,7 +39,7 @@ function getClientDisplayName(client: Client) {
     client.nickname ||
     client.businessName ||
     client.phone ||
-    "이름 없음"
+    ""
   );
 }
 
@@ -53,7 +53,7 @@ function getWorkSiteTitle(siteName: string, workDescription: string) {
     return `${siteName} · ${workDescription}`;
   }
 
-  return siteName || workDescription || "작업장 정보 없음";
+  return siteName || workDescription || "";
 }
 
 function toFormState(client: Client): ClientFormState {
@@ -526,29 +526,29 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                       <div className={styles.clientInfoGrid}>
                         <div className={styles.clientInfoItem}>
                           <span>이름</span>
-                          <strong>{selectedClient.name || "미입력"}</strong>
+                          <strong>{selectedClient.name}</strong>
                         </div>
                         <div className={styles.clientInfoItem}>
                           <span>호칭</span>
-                          <strong>{selectedClient.nickname || "미입력"}</strong>
+                          <strong>{selectedClient.nickname}</strong>
                         </div>
                         <div className={styles.clientInfoItem}>
                           <span>상호/농장명</span>
-                          <strong>{selectedClient.businessName || "미입력"}</strong>
+                          <strong>{selectedClient.businessName}</strong>
                         </div>
                         <div className={styles.clientInfoItem}>
                           <span>전화번호</span>
-                          <strong>{selectedClient.phone || "미입력"}</strong>
+                          <strong>{selectedClient.phone}</strong>
                         </div>
                         <div className={styles.clientInfoItem}>
                           <span>계좌번호</span>
-                          <strong>{selectedClient.bankAccount || "미입력"}</strong>
+                          <strong>{selectedClient.bankAccount}</strong>
                         </div>
                       </div>
 
                       <div className={styles.clientMemoBox}>
                         <span>메모</span>
-                        <p>{selectedClient.memo || "등록된 메모가 없습니다."}</p>
+                        <p>{selectedClient.memo}</p>
                       </div>
                     </>
                   )}
@@ -568,7 +568,7 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                                 workSite.workDescription,
                               )}
                             </strong>
-                            <p>{workSite.farmAddress || "주소 미입력"}</p>
+                            <p>{workSite.farmAddress}</p>
                             {workSite.workDateRange ? (
                               <span>{workSite.workDateRange}</span>
                             ) : null}
