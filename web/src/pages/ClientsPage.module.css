@@ -149,6 +149,7 @@
 }
 
 .editClientButton,
+.applyClientButton,
 .deleteClientButton {
   align-items: center;
   appearance: none;
@@ -168,6 +169,12 @@
   color: #2f3f50;
 }
 
+.applyClientButton {
+  background: #fee2e2;
+  border: 1px solid #dc2626;
+  color: #991b1b;
+}
+
 .deleteClientButton {
   background: #fff7ed;
   border: 1px solid #d97706;
@@ -175,9 +182,17 @@
 }
 
 .editClientButton:hover,
+.applyClientButton:hover,
 .deleteClientButton:hover {
   background: #f8fafc;
   cursor: pointer;
+}
+
+.editClientButton:disabled,
+.applyClientButton:disabled,
+.deleteClientButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .clientList {
@@ -250,7 +265,9 @@
 }
 
 .clientInfoItem,
+.clientInfoEditItem,
 .clientMemoBox,
+.clientMemoEditBox,
 .clientWorkSiteCard {
   background: #f8fafc;
   border: 1px solid #e1e8ef;
@@ -267,8 +284,20 @@
   padding: 10px 12px;
 }
 
+.clientInfoEditItem {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
+  min-height: 76px;
+  padding: 10px 12px;
+}
+
 .clientInfoItem span,
+.clientInfoEditItem span,
 .clientMemoBox span,
+.clientMemoEditBox span,
 .clientWorkSiteCard span {
   color: #687789;
   font-size: 12px;
@@ -293,6 +322,51 @@
   justify-content: center;
   min-height: 88px;
   padding: 12px;
+}
+
+.clientMemoEditBox {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
+  min-height: 104px;
+  padding: 12px;
+}
+
+.clientInfoEditItem input,
+.clientMemoEditBox textarea {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  color: #17202a;
+  font-size: 14px;
+  font-weight: 800;
+  min-height: 38px;
+  outline: none;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.clientMemoEditBox textarea {
+  line-height: 1.5;
+  min-height: 96px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.clientInfoEditItem input:focus,
+.clientMemoEditBox textarea:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.12);
+}
+
+.clientInlineError {
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.45;
+  margin: -6px 0 0;
 }
 
 .clientWorkSiteSection {
@@ -357,6 +431,38 @@
   padding: 24px;
   position: fixed;
   z-index: 80;
+}
+
+.clientToast {
+  align-items: center;
+  animation: clientToastEnter 180ms ease-out;
+  background: #176b5d;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(23, 107, 93, 0.24);
+  color: #ffffff;
+  display: flex;
+  font-size: 14px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  position: fixed;
+  right: 24px;
+  top: 24px;
+  z-index: 1000;
+}
+
+@keyframes clientToastEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .clientModalPanel {
@@ -599,5 +705,11 @@
 
   .clientModalPanel {
     max-height: calc(100vh - 24px);
+  }
+
+  .clientToast {
+    left: 16px;
+    right: 16px;
+    top: 16px;
   }
 }

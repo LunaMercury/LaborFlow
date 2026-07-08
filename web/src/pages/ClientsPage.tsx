@@ -24,15 +24,6 @@ type ClientFormState = {
   phone: string;
 };
 
-type ClientModalState =
-  | {
-      mode: "create";
-    }
-  | {
-      client: Client;
-      mode: "edit";
-    };
-
 const emptyClientForm: ClientFormState = {
   bankAccount: "",
   businessName: "",
@@ -65,6 +56,17 @@ function getWorkSiteTitle(siteName: string, workDescription: string) {
   return siteName || workDescription || "작업장 정보 없음";
 }
 
+function toFormState(client: Client): ClientFormState {
+  return {
+    bankAccount: client.bankAccount,
+    businessName: client.businessName,
+    memo: client.memo,
+    name: client.name,
+    nickname: client.nickname,
+    phone: client.phone,
+  };
+}
+
 function formatPhoneInput(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 11);
 
@@ -79,18 +81,42 @@ function formatPhoneInput(value: string) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 }
 
+function hasVisibleClientLabel(formState: ClientFormState) {
+  return [
+    formState.name,
+    formState.nickname,
+    formState.businessName,
+    formState.phone,
+  ].some((value) => value.trim().length > 0);
+}
+
 export function ClientsPage({ loginId }: ClientsPageProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedProfileUuid, setSelectedProfileUuid] = useState<string | null>(null);
-  const [modalState, setModalState] = useState<ClientModalState | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [formState, setFormState] = useState<ClientFormState>(emptyClientForm);
+  const [editFormState, setEditFormState] = useState<ClientFormState>(emptyClientForm);
+  const [editingProfileUuid, setEditingProfileUuid] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [formError, setFormError] = useState("");
+  const [inlineError, setInlineError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isMobileCallImportAvailable, setIsMobileCallImportAvailable] =
     useState(false);
   const [callImportMessage, setCallImportMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!statusMessage) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setStatusMessage("");
+    }, 2600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [statusMessage]);
 
   useEffect(() => {
     let isMounted = true;
@@ -130,6 +156,11 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
   }, [loginId]);
 
   useEffect(() => {
+    setEditingProfileUuid(null);
+    setInlineError("");
+  }, [selectedProfileUuid]);
+
+  useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 720px)");
     const updateAvailability = () => {
       setIsMobileCallImportAvailable(mediaQuery.matches);
@@ -152,22 +183,16 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
   const openCreateModal = () => {
     setFormState(emptyClientForm);
     setFormError("");
+    setInlineError("");
     setCallImportMessage("");
-    setModalState({ mode: "create" });
+    setEditingProfileUuid(null);
+    setIsCreateModalOpen(true);
   };
 
-  const openEditModal = (client: Client) => {
-    setFormState({
-      bankAccount: client.bankAccount,
-      businessName: client.businessName,
-      memo: client.memo,
-      name: client.name,
-      nickname: client.nickname,
-      phone: client.phone,
-    });
-    setFormError("");
-    setCallImportMessage("");
-    setModalState({ client, mode: "edit" });
+  const startInlineEdit = (client: Client) => {
+    setEditFormState(toFormState(client));
+    setInlineError("");
+    setEditingProfileUuid(client.profileUuid);
   };
 
   const closeClientModal = () => {
@@ -175,13 +200,20 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
       return;
     }
 
-    setModalState(null);
+    setIsCreateModalOpen(false);
     setFormError("");
     setCallImportMessage("");
   };
 
   const updateFormValue = (field: keyof ClientFormState, value: string) => {
     setFormState((currentFormState) => ({
+      ...currentFormState,
+      [field]: field === "phone" ? formatPhoneInput(value) : value,
+    }));
+  };
+
+  const updateEditValue = (field: keyof ClientFormState, value: string) => {
+    setEditFormState((currentFormState) => ({
       ...currentFormState,
       [field]: field === "phone" ? formatPhoneInput(value) : value,
     }));
@@ -207,14 +239,7 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
   };
 
   const submitClient = async () => {
-    const hasVisibleLabel = [
-      formState.name,
-      formState.nickname,
-      formState.businessName,
-      formState.phone,
-    ].some((value) => value.trim().length > 0);
-
-    if (!hasVisibleLabel) {
+    if (!hasVisibleClientLabel(formState)) {
       setFormError("이름, 호칭, 상호/농장명, 전화번호 중 하나는 입력해야 합니다.");
       return;
     }
@@ -223,19 +248,9 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
     setFormError("");
 
     try {
-      const nextClients =
-        modalState?.mode === "edit"
-          ? await updateClient(loginId, modalState.client.profileUuid, formState)
-          : await createClient(loginId, formState);
+      const nextClients = await createClient(loginId, formState);
       setClients(nextClients);
       setSelectedProfileUuid((currentProfileUuid) => {
-        if (
-          modalState?.mode === "edit" &&
-          nextClients.some((client) => client.profileUuid === modalState.client.profileUuid)
-        ) {
-          return modalState.client.profileUuid;
-        }
-
         if (
           currentProfileUuid &&
           nextClients.some((client) => client.profileUuid === currentProfileUuid)
@@ -245,14 +260,34 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
 
         return nextClients[0]?.profileUuid ?? null;
       });
-      setStatusMessage(
-        modalState?.mode === "edit"
-          ? "거래처 정보가 수정되었습니다."
-          : "거래처가 등록되었습니다.",
-      );
-      setModalState(null);
+      setStatusMessage("거래처가 등록되었습니다.");
+      setIsCreateModalOpen(false);
     } catch (error) {
       setFormError(
+        error instanceof Error ? error.message : "거래처 정보를 저장하지 못했습니다.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const submitInlineClient = async (client: Client) => {
+    if (!hasVisibleClientLabel(editFormState)) {
+      setInlineError("이름, 호칭, 상호/농장명, 전화번호 중 하나는 입력해야 합니다.");
+      return;
+    }
+
+    setIsSaving(true);
+    setInlineError("");
+
+    try {
+      const nextClients = await updateClient(loginId, client.profileUuid, editFormState);
+      setClients(nextClients);
+      setSelectedProfileUuid(client.profileUuid);
+      setEditingProfileUuid(null);
+      setStatusMessage("거래처 정보를 저장했습니다.");
+    } catch (error) {
+      setInlineError(
         error instanceof Error ? error.message : "거래처 정보를 저장하지 못했습니다.",
       );
     } finally {
@@ -282,6 +317,7 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
 
         return nextClients[0]?.profileUuid ?? null;
       });
+      setEditingProfileUuid(null);
       setStatusMessage("거래처가 삭제되었습니다.");
     } catch (error) {
       window.alert(
@@ -300,9 +336,6 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
             <p className={styles.clientsLead}>
               농장주와 작업장 이력을 거래처 단위로 확인합니다.
             </p>
-            {statusMessage ? (
-              <p className={styles.clientsLead}>{statusMessage}</p>
-            ) : null}
           </div>
           <div className={styles.clientsHeaderActions}>
             <span className={styles.clientsSummary}>거래처 {clients.length}곳</span>
@@ -357,14 +390,28 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                   </div>
                   <div className={styles.clientDetailActions}>
                     <button
-                      className={styles.editClientButton}
+                      className={
+                        editingProfileUuid === selectedClient.profileUuid
+                          ? styles.applyClientButton
+                          : styles.editClientButton
+                      }
+                      disabled={isSaving}
                       type="button"
-                      onClick={() => openEditModal(selectedClient)}
+                      onClick={() =>
+                        editingProfileUuid === selectedClient.profileUuid
+                          ? submitInlineClient(selectedClient)
+                          : startInlineEdit(selectedClient)
+                      }
                     >
-                      수정
+                      {editingProfileUuid === selectedClient.profileUuid
+                        ? isSaving
+                          ? "저장 중"
+                          : "적용"
+                        : "수정"}
                     </button>
                     <button
                       className={styles.deleteClientButton}
+                      disabled={isSaving}
                       type="button"
                       onClick={() => removeClient(selectedClient)}
                     >
@@ -373,33 +420,102 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                   </div>
                 </div>
                 <div className={styles.clientDetailBody}>
-                  <div className={styles.clientInfoGrid}>
-                    <div className={styles.clientInfoItem}>
-                      <span>이름</span>
-                      <strong>{selectedClient.name || "미입력"}</strong>
-                    </div>
-                    <div className={styles.clientInfoItem}>
-                      <span>호칭</span>
-                      <strong>{selectedClient.nickname || "미입력"}</strong>
-                    </div>
-                    <div className={styles.clientInfoItem}>
-                      <span>상호/농장명</span>
-                      <strong>{selectedClient.businessName || "미입력"}</strong>
-                    </div>
-                    <div className={styles.clientInfoItem}>
-                      <span>전화번호</span>
-                      <strong>{selectedClient.phone || "미입력"}</strong>
-                    </div>
-                    <div className={styles.clientInfoItem}>
-                      <span>계좌번호</span>
-                      <strong>{selectedClient.bankAccount || "미입력"}</strong>
-                    </div>
-                  </div>
+                  {editingProfileUuid === selectedClient.profileUuid ? (
+                    <>
+                      <div className={styles.clientInfoGrid}>
+                        <label className={styles.clientInfoEditItem}>
+                          <span>이름</span>
+                          <input
+                            value={editFormState.name}
+                            onChange={(event) =>
+                              updateEditValue("name", event.target.value)
+                            }
+                          />
+                        </label>
+                        <label className={styles.clientInfoEditItem}>
+                          <span>호칭</span>
+                          <input
+                            value={editFormState.nickname}
+                            onChange={(event) =>
+                              updateEditValue("nickname", event.target.value)
+                            }
+                          />
+                        </label>
+                        <label className={styles.clientInfoEditItem}>
+                          <span>상호/농장명</span>
+                          <input
+                            value={editFormState.businessName}
+                            onChange={(event) =>
+                              updateEditValue("businessName", event.target.value)
+                            }
+                          />
+                        </label>
+                        <label className={styles.clientInfoEditItem}>
+                          <span>전화번호</span>
+                          <input
+                            inputMode="numeric"
+                            value={editFormState.phone}
+                            onChange={(event) =>
+                              updateEditValue("phone", event.target.value)
+                            }
+                          />
+                        </label>
+                        <label className={styles.clientInfoEditItem}>
+                          <span>계좌번호</span>
+                          <input
+                            inputMode="numeric"
+                            value={editFormState.bankAccount}
+                            onChange={(event) =>
+                              updateEditValue("bankAccount", event.target.value)
+                            }
+                          />
+                        </label>
+                      </div>
 
-                  <div className={styles.clientMemoBox}>
-                    <span>메모</span>
-                    <p>{selectedClient.memo || "등록된 메모가 없습니다."}</p>
-                  </div>
+                      <label className={styles.clientMemoEditBox}>
+                        <span>메모</span>
+                        <textarea
+                          value={editFormState.memo}
+                          onChange={(event) =>
+                            updateEditValue("memo", event.target.value)
+                          }
+                        />
+                      </label>
+                      {inlineError ? (
+                        <p className={styles.clientInlineError}>{inlineError}</p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <>
+                      <div className={styles.clientInfoGrid}>
+                        <div className={styles.clientInfoItem}>
+                          <span>이름</span>
+                          <strong>{selectedClient.name || "미입력"}</strong>
+                        </div>
+                        <div className={styles.clientInfoItem}>
+                          <span>호칭</span>
+                          <strong>{selectedClient.nickname || "미입력"}</strong>
+                        </div>
+                        <div className={styles.clientInfoItem}>
+                          <span>상호/농장명</span>
+                          <strong>{selectedClient.businessName || "미입력"}</strong>
+                        </div>
+                        <div className={styles.clientInfoItem}>
+                          <span>전화번호</span>
+                          <strong>{selectedClient.phone || "미입력"}</strong>
+                        </div>
+                        <div className={styles.clientInfoItem}>
+                          <span>계좌번호</span>
+                          <strong>{selectedClient.bankAccount || "미입력"}</strong>
+                        </div>
+                      </div>
+
+                      <div className={styles.clientMemoBox}>
+                        <span>메모</span>
+                        <p>{selectedClient.memo || "등록된 메모가 없습니다."}</p>
+                      </div>
+                    </>
+                  )}
 
                   <div className={styles.clientWorkSiteSection}>
                     <h3>작업장 이력</h3>
@@ -440,7 +556,13 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
         </div>
       </section>
 
-      {modalState ? (
+      {statusMessage ? (
+        <div className={styles.clientToast} role="status">
+          {statusMessage}
+        </div>
+      ) : null}
+
+      {isCreateModalOpen ? (
         <div
           className={styles.clientModalBackdrop}
           role="presentation"
@@ -457,9 +579,7 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
             role="dialog"
           >
             <div className={styles.clientModalHeader}>
-              <h2 id="client-modal-title">
-                {modalState.mode === "edit" ? "거래처 정보 수정" : "거래처 추가"}
-              </h2>
+              <h2 id="client-modal-title">거래처 추가</h2>
               <div className={styles.clientModalActions}>
                 <button
                   className={styles.clientModalPrimaryButton}
@@ -467,11 +587,7 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                   type="button"
                   onClick={submitClient}
                 >
-                  {isSaving
-                    ? "저장 중"
-                    : modalState.mode === "edit"
-                      ? "저장"
-                      : "등록"}
+                  {isSaving ? "등록 중" : "등록"}
                 </button>
                 <button
                   className={styles.clientModalSecondaryButton}
@@ -484,35 +600,33 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
             </div>
 
             <div className={styles.clientModalBody}>
-              {modalState.mode === "create" ? (
-                <div className={styles.callImportBox}>
-                  <div className={styles.callImportHeader}>
-                    <span className={styles.callImportTitle}>통화 기반 자동입력</span>
-                    <button
-                      className={styles.callImportButton}
-                      disabled={!isMobileCallImportAvailable}
-                      type="button"
-                      onClick={handleCallImport}
-                    >
-                      통화기록에서
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      accept="audio/*"
-                      hidden
-                      type="file"
-                      onChange={(event) => handleCallFileSelected(event.target.files)}
-                    />
-                  </div>
-                  <p className={styles.callImportDescription}>
-                    모바일 환경에서 녹음 파일을 선택하면, 이후 분석 파이프라인이 이
-                    입력폼을 자동완성하는 구조로 연결됩니다.
-                  </p>
-                  {callImportMessage ? (
-                    <p className={styles.callImportDescription}>{callImportMessage}</p>
-                  ) : null}
+              <div className={styles.callImportBox}>
+                <div className={styles.callImportHeader}>
+                  <span className={styles.callImportTitle}>통화 기반 자동입력</span>
+                  <button
+                    className={styles.callImportButton}
+                    disabled={!isMobileCallImportAvailable}
+                    type="button"
+                    onClick={handleCallImport}
+                  >
+                    통화기록에서
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    accept="audio/*"
+                    hidden
+                    type="file"
+                    onChange={(event) => handleCallFileSelected(event.target.files)}
+                  />
                 </div>
-              ) : null}
+                <p className={styles.callImportDescription}>
+                  모바일 환경에서 녹음 파일을 선택하면, 이후 분석 파이프라인이 이
+                  입력폼을 자동완성하는 구조로 연결됩니다.
+                </p>
+                {callImportMessage ? (
+                  <p className={styles.callImportDescription}>{callImportMessage}</p>
+                ) : null}
+              </div>
 
               <div className={styles.clientFormGrid}>
                 <div className={styles.clientFormField}>
