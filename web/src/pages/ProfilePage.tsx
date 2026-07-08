@@ -99,6 +99,18 @@ export function ProfilePage({ loginId, onAccountWithdrawn }: ProfilePageProps) {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   useEffect(() => {
+    if (!statusMessage) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setStatusMessage("");
+    }, 2600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [statusMessage]);
+
+  useEffect(() => {
     let isMounted = true;
 
     async function loadProfile() {
@@ -218,7 +230,9 @@ export function ProfilePage({ loginId, onAccountWithdrawn }: ProfilePageProps) {
         </div>
 
         {statusMessage ? (
-          <p className={styles.profileStatusMessage}>{statusMessage}</p>
+          <div className={styles.profileToast} role="status">
+            {statusMessage}
+          </div>
         ) : null}
         {errorMessage ? (
           <p className={styles.profileErrorMessage}>{errorMessage}</p>
