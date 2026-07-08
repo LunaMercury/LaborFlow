@@ -49,7 +49,8 @@
 
 .profileStatusGroup span,
 .profileStatusGroup strong,
-.profileStatusMessage {
+.profileStatusMessage,
+.profileErrorMessage {
   font-size: 13px;
   font-weight: 900;
 }
@@ -64,6 +65,11 @@
 
 .profileStatusMessage {
   color: #176b5d;
+  margin: 0 0 12px;
+}
+
+.profileErrorMessage {
+  color: #a33d21;
   margin: 0 0 12px;
 }
 
@@ -146,6 +152,12 @@
   color: #687789;
 }
 
+.profileField input:disabled,
+.profileToggle input:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .profileField input:focus,
 .profileField select:focus {
   border-color: #176b5d;
@@ -172,6 +184,11 @@
 
 .fullWidthField {
   grid-column: 1 / -1;
+}
+
+.requiredMark {
+  color: #c8482e;
+  font-size: 13px;
 }
 
 .profileActions {
@@ -212,6 +229,13 @@
 .profileSecondaryButton:hover {
   cursor: pointer;
   filter: brightness(0.97);
+}
+
+.profilePrimaryButton:disabled,
+.profileSecondaryButton:disabled {
+  cursor: not-allowed;
+  filter: none;
+  opacity: 0.58;
 }
 
 @media (max-width: 840px) {

@@ -39,7 +39,7 @@ Central `farm_owner` canonical fields are for identity merge and internal modera
 Service user data for labor agency owners follows the same split:
 
 - `labor_agency_owner`: non-sensitive labor agency owner profile.
-- `labor_agency_owner_sensitive_profile`: phone, bank account, email, business registration number, and other encrypted sensitive fields.
+- `labor_agency_owner_sensitive_profile`: phone, office phone, office address, bank account, email, business registration number, and other encrypted sensitive fields.
 
 Worker records are split into central identity and agency-private views:
 
