@@ -90,26 +90,6 @@ function formatTwoFactorStatus(status: string) {
   return (twoFactorLabels[status] ?? status) || "미설정";
 }
 
-function EyeIcon() {
-  return (
-    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">
-      <path d="M2.2 12s3.5-6.5 9.8-6.5S21.8 12 21.8 12s-3.5 6.5-9.8 6.5S2.2 12 2.2 12Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">
-      <path d="M2.2 12s3.5-6.5 9.8-6.5c2.4 0 4.4.9 5.9 2" />
-      <path d="M21.8 12s-3.5 6.5-9.8 6.5c-2.4 0-4.4-.9-5.9-2" />
-      <path d="M4 4l16 16" />
-      <path d="M9.9 9.9A3 3 0 0 0 14.1 14.1" />
-    </svg>
-  );
-}
-
 export function ProfilePage({ loginId, onAccountWithdrawn }: ProfilePageProps) {
   const [profile, setProfile] = useState<ProfileFormState>(emptyProfile);
   const [statusMessage, setStatusMessage] = useState("");
@@ -117,7 +97,6 @@ export function ProfilePage({ loginId, onAccountWithdrawn }: ProfilePageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -256,25 +235,13 @@ export function ProfilePage({ loginId, onAccountWithdrawn }: ProfilePageProps) {
                 <input readOnly type="text" value={profile.loginId || loginId} />
               </label>
               <div className={styles.passwordFieldRow}>
-                <label className={styles.profileField}>
+                <div className={styles.profileField}>
                   <span>비밀번호</span>
-                  <div className={styles.passwordInputWrapper}>
-                    <input
-                      disabled
-                      readOnly
-                      type={isPasswordVisible ? "text" : "password"}
-                      value={isPasswordVisible ? "보안상 표시 불가" : "**********"}
-                    />
-                    <button
-                      aria-label={isPasswordVisible ? "비밀번호 숨기기" : "비밀번호 보기"}
-                      className={styles.passwordVisibilityButton}
-                      type="button"
-                      onClick={() => setIsPasswordVisible((currentValue) => !currentValue)}
-                    >
-                      {isPasswordVisible ? <EyeIcon /> : <EyeOffIcon />}
-                    </button>
+                  <div className={styles.passwordStatusBox}>
+                    <strong>설정됨</strong>
+                    <small>기존 비밀번호는 보안상 표시하지 않습니다.</small>
                   </div>
-                </label>
+                </div>
                 <button
                   className={styles.profileSecondaryButton}
                   type="button"
