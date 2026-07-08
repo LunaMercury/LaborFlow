@@ -248,14 +248,7 @@ export function ProfilePage({ loginId, onAccountWithdrawn }: ProfilePageProps) {
                 <span>아이디</span>
                 <input readOnly type="text" value={profile.loginId || loginId} />
               </label>
-              <div className={styles.passwordFieldRow}>
-                <div className={styles.profileField}>
-                  <span>비밀번호</span>
-                  <div className={styles.passwordStatusBox}>
-                    <strong>설정됨</strong>
-                    <small>기존 비밀번호는 보안상 표시하지 않습니다.</small>
-                  </div>
-                </div>
+              <div className={styles.passwordActionSlot}>
                 <button
                   className={styles.profileSecondaryButton}
                   type="button"

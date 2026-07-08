@@ -152,13 +152,6 @@
   padding: 16px;
 }
 
-.passwordFieldRow {
-  align-items: end;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
 .profileField,
 .profileToggle {
   align-items: stretch;
@@ -188,30 +181,12 @@
   width: 100%;
 }
 
-.passwordStatusBox {
+.passwordActionSlot {
   align-items: center;
-  background: #edf2f6;
-  border: 1px solid #c8d4e0;
-  border-radius: 8px;
-  color: #2f3f50;
   display: flex;
-  gap: 10px;
   justify-content: flex-start;
-  min-height: 40px;
-  padding: 0 12px;
+  min-height: 67px;
   width: 100%;
-}
-
-.passwordStatusBox strong {
-  color: #176b5d;
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.passwordStatusBox small {
-  color: #687789;
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .profileField input:read-only {
@@ -389,13 +364,8 @@
     flex-direction: column;
   }
 
-  .passwordFieldRow,
   .withdrawSection {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .passwordFieldRow {
-    display: flex;
   }
 }
