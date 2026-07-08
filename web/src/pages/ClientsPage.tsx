@@ -195,6 +195,15 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
     setEditingProfileUuid(client.profileUuid);
   };
 
+  const cancelInlineEdit = () => {
+    if (isSaving) {
+      return;
+    }
+
+    setEditingProfileUuid(null);
+    setInlineError("");
+  };
+
   const closeClientModal = () => {
     if (isSaving) {
       return;
@@ -389,34 +398,43 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                     <span>{selectedClient.workSites.length}개 작업장</span>
                   </div>
                   <div className={styles.clientDetailActions}>
-                    <button
-                      className={
-                        editingProfileUuid === selectedClient.profileUuid
-                          ? styles.applyClientButton
-                          : styles.editClientButton
-                      }
-                      disabled={isSaving}
-                      type="button"
-                      onClick={() =>
-                        editingProfileUuid === selectedClient.profileUuid
-                          ? submitInlineClient(selectedClient)
-                          : startInlineEdit(selectedClient)
-                      }
-                    >
-                      {editingProfileUuid === selectedClient.profileUuid
-                        ? isSaving
-                          ? "저장 중"
-                          : "적용"
-                        : "수정"}
-                    </button>
-                    <button
-                      className={styles.deleteClientButton}
-                      disabled={isSaving}
-                      type="button"
-                      onClick={() => removeClient(selectedClient)}
-                    >
-                      삭제
-                    </button>
+                    {editingProfileUuid === selectedClient.profileUuid ? (
+                      <>
+                        <button
+                          className={styles.deleteClientButton}
+                          disabled={isSaving}
+                          type="button"
+                          onClick={() => removeClient(selectedClient)}
+                        >
+                          거래처 삭제
+                        </button>
+                        <button
+                          className={styles.cancelClientButton}
+                          disabled={isSaving}
+                          type="button"
+                          onClick={cancelInlineEdit}
+                        >
+                          취소
+                        </button>
+                        <button
+                          className={styles.applyClientButton}
+                          disabled={isSaving}
+                          type="button"
+                          onClick={() => submitInlineClient(selectedClient)}
+                        >
+                          {isSaving ? "저장 중" : "적용"}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className={styles.editClientButton}
+                        disabled={isSaving}
+                        type="button"
+                        onClick={() => startInlineEdit(selectedClient)}
+                      >
+                        수정
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className={styles.clientDetailBody}>
