@@ -9,11 +9,11 @@ export const menuItems: NavigationItem[] = [
     label: "인력 현황",
     path: "/workers",
     children: [
-      { label: "거래처 목록", path: "/clients" },
       { label: "작업자 목록", path: "/workers" },
       { label: "팀 목록", path: "/teams" },
     ],
   },
+  { label: "거래처 목록", path: "/clients" },
   { label: "근태 관리", path: "/attendance" },
   { label: "일정 관리", path: "/schedule" },
   { label: "작업 일정", path: "/work-schedule" },
