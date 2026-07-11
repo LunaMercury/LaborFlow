@@ -790,7 +790,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
           setRequiredCountsByTaskId({});
           setMemoByTaskId({});
           setTaskDetailDraftsByTaskId({});
-          setStatusMessage("작업 일정 데이터를 불러오지 못했습니다.");
+          setStatusMessage("작업자 배치 데이터를 불러오지 못했습니다.");
         }
       });
 
@@ -1224,12 +1224,12 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       setEditingTaskId((currentTaskId) =>
         currentTaskId === savedTask.id ? null : currentTaskId,
       );
-      setStatusMessage("작업 일정이 저장되었습니다.");
+      setStatusMessage("작업자 배치가 저장되었습니다.");
     } catch (error) {
       setStatusMessage(
         error instanceof Error
           ? error.message
-          : "작업 일정을 저장하지 못했습니다.",
+          : "작업자 배치를 저장하지 못했습니다.",
       );
     } finally {
       setSavingTaskId(null);
@@ -1793,12 +1793,13 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     workerId: string,
     event: ReactPointerEvent<HTMLElement>,
   ) => {
-    if (event.button !== 0) {
+    if (event.pointerType === "mouse" && event.button !== 0) {
       return;
     }
 
     event.preventDefault();
     event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     moveDragPreview(event.clientX, event.clientY);
     const worker = workers.find(
       (currentWorker) => getWorkerId(currentWorker) === workerId,
@@ -1813,11 +1814,13 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     team: WorkerTeamGroup,
     event: ReactPointerEvent<HTMLElement>,
   ) => {
-    if (event.button !== 0) {
+    if (event.pointerType === "mouse" && event.button !== 0) {
       return;
     }
 
     event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     moveDragPreview(event.clientX, event.clientY);
     setDraggingWorker({
       label: team.teamName,
@@ -2113,7 +2116,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
 
   return (
     <main className={styles.mainContent}>
-      <section className={styles.workSchedulePanel} aria-label="작업 일정">
+      <section className={styles.workSchedulePanel} aria-label="작업자 배치">
         <div className={styles.scheduleDateBar}>
           {statusMessage ? (
             <p className={styles.scheduleStatusMessage}>{statusMessage}</p>

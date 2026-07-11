@@ -443,6 +443,7 @@
     box-shadow 140ms ease,
     opacity 140ms ease,
     transform 140ms ease;
+  touch-action: none;
   user-select: none;
   width: 100%;
 }
@@ -472,6 +473,7 @@
     box-shadow 140ms ease,
     opacity 140ms ease,
     transform 140ms ease;
+  touch-action: none;
   user-select: none;
 }
 
@@ -1559,7 +1561,7 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 819px) {
   .scheduleDateBar {
     align-items: stretch;
     grid-template-columns: 1fr;
@@ -1578,19 +1580,231 @@
   }
 
   .workScheduleSplit {
-    grid-template-columns: 1fr;
+    gap: 8px;
+    grid-template-columns: minmax(112px, 37fr) minmax(0, 63fr);
   }
 
   .scheduleColumn {
+    border-radius: 6px;
     min-height: 520px;
+    min-width: 0;
+  }
+
+  .scheduleColumnHeader {
+    align-items: center;
+    min-height: 52px;
+    padding: 9px 8px;
+  }
+
+  .scheduleColumnHeader .sectionLabel {
+    font-size: 12px;
+    margin-bottom: 0;
+  }
+
+  .scheduleColumnHeader h2 {
+    display: none;
+  }
+
+  .scheduleCountBadge {
+    font-size: 11px;
+    min-height: 24px;
+    padding: 0 7px;
+  }
+
+  .scheduleWorkerFilterPanel {
+    gap: 5px;
+    margin: 8px 8px 0;
+    padding: 6px;
+  }
+
+  .scheduleFilterField {
+    gap: 5px;
+    padding: 7px;
+  }
+
+  .scheduleFilterChipList {
+    gap: 4px;
+  }
+
+  .scheduleFilterChip {
+    font-size: 10px;
+    min-height: 22px;
+    padding: 0 7px;
+  }
+
+  .scheduleTeamToggle {
+    font-size: 11px;
+  }
+
+  .scheduleWorkerList,
+  .scheduleTaskList {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .scheduleWorkerGroup {
+    gap: 6px;
+  }
+
+  .scheduleGroupTitle {
+    font-size: 11px;
+  }
+
+  .scheduleWorkerToken,
+  .scheduleWorkerTeamCard .scheduleWorkerToken {
+    gap: 4px;
+    min-height: 54px;
+    min-width: 0;
+    padding: 7px;
+  }
+
+  .scheduleWorkerTokenLine,
+  .scheduleWorkerTeamCard .scheduleWorkerTokenLine {
+    gap: 4px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .scheduleWorkerToken .scheduleWorkerWorkTypes,
+  .scheduleWorkerInlineEditButton {
+    display: none;
+  }
+
+  .scheduleWorkerName {
+    font-size: 12px;
+  }
+
+  .scheduleWorkerMeta {
+    font-size: 10px;
+  }
+
+  .scheduleWorkerGender,
+  .scheduleWorkerTeamCard .scheduleWorkerGender {
+    font-size: 11px;
+    min-width: auto;
+  }
+
+  .scheduleWorkerTeamCard {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .scheduleWorkerTeamTitle {
+    font-size: 11px;
+  }
+
+  .scheduleTaskCard {
+    gap: 8px;
+    padding: 9px;
   }
 
   .scheduleTaskHeader {
-    align-items: stretch;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .scheduleTaskOrderHandle {
+    display: none;
+  }
+
+  .scheduleTaskHeader h3 {
+    font-size: 13px;
+    margin-bottom: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .scheduleTaskHeader h3 span {
+    font-size: 11px;
+  }
+
+  .scheduleTaskHeader p {
+    display: -webkit-box;
+    font-size: 11px;
+    line-height: 1.35;
+    margin-top: 4px;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .scheduleTaskTime {
+    display: none;
+  }
+
+  .scheduleTaskActions {
     flex-wrap: wrap;
+    gap: 4px;
+    max-width: 100%;
+  }
+
+  .scheduleTaskApplyButton,
+  .scheduleTaskCollapseButton {
+    font-size: 14px;
+    height: 26px;
+    width: 26px;
+  }
+
+  .scheduleTaskMeta {
+    gap: 4px;
+  }
+
+  .scheduleTaskMeta > span,
+  .scheduleTaskWorkTypeEditor {
+    display: none;
+  }
+
+  .scheduleRequiredCountButton,
+  .scheduleRequiredCountEditor {
+    font-size: 10px;
+    min-height: 22px;
+    padding: 2px 6px;
   }
 
   .scheduleDropZoneGrid {
-    grid-template-columns: 1fr;
+    gap: 5px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scheduleDropZone {
+    gap: 5px;
+    min-height: 78px;
+    padding: 6px;
+  }
+
+  .scheduleDropZoneTitle {
+    font-size: 11px;
+  }
+
+  .scheduleDropHint {
+    font-size: 11px;
+    min-height: 44px;
+  }
+
+  .droppedWorkerToken {
+    min-width: 0;
+    padding: 6px;
+  }
+
+  .assignedWorkerTokenContent {
+    gap: 4px;
+  }
+
+  .assignedWorkerTokenIdentity .scheduleWorkerName {
+    font-size: 12px;
+  }
+
+  .assignedWorkerTokenIdentity .scheduleWorkerMeta,
+  .droppedWorkerToken .assignmentCountButton {
+    font-size: 10px;
+  }
+
+  .droppedWorkerToken .assignmentCountButton {
+    height: 20px;
+    padding: 0 5px;
+  }
+
+  .scheduleTaskMemo {
+    display: none;
   }
 }

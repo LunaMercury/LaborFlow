@@ -36,7 +36,7 @@ export const servicePages: Record<string, ServicePageContent> = {
     summary: "농장별 작업 일정과 필요 인원을 배정하는 화면입니다.",
   },
   "/work-schedule": {
-    label: "작업 일정",
+    label: "작업자 배치",
     title: "작업별 배정을 확인합니다.",
     summary: "작업 내용, 현장, 이동 흐름을 기준으로 배정 상태를 확인하는 화면입니다.",
   },
