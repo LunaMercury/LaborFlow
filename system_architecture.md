@@ -39,6 +39,17 @@ LaborFlow는 Java Spring Boot 기반 core backend, Rust 기반 hot path backend,
 - 데이터 보관/삭제 정책.
 - 검증 스크립트와 릴리즈 차단 기준.
 
+## 근태 관리 계약
+
+- Web의 `/attendance`는 선택한 날짜의 배정과 근태 기록을 현장별로 조회합니다.
+- 조회는 `GET /api/attendance/records?loginId={loginId}&workDate={yyyy-MM-dd}`를 사용합니다.
+- 행 단위 수정은 `PATCH /api/attendance/records/{assignmentUuid}?loginId={loginId}`를 사용합니다.
+- 영업 시간대는 `Asia/Seoul`이며 미래 날짜의 근태 확정은 거부합니다.
+- 상태는 `DRAFT`, `WORKED`, `ABSENT`, `CANCELLED`를 사용하고 실제 시간 기록 방식은 `PLANNED`, `EXACT`, `ESTIMATED`, `UNKNOWN`을 사용합니다.
+- `예정대로 근무` 일괄 확정은 미확인 기록만 처리하며, 이미 수기로 확정한 시간·결근·취소 기록을 덮어쓰지 않습니다.
+- 근태 원본과 변경 이력은 PostgreSQL에 저장하며, 수정 시 인력사무소 소유권 검사를 서버에서 수행합니다.
+- 작업별 근태 메모는 계획 단계의 `work_schedule_day.memo`를 덮어쓰지 않고 `work_schedule_day_attendance_summary`와 변경 이력 테이블에 별도로 저장합니다.
+
 ## Toolchain 기준
 
 - Java/Spring backend-core는 JDK 26과 Spring Boot 4.x 최신 안정 버전을 기준으로 합니다.

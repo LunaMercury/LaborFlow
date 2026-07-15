@@ -1,0 +1,493 @@
+.attendancePanel {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  justify-content: flex-start;
+  margin: 0 auto;
+  max-width: 1480px;
+  width: 100%;
+}
+
+.attendanceHeader {
+  align-items: flex-end;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.attendanceHeader h1 {
+  font-size: 28px;
+  line-height: 1.25;
+  margin: 4px 0 0;
+}
+
+.confirmPlannedButton {
+  background: #176b5d;
+  border: 1px solid #176b5d;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 0 16px;
+}
+
+.confirmPlannedButton:hover:not(:disabled) {
+  background: #10594e;
+  cursor: pointer;
+}
+
+.confirmPlannedButton:disabled {
+  background: #c9d1d8;
+  border-color: #c9d1d8;
+  cursor: not-allowed;
+}
+
+.attendanceDateBar {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d7e0e8;
+  border-radius: 7px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 54px;
+  padding: 8px 12px;
+}
+
+.attendanceDateBar button {
+  background: transparent;
+  border: 1px solid #cbd6df;
+  border-radius: 5px;
+  color: #344454;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.attendanceDateBar button:hover {
+  background: #edf2f6;
+  cursor: pointer;
+}
+
+.attendanceDateBar .todayButton {
+  border-color: #83a99f;
+  color: #176b5d;
+}
+
+.attendanceDateField {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.attendanceDateField span {
+  color: #1d2a35;
+  font-size: 15px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.attendanceDateField input {
+  border: 1px solid #becbd6;
+  border-radius: 5px;
+  color: #263744;
+  font: inherit;
+  min-height: 34px;
+  padding: 0 8px;
+}
+
+.attendanceSummary {
+  align-items: center;
+  background: #eef3f5;
+  border-bottom: 1px solid #d7e0e8;
+  border-top: 1px solid #d7e0e8;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(90px, 1fr));
+  justify-content: center;
+  min-height: 62px;
+}
+
+.attendanceSummary span {
+  align-items: baseline;
+  border-right: 1px solid #d7e0e8;
+  color: #586877;
+  display: flex;
+  font-size: 13px;
+  gap: 7px;
+  justify-content: center;
+  min-height: 34px;
+}
+
+.attendanceSummary span:last-child {
+  border-right: 0;
+}
+
+.attendanceSummary strong {
+  color: #17202a;
+  font-size: 20px;
+}
+
+.attendanceFilters {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.attendanceFilters > span {
+  color: #62717f;
+  font-size: 13px;
+  font-weight: 900;
+  margin-right: 4px;
+}
+
+.attendanceFilters button {
+  background: #ffffff;
+  border: 1px solid #cfd9e1;
+  border-radius: 5px;
+  color: #4a5a68;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 32px;
+  padding: 0 12px;
+}
+
+.attendanceFilters button:hover {
+  border-color: #83a99f;
+  cursor: pointer;
+}
+
+.attendanceFilters .activeFilterButton {
+  background: #dceae6;
+  border-color: #6e9d91;
+  color: #145c50;
+}
+
+.attendanceTaskList {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: flex-start;
+}
+
+.attendanceTaskSection {
+  background: #ffffff;
+  border: 1px solid #d7e0e8;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.attendanceTaskHeader {
+  align-items: center;
+  background: #f2f5f7;
+  border-bottom: 1px solid #d7e0e8;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  min-height: 66px;
+  padding: 10px 16px;
+}
+
+.attendanceTaskHeader h2 {
+  font-size: 17px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.attendanceTaskHeader h2 span {
+  color: #4d625e;
+  font-size: 14px;
+}
+
+.attendanceTaskHeader p {
+  color: #687887;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 3px 0 0;
+}
+
+.attendanceTaskHeader > strong {
+  color: #176b5d;
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+
+.attendanceTableFrame {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.attendanceTable {
+  border-collapse: collapse;
+  min-width: 760px;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.attendanceTable th {
+  background: #fafbfc;
+  border-bottom: 1px solid #e0e7ed;
+  color: #596978;
+  font-size: 12px;
+  font-weight: 900;
+  height: 38px;
+  padding: 0 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 열 너비의 합계를 100%로 유지해 남는 공간이 임의로 재분배되지 않게 한다. */
+.attendanceTable th:first-child {
+  width: 17%;
+}
+
+.attendanceTable th:nth-child(2) {
+  width: 6%;
+}
+
+.attendanceTable th:nth-child(3) {
+  width: 14%;
+}
+
+.attendanceTable th:nth-child(4),
+.attendanceTable th:nth-child(5) {
+  width: 10%;
+}
+
+.attendanceTable th:nth-child(6) {
+  width: 8%;
+}
+
+.attendanceTable th:nth-child(7) {
+  width: 12%;
+}
+
+.attendanceTable th:nth-child(8) {
+  width: 13%;
+}
+
+.attendanceTable th:last-child {
+  width: 10%;
+}
+
+.attendanceTable td {
+  border-bottom: 1px solid #e5ebf0;
+  color: #344451;
+  font-size: 13px;
+  height: 70px;
+  padding: 8px;
+  text-align: center;
+}
+
+.attendanceTable tr:last-child td {
+  border-bottom: 0;
+}
+
+.attendanceTable input,
+.attendanceTable select {
+  background: #ffffff;
+  border: 1px solid #c8d3dc;
+  border-radius: 5px;
+  color: #273744;
+  font: inherit;
+  height: 34px;
+  max-width: 100%;
+  padding: 0 7px;
+  width: 100%;
+}
+
+.attendanceTable input:disabled,
+.attendanceTable select:disabled {
+  background: #edf1f4;
+  color: #8b98a3;
+}
+
+.attendanceWorkerIdentity {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+  text-align: left;
+}
+
+.attendanceWorkerIdentity strong {
+  color: #1e2c37;
+  font-size: 14px;
+}
+
+.attendanceWorkerIdentity span {
+  color: #87939d;
+  font-size: 12px;
+}
+
+.attendanceWorkerIdentity em {
+  background: #edf0f4;
+  border-radius: 4px;
+  color: #6d7780;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  padding: 2px 5px;
+}
+
+.plannedTimeCell {
+  color: #5b6d78;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.saveAttendanceButton {
+  background: #ffffff;
+  border: 1px solid #176b5d;
+  border-radius: 5px;
+  color: #176b5d;
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 34px;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+
+.saveAttendanceButton:hover:not(:disabled) {
+  background: #e5f0ed;
+  cursor: pointer;
+}
+
+.saveAttendanceButton:disabled {
+  border-color: #d4dce3;
+  color: #a1abb4;
+  cursor: not-allowed;
+}
+
+.attendanceTaskNote {
+  align-items: flex-end;
+  background: #fafbfc;
+  border-top: 1px solid #d7e0e8;
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-content: center;
+  padding: 12px 16px 14px;
+}
+
+.attendanceTaskNote label {
+  color: #4d5f6c;
+  font-size: 12px;
+  font-weight: 900;
+  grid-column: 1 / -1;
+}
+
+.attendanceTaskNote textarea {
+  border: 1px solid #c8d3dc;
+  border-radius: 5px;
+  color: #273744;
+  font: inherit;
+  line-height: 1.5;
+  min-height: 58px;
+  padding: 8px 10px;
+  resize: vertical;
+  width: 100%;
+}
+
+.attendanceTaskNote textarea:focus {
+  border-color: #6e9d91;
+  outline: 2px solid rgba(23, 107, 93, 0.12);
+}
+
+.attendanceTaskNote button {
+  background: #ffffff;
+  border: 1px solid #176b5d;
+  border-radius: 5px;
+  color: #176b5d;
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 36px;
+  padding: 0 13px;
+  white-space: nowrap;
+}
+
+.attendanceTaskNote button:hover:not(:disabled) {
+  background: #e5f0ed;
+  cursor: pointer;
+}
+
+.attendanceTaskNote button:disabled {
+  border-color: #d4dce3;
+  color: #a1abb4;
+  cursor: not-allowed;
+}
+
+.attendanceEmpty {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d7e0e8;
+  border-radius: 7px;
+  color: #73818d;
+  display: flex;
+  font-size: 14px;
+  justify-content: center;
+  min-height: 180px;
+  padding: 24px;
+}
+
+@media (max-width: 819px) {
+  .attendancePanel {
+    gap: 14px;
+  }
+
+  .attendanceHeader {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .attendanceHeader h1 {
+    font-size: 23px;
+  }
+
+  .confirmPlannedButton {
+    align-self: flex-end;
+  }
+
+  .attendanceDateBar {
+    flex-wrap: wrap;
+  }
+
+  .attendanceDateField {
+    order: -1;
+    width: 100%;
+  }
+
+  .attendanceSummary {
+    grid-template-columns: repeat(5, minmax(72px, 1fr));
+    overflow-x: auto;
+  }
+
+  .attendanceSummary span {
+    min-width: 72px;
+  }
+
+  .attendanceTaskHeader {
+    align-items: flex-start;
+  }
+
+  .attendanceTaskNote {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .attendanceTaskNote label {
+    grid-column: auto;
+  }
+
+  .attendanceTaskNote button {
+    justify-self: end;
+  }
+}

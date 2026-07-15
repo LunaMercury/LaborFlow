@@ -20,6 +20,8 @@ contracts:
   - Ubuntu/Linux verification scripts live beside Windows scripts under .skills and must remain path-relative.
   - PostgreSQL schema changes must be added under database/migrations and applied by backend-core Flyway packaging.
   - PostgreSQL is the source of truth for personal data, attendance records, schedules, workflow history, and audit trails.
+  - Attendance records use Asia/Seoul as the business timezone; confirmed manual records must not be overwritten by bulk planned-attendance confirmation.
+  - Attendance task notes are stored separately from planning memos and retain account-attributed revision history in PostgreSQL.
   - Redis is limited to short-lived cache, rate limit counters, idempotency keys, distributed locks, and realtime fan-out support.
   - Redis keys and values must not contain raw personal data, passwords, provider secrets, or long-lived audit records.
   - Backend-core feature packages use api/application/dto/dao layers; shared infrastructure belongs under common only when reused across domains.
