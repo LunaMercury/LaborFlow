@@ -197,6 +197,28 @@ export async function createWorker(
   return body.workers;
 }
 
+export async function createWorkerFromGuestAssignment(
+  loginId: string,
+  assignmentUuid: string,
+  payload: CreateWorkerPayload,
+): Promise<WorkerRow[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/workers/from-guest-assignment/${assignmentUuid}?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("미등록 참여자를 작업자로 등록하지 못했습니다.");
+  }
+
+  const body = (await response.json()) as WorkerListResponse;
+  return body.workers;
+}
+
 export async function updateWorkerIdentity(
   loginId: string,
   profileUuid: string,

@@ -126,6 +126,7 @@ function compareWorkers(
       case "pickupLocation":
         return worker.pickupLocation;
       case "recentWork":
+        return worker.lastWorkedDate ?? "";
       case "name":
       default:
         return getWorkerDisplayName(worker);
@@ -188,7 +189,7 @@ function WorkerListControls({
     { key: "phone", label: "전화번호" },
     { key: "work", label: "작업" },
     { key: "pickupLocation", label: "승차장소" },
-    { key: "recentWork", label: "최근 근무", disabled: true },
+    { key: "recentWork", label: "최근 근무" },
   ];
 
   return (
@@ -203,11 +204,14 @@ function WorkerListControls({
                   ? styles.activeWorkerControlButton
                   : styles.workerControlButton
               }
-              disabled={option.disabled}
               key={option.key}
-              title={option.disabled ? "근태/근무 이력 DB 구성 후 연결됩니다." : undefined}
               type="button"
-              onClick={() => onSortKeyChange(option.key)}
+              onClick={() => {
+                onSortKeyChange(option.key);
+                if (option.key === "recentWork") {
+                  onSortDirectionChange("desc");
+                }
+              }}
             >
               {option.label}
             </button>

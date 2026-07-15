@@ -7,12 +7,17 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
+  addGuestParticipants,
   deleteScheduleTaskRange,
   fetchScheduleTasks,
   updateScheduleTask,
   type ScheduleAssignment,
   type ScheduleTask,
 } from "../api/scheduleApi";
+import {
+  confirmPlannedAttendance,
+  type ConfirmPlannedAttendancePayload,
+} from "../api/attendanceApi";
 import {
   fetchWorkers,
   fetchWorkTypes,
@@ -23,6 +28,7 @@ import {
 } from "../api/workforceApi";
 import appStyles from "../App.module.css";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
+import { StatusSnackbar } from "../components/StatusSnackbar";
 import type { WorkerRow } from "../data/workerRows";
 import {
   workTypeOptions as fallbackWorkTypeOptions,
@@ -49,6 +55,21 @@ type EditingAssignmentCount = {
   taskId: string;
   value: string;
   workerId: string;
+};
+
+type GuestParticipantDraft = {
+  area: AssignmentArea;
+  displayName: string;
+  participantCount: string;
+  pickupLocation: string;
+  taskId: string;
+};
+
+type GuestParticipantGroup = {
+  displayName: string;
+  groupUuid: string;
+  participantCount: number;
+  pickupLocation: string;
 };
 
 type RequiredWorkerCount = {
@@ -474,9 +495,12 @@ function createAssignmentDrafts(
 ): Record<string, TaskAssignments> {
   return Object.fromEntries(
     tasks.map((task) => {
+      const registeredAssignments = task.assignments.filter(
+        (assignment) => Boolean(assignment.workerProfileUuid),
+      );
       const workerCounts = Object.fromEntries(
-        task.assignments.map((assignment) => [
-          assignment.workerProfileUuid,
+        registeredAssignments.map((assignment) => [
+          assignment.workerProfileUuid as string,
           assignment.workerCount || 1,
         ]),
       );
@@ -484,17 +508,51 @@ function createAssignmentDrafts(
       return [
         task.id,
         {
-          men: task.assignments
+          men: registeredAssignments
             .filter((assignment) => assignment.area === "men")
-            .map((assignment) => assignment.workerProfileUuid),
+            .map((assignment) => assignment.workerProfileUuid as string),
           workerCounts,
-          women: task.assignments
+          women: registeredAssignments
             .filter((assignment) => assignment.area === "women")
-            .map((assignment) => assignment.workerProfileUuid),
+            .map((assignment) => assignment.workerProfileUuid as string),
         },
       ];
     }),
   );
+}
+
+function getGuestParticipantGroups(
+  task: ScheduleTask,
+  area: AssignmentArea,
+): GuestParticipantGroup[] {
+  const groups = new Map<string, GuestParticipantGroup>();
+
+  task.assignments
+    .filter(
+      (assignment) =>
+        assignment.participantType === "guest" && assignment.area === area,
+    )
+    .forEach((assignment, index) => {
+      const groupUuid =
+        assignment.participantGroupUuid ??
+        assignment.assignmentUuid ??
+        `${task.id}-${area}-guest-${index}`;
+      const existingGroup = groups.get(groupUuid);
+
+      if (existingGroup) {
+        existingGroup.participantCount += assignment.workerCount || 1;
+        return;
+      }
+
+      groups.set(groupUuid, {
+        displayName: assignment.displayName?.trim() ?? "",
+        groupUuid,
+        participantCount: assignment.workerCount || 1,
+        pickupLocation: assignment.pickupLocation?.trim() ?? "",
+      });
+    });
+
+  return Array.from(groups.values());
 }
 
 function createRequiredCountDrafts(
@@ -639,10 +697,18 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     useState<EditingRequiredCount | null>(null);
   const [editingAssignmentCount, setEditingAssignmentCount] =
     useState<EditingAssignmentCount | null>(null);
+  const [guestParticipantDraft, setGuestParticipantDraft] =
+    useState<GuestParticipantDraft | null>(null);
   const [editingTaskMemoId, setEditingTaskMemoId] = useState<string | null>(
     null,
   );
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
+  const [savingGuestParticipantKey, setSavingGuestParticipantKey] = useState<
+    string | null
+  >(null);
+  const [confirmingAttendanceKey, setConfirmingAttendanceKey] = useState<
+    string | null
+  >(null);
   const [loadingPreviousAssignmentsTaskId, setLoadingPreviousAssignmentsTaskId] =
     useState<string | null>(null);
   const [editingWorkerDraft, setEditingWorkerDraft] =
@@ -1331,6 +1397,139 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     }
   };
 
+  const reloadSelectedDateTasks = async () => {
+    const nextTasks = applyCachedTaskOrder(
+      await fetchScheduleTasks(loginId, selectedDate),
+      loginId,
+      selectedDate,
+    );
+    setTasks(nextTasks);
+    setPersistedTasks(nextTasks);
+    setAssignedWorkerIdsByTaskId(createAssignmentDrafts(nextTasks));
+    setRequiredCountsByTaskId(createRequiredCountDrafts(nextTasks));
+    setMemoByTaskId(createMemoDrafts(nextTasks));
+    setTaskDetailDraftsByTaskId(createTaskDetailDrafts(nextTasks));
+  };
+
+  const startGuestParticipantAdd = (
+    taskId: string,
+    area: AssignmentArea,
+  ) => {
+    setGuestParticipantDraft({
+      area,
+      displayName: "",
+      participantCount: "1",
+      pickupLocation: "",
+      taskId,
+    });
+  };
+
+  const saveGuestParticipant = async () => {
+    if (!guestParticipantDraft) {
+      return;
+    }
+
+    const participantCount = Number.parseInt(
+      guestParticipantDraft.participantCount,
+      10,
+    );
+    if (
+      !Number.isInteger(participantCount) ||
+      participantCount < 1 ||
+      participantCount > 100
+    ) {
+      setStatusMessage("인원은 1명에서 100명 사이로 입력해 주세요.");
+      return;
+    }
+
+    const draft = guestParticipantDraft;
+    const requestKey = `${draft.taskId}:${draft.area}`;
+    setSavingGuestParticipantKey(requestKey);
+    setStatusMessage("");
+
+    try {
+      const savedTask = await addGuestParticipants(
+        loginId,
+        selectedDate,
+        draft.taskId,
+        {
+          area: draft.area,
+          displayName: draft.displayName.trim() || undefined,
+          introductionType: "NONE",
+          participantCount,
+          pickupLocation: draft.pickupLocation.trim() || undefined,
+        },
+      );
+
+      setTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask.id === savedTask.id ? savedTask : currentTask,
+        ),
+      );
+      setPersistedTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask.id === savedTask.id ? savedTask : currentTask,
+        ),
+      );
+      setAssignedWorkerIdsByTaskId((currentAssignments) => ({
+        ...currentAssignments,
+        [savedTask.id]: createAssignmentDrafts([savedTask])[savedTask.id],
+      }));
+      setRequiredCountsByTaskId((currentCounts) => ({
+        ...currentCounts,
+        [savedTask.id]: createRequiredCountDrafts([savedTask])[savedTask.id],
+      }));
+      setMemoByTaskId((currentMemos) => ({
+        ...currentMemos,
+        [savedTask.id]: savedTask.memo,
+      }));
+      setTaskDetailDraftsByTaskId((currentDrafts) => ({
+        ...currentDrafts,
+        [savedTask.id]: createTaskDetailDrafts([savedTask])[savedTask.id],
+      }));
+      setGuestParticipantDraft(null);
+      setStatusMessage(`미등록 작업자 ${participantCount}명을 추가했습니다.`);
+    } catch (error) {
+      setStatusMessage(
+        error instanceof Error
+          ? error.message
+          : "미등록 작업자를 추가하지 못했습니다.",
+      );
+    } finally {
+      setSavingGuestParticipantKey(null);
+    }
+  };
+
+  const confirmAttendanceAsPlanned = async (
+    key: string,
+    payload: ConfirmPlannedAttendancePayload,
+    confirmationMessage?: string,
+  ) => {
+    if (confirmationMessage && !window.confirm(confirmationMessage)) {
+      return;
+    }
+
+    setConfirmingAttendanceKey(key);
+    setStatusMessage("");
+    try {
+      const confirmedCount = await confirmPlannedAttendance(loginId, payload);
+      await reloadSelectedDateTasks();
+      setStatusMessage(
+        confirmedCount > 0
+          ? `${confirmedCount}명의 근무를 예정대로 확인했습니다.`
+          : "확인할 저장된 배치가 없습니다.",
+      );
+    } catch (error) {
+      setStatusMessage(
+        error instanceof Error
+          ? error.message
+          : "예정 근무를 확정하지 못했습니다.",
+      );
+    } finally {
+      setConfirmingAttendanceKey(null);
+    }
+  };
+
   const importPreviousDayAssignments = async (task: ScheduleTask) => {
     const previousDate = getPreviousDateInputValue(selectedDate);
     setLoadingPreviousAssignmentsTaskId(task.id);
@@ -1370,13 +1569,19 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             ...assignments.women,
           ]),
       );
+      const previousRegisteredAssignments = previousTask.assignments.filter(
+        (
+          assignment,
+        ): assignment is ScheduleAssignment & { workerProfileUuid: string } =>
+          Boolean(assignment.workerProfileUuid),
+      );
       const nextAssignments: TaskAssignments = {
-        men: previousTask.assignments
+        men: previousRegisteredAssignments
           .filter((assignment) => assignment.area === "men")
           .map((assignment) => assignment.workerProfileUuid)
           .filter((workerId) => !assignedToOtherTasks.has(workerId)),
         workerCounts: Object.fromEntries(
-          previousTask.assignments
+          previousRegisteredAssignments
             .filter(
               (assignment) =>
                 !assignedToOtherTasks.has(assignment.workerProfileUuid),
@@ -1386,12 +1591,12 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
               assignment.workerCount || 1,
             ]),
         ),
-        women: previousTask.assignments
+        women: previousRegisteredAssignments
           .filter((assignment) => assignment.area === "women")
           .map((assignment) => assignment.workerProfileUuid)
           .filter((workerId) => !assignedToOtherTasks.has(workerId)),
       };
-      const previousAssignmentCount = previousTask.assignments.length;
+      const previousAssignmentCount = previousRegisteredAssignments.length;
       const importedAssignmentCount =
         nextAssignments.men.length + nextAssignments.women.length;
 
@@ -2118,9 +2323,34 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     <main className={styles.mainContent}>
       <section className={styles.workSchedulePanel} aria-label="작업자 배치">
         <div className={styles.scheduleDateBar}>
-          {statusMessage ? (
-            <p className={styles.scheduleStatusMessage}>{statusMessage}</p>
-          ) : null}
+          <div className={styles.attendanceBulkActions}>
+            <button
+              disabled={confirmingAttendanceKey !== null}
+              type="button"
+              onClick={() =>
+                confirmAttendanceAsPlanned(
+                  `date:${selectedDate}`,
+                  { scope: "DATE", workDate: selectedDate },
+                  "선택한 날짜의 저장된 배치를 모두 예정대로 근무 처리할까요?",
+                )
+              }
+            >
+              날짜 전체 예정대로
+            </button>
+            <button
+              disabled={confirmingAttendanceKey !== null}
+              type="button"
+              onClick={() =>
+                confirmAttendanceAsPlanned(
+                  `week:${selectedDate}`,
+                  { scope: "WEEK", workDate: selectedDate },
+                  "선택한 날짜가 포함된 주의 저장된 배치를 모두 예정대로 근무 처리할까요?",
+                )
+              }
+            >
+              주간 전체 예정대로
+            </button>
+          </div>
           <label className={styles.scheduleDateField}>
             <span>작업일</span>
             <div className={styles.scheduleDateControl}>
@@ -2280,13 +2510,24 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                 const assignedWomenWorkers = getWorkersByIds(
                   taskAssignments.women,
                 );
+                const guestMenGroups = getGuestParticipantGroups(task, "men");
+                const guestWomenGroups = getGuestParticipantGroups(
+                  task,
+                  "women",
+                );
                 const assignedMenCount = sumWorkerCounts(
                   taskAssignments.men,
                   taskAssignments,
+                ) + guestMenGroups.reduce(
+                  (total, group) => total + group.participantCount,
+                  0,
                 );
                 const assignedWomenCount = sumWorkerCounts(
                   taskAssignments.women,
                   taskAssignments,
+                ) + guestWomenGroups.reduce(
+                  (total, group) => total + group.participantCount,
+                  0,
                 );
                 const requiredCounts = getRequiredCounts(task);
                 const taskMemo = memoByTaskId[task.id] ?? task.memo;
@@ -2376,19 +2617,32 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                   targetArea: AssignmentArea,
                   label: string,
                   assignedWorkers: WorkerRow[],
-                ) => (
-                  <div
-                    className={`${styles.scheduleDropZone} ${
-                      isDraggingWorkers ? styles.activeScheduleDropZone : ""
-                    }`}
-                    data-schedule-drop-area={targetArea}
-                    data-schedule-drop-task-id={task.id}
-                  >
-                    <div className={styles.scheduleDropZoneTitle}>{label}</div>
-                    {assignedWorkers.length > 0 ? (
-                      assignedWorkers.map((worker) => {
+                ) => {
+                  const guestGroups =
+                    targetArea === "men" ? guestMenGroups : guestWomenGroups;
+                  const isAddingGuest =
+                    guestParticipantDraft?.taskId === task.id &&
+                    guestParticipantDraft.area === targetArea;
+                  const guestRequestKey = `${task.id}:${targetArea}`;
+                  const isSavingGuest =
+                    savingGuestParticipantKey === guestRequestKey;
+
+                  return (
+                    <div
+                      className={`${styles.scheduleDropZone} ${
+                        isDraggingWorkers ? styles.activeScheduleDropZone : ""
+                      }`}
+                      data-schedule-drop-area={targetArea}
+                      data-schedule-drop-task-id={task.id}
+                    >
+                      <div className={styles.scheduleDropZoneTitle}>{label}</div>
+                      {assignedWorkers.map((worker) => {
                         const workerId = getWorkerId(worker);
-                        const assignmentAction =
+                        const persistedAssignment = task.assignments.find(
+                          (assignment) =>
+                            assignment.workerProfileUuid === workerId,
+                        );
+                        const assignmentCountAction =
                           editingAssignmentCount?.taskId === task.id &&
                           editingAssignmentCount.workerId === workerId ? (
                             <div
@@ -2439,6 +2693,40 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                               인원 {taskAssignments.workerCounts[workerId] ?? 1}
                             </button>
                           );
+                        const assignmentAction = (
+                          <div className={styles.assignedWorkerActions}>
+                            {assignmentCountAction}
+                            {persistedAssignment?.assignmentUuid ? (
+                              <button
+                                className={styles.assignmentAttendanceButton}
+                                disabled={
+                                  confirmingAttendanceKey !== null ||
+                                  persistedAssignment.attendanceStatus ===
+                                    "worked"
+                                }
+                                type="button"
+                                onClick={() =>
+                                  confirmAttendanceAsPlanned(
+                                    `assignment:${persistedAssignment.assignmentUuid}`,
+                                    {
+                                      assignmentUuid:
+                                        persistedAssignment.assignmentUuid,
+                                      scope: "ASSIGNMENT",
+                                    },
+                                  )
+                                }
+                                onPointerDown={(event) =>
+                                  event.stopPropagation()
+                                }
+                              >
+                                {persistedAssignment.attendanceStatus ===
+                                "worked"
+                                  ? "근무 확인됨"
+                                  : "예정대로"}
+                              </button>
+                            ) : null}
+                          </div>
+                        );
 
                         return (
                           <div
@@ -2462,14 +2750,130 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                             </button>
                           </div>
                         );
-                      })
-                    ) : (
-                      <p className={styles.scheduleDropHint}>
-                        이 영역으로 드래그
-                      </p>
-                    )}
-                  </div>
-                );
+                      })}
+                      {guestGroups.map((group) => (
+                        <div
+                          className={`${styles.scheduleWorkerToken} ${styles.droppedWorkerToken} ${styles.guestWorkerToken}`}
+                          key={group.groupUuid}
+                        >
+                          <div className={styles.assignedWorkerTokenContent}>
+                            <div className={styles.assignedWorkerTokenIdentity}>
+                              <span className={styles.scheduleWorkerName}>
+                                {group.displayName || "미등록 작업자"}
+                              </span>
+                              <span
+                                className={`${styles.scheduleWorkerMeta} ${
+                                  group.pickupLocation
+                                    ? ""
+                                    : styles.emptyPickupLocation
+                                }`}
+                              >
+                                {group.pickupLocation || "승차장소 없음"}
+                              </span>
+                            </div>
+                            <span className={styles.guestParticipantCount}>
+                              인원 {group.participantCount}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                      {assignedWorkers.length === 0 &&
+                      guestGroups.length === 0 &&
+                      !isAddingGuest ? (
+                        <p className={styles.scheduleDropHint}>
+                          이 영역으로 드래그
+                        </p>
+                      ) : null}
+                      {isAddingGuest && guestParticipantDraft ? (
+                        <form
+                          className={styles.guestParticipantEditor}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            void saveGuestParticipant();
+                          }}
+                        >
+                          <div
+                            className={`${styles.assignedWorkerTokenIdentity} ${styles.guestParticipantIdentityFields}`}
+                          >
+                            <input
+                              aria-label={`${label} 미등록 작업자 이름`}
+                              autoFocus
+                              maxLength={100}
+                              placeholder="이름 (선택)"
+                              value={guestParticipantDraft.displayName}
+                              onChange={(event) =>
+                                setGuestParticipantDraft({
+                                  ...guestParticipantDraft,
+                                  displayName: event.target.value,
+                                })
+                              }
+                            />
+                            <input
+                              aria-label={`${label} 미등록 작업자 승차장소`}
+                              maxLength={200}
+                              placeholder="승차장소 (선택)"
+                              value={guestParticipantDraft.pickupLocation}
+                              onChange={(event) =>
+                                setGuestParticipantDraft({
+                                  ...guestParticipantDraft,
+                                  pickupLocation: event.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className={styles.guestParticipantEditorActions}>
+                            <label className={styles.guestParticipantCountField}>
+                              <span>인원</span>
+                              <input
+                                aria-label={`${label} 미등록 작업자 인원`}
+                                max="100"
+                                min="1"
+                                type="number"
+                                value={guestParticipantDraft.participantCount}
+                                onChange={(event) =>
+                                  setGuestParticipantDraft({
+                                    ...guestParticipantDraft,
+                                    participantCount: event.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+                            <button
+                              aria-label="미등록 작업자 추가"
+                              className={styles.inlineConfirmButton}
+                              disabled={isSavingGuest}
+                              type="submit"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              aria-label="미등록 작업자 추가 취소"
+                              className={styles.inlineCancelButton}
+                              disabled={isSavingGuest}
+                              type="button"
+                              onClick={() => setGuestParticipantDraft(null)}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button
+                          aria-label={`${label} 미등록 작업자 추가`}
+                          className={styles.addGuestParticipantBar}
+                          type="button"
+                          onClick={() =>
+                            startGuestParticipantAdd(task.id, targetArea)
+                          }
+                          onPointerDown={(event) => event.stopPropagation()}
+                        >
+                          +
+                        </button>
+                      )}
+                    </div>
+                  );
+                };
 
                 return (
                   <div
@@ -2564,87 +2968,115 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                           </button>
                         ) : (
                           <>
-                            <button
-                              aria-label={`${task.title} 전일 작업자 불러오기`}
-                              className={styles.schedulePreviousAssignmentsButton}
-                              disabled={
-                                loadingPreviousAssignmentsTaskId === task.id
-                              }
-                              type="button"
-                              onClick={() => importPreviousDayAssignments(task)}
-                            >
-                              전일 작업자
-                            </button>
-                            <button
-                              aria-label={`${task.title} 일정 저장`}
-                              className={styles.scheduleTaskApplyButton}
-                              disabled={
-                                savingTaskId === task.id || !canApplyTask
-                              }
-                              type="button"
-                              onClick={() => applyTaskDraft(task)}
-                            >
-                              ✓
-                            </button>
-                            <button
-                              aria-label={`${task.title} 일정 되돌리기`}
-                              className={styles.scheduleTaskResetButton}
-                              disabled={savingTaskId === task.id}
-                              type="button"
-                              onClick={() => resetTaskDraft(task.id)}
-                            >
-                              ↻
-                            </button>
-                            {isEditingTask ? (
-                              <div className={styles.scheduleTaskEditActions}>
-                                <button
-                                  aria-label={`${task.title} 일정 삭제`}
-                                  className={styles.scheduleTaskDeleteButton}
-                                  disabled={savingTaskId === task.id}
-                                  type="button"
-                                  onClick={() => deleteTask(task)}
-                                >
-                                  <svg
-                                    aria-hidden="true"
-                                    className={styles.scheduleTaskDeleteIcon}
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path d="M9 4h6" />
-                                    <path d="M10 4l1-1h2l1 1" />
-                                    <path d="M5 7h14" />
-                                    <path d="M8 7l1 13h6l1-13" />
-                                    <path d="M10.5 11v5" />
-                                    <path d="M13.5 11v5" />
-                                  </svg>
-                                </button>
-                                <button
-                                  aria-label={`${task.title} 작업 수정 취소`}
-                                  className={styles.inlineCancelButton}
-                                  type="button"
-                                  onClick={cancelTaskEdit}
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ) : (
+                            <div className={styles.scheduleTaskPrimaryActions}>
                               <button
-                                aria-label={`${task.title} 작업 수정`}
-                                className={styles.scheduleTaskEditButton}
+                                aria-label={`${task.title} 일정 저장`}
+                                className={styles.scheduleTaskApplyButton}
+                                disabled={
+                                  savingTaskId === task.id || !canApplyTask
+                                }
                                 type="button"
-                                onClick={() => setEditingTaskId(task.id)}
+                                onClick={() => applyTaskDraft(task)}
                               >
-                                ✎
+                                ✓
                               </button>
-                            )}
-                            <button
-                              aria-label={`${task.title} 작업 접기`}
-                              className={styles.scheduleTaskCollapseButton}
-                              type="button"
-                              onClick={() => toggleTaskCollapse(task.id)}
-                            >
-                              -
-                            </button>
+                              <button
+                                aria-label={`${task.title} 일정 되돌리기`}
+                                className={styles.scheduleTaskResetButton}
+                                disabled={savingTaskId === task.id}
+                                type="button"
+                                onClick={() => resetTaskDraft(task.id)}
+                              >
+                                ↻
+                              </button>
+                              {isEditingTask ? (
+                                <div className={styles.scheduleTaskEditActions}>
+                                  <button
+                                    aria-label={`${task.title} 일정 삭제`}
+                                    className={styles.scheduleTaskDeleteButton}
+                                    disabled={savingTaskId === task.id}
+                                    type="button"
+                                    onClick={() => deleteTask(task)}
+                                  >
+                                    <svg
+                                      aria-hidden="true"
+                                      className={styles.scheduleTaskDeleteIcon}
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path d="M9 4h6" />
+                                      <path d="M10 4l1-1h2l1 1" />
+                                      <path d="M5 7h14" />
+                                      <path d="M8 7l1 13h6l1-13" />
+                                      <path d="M10.5 11v5" />
+                                      <path d="M13.5 11v5" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    aria-label={`${task.title} 작업 수정 취소`}
+                                    className={styles.inlineCancelButton}
+                                    type="button"
+                                    onClick={cancelTaskEdit}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  aria-label={`${task.title} 작업 수정`}
+                                  className={styles.scheduleTaskEditButton}
+                                  type="button"
+                                  onClick={() => setEditingTaskId(task.id)}
+                                >
+                                  ✎
+                                </button>
+                              )}
+                              <button
+                                aria-label={`${task.title} 작업 접기`}
+                                className={styles.scheduleTaskCollapseButton}
+                                type="button"
+                                onClick={() => toggleTaskCollapse(task.id)}
+                              >
+                                -
+                              </button>
+                            </div>
+                            <div className={styles.scheduleTaskSecondaryActions}>
+                              <button
+                                aria-label={`${task.title} 전일 작업자 불러오기`}
+                                className={styles.schedulePreviousAssignmentsButton}
+                                disabled={
+                                  loadingPreviousAssignmentsTaskId === task.id
+                                }
+                                type="button"
+                                onClick={() => importPreviousDayAssignments(task)}
+                              >
+                                전일 작업자
+                              </button>
+                              <button
+                                className={styles.scheduleAttendanceConfirmButton}
+                                disabled={
+                                  confirmingAttendanceKey !== null || canApplyTask
+                                }
+                                title={
+                                  canApplyTask
+                                    ? "배치 변경사항을 먼저 저장해 주세요."
+                                    : undefined
+                                }
+                                type="button"
+                                onClick={() =>
+                                  confirmAttendanceAsPlanned(
+                                    `task:${task.id}`,
+                                    {
+                                      scheduleDayUuid: task.id,
+                                      scope: "SCHEDULE_DAY",
+                                    },
+                                    `${task.title} 작업의 저장된 배치를 모두 예정대로 근무 처리할까요?`,
+                                  )
+                                }
+                              >
+                                예정대로 근무
+                              </button>
+                            </div>
                           </>
                         )}
                       </div>
@@ -2768,6 +3200,10 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             </small>
           </div>
         ) : null}
+        <StatusSnackbar
+          message={statusMessage}
+          onDismiss={() => setStatusMessage("")}
+        />
       </section>
     </main>
   );

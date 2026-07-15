@@ -83,6 +83,45 @@
   cursor: pointer;
 }
 
+.attendanceBulkActions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+}
+
+.attendanceBulkActions button,
+.scheduleAttendanceConfirmButton,
+.assignmentAttendanceButton {
+  align-items: center;
+  appearance: none;
+  background: #eef6f1;
+  border: 1px solid #9fbcae;
+  border-radius: 6px;
+  color: #285f4f;
+  display: flex;
+  font-size: 12px;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.attendanceBulkActions button:hover,
+.scheduleAttendanceConfirmButton:hover,
+.assignmentAttendanceButton:hover {
+  background: #e2f0e9;
+  cursor: pointer;
+}
+
+.attendanceBulkActions button:disabled,
+.scheduleAttendanceConfirmButton:disabled,
+.assignmentAttendanceButton:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
 .scheduleDateField span,
 .scheduleFilterField span {
   color: #2f3f50;
@@ -113,14 +152,6 @@
   border-color: #176b5d;
   box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
   outline: 0;
-}
-
-.scheduleStatusMessage {
-  color: #687789;
-  font-size: 13px;
-  font-weight: 800;
-  justify-self: end;
-  margin: 0;
 }
 
 .workScheduleSplit {
@@ -562,6 +593,10 @@
   cursor: default;
 }
 
+.guestWorkerToken {
+  border-color: #b8d2ca;
+}
+
 .assignedWorkerTokenContent {
   align-items: center;
   display: grid;
@@ -595,6 +630,19 @@
   min-width: max-content;
 }
 
+.assignedWorkerActions {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assignmentAttendanceButton {
+  font-size: 10px;
+  min-height: 22px;
+  padding: 0 7px;
+}
+
 .droppedWorkerToken .assignmentCountButton {
   height: 24px;
   padding: 0 8px;
@@ -621,6 +669,22 @@
 .assignmentCountButton:hover {
   cursor: pointer;
   filter: brightness(0.97);
+}
+
+.guestParticipantCount {
+  align-items: center;
+  background: #f4f8f7;
+  border: 1px solid #b8d2ca;
+  border-radius: 999px;
+  color: #176b5d;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 900;
+  height: 24px;
+  justify-content: center;
+  padding: 0 8px;
+  white-space: nowrap;
 }
 
 .assignmentCountEditor {
@@ -970,12 +1034,21 @@
 }
 
 .scheduleTaskActions {
-  align-items: center;
+  align-items: flex-end;
   display: flex;
+  flex-direction: column;
   flex-shrink: 0;
   gap: 6px;
   justify-content: flex-end;
   margin-left: auto;
+}
+
+.scheduleTaskPrimaryActions,
+.scheduleTaskSecondaryActions {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
 .scheduleTaskApplyButton,
@@ -1011,6 +1084,13 @@
   line-height: 1;
   padding: 0 10px;
   white-space: nowrap;
+}
+
+.scheduleAttendanceConfirmButton {
+  border-radius: 999px;
+  flex-shrink: 0;
+  height: 32px;
+  line-height: 1;
 }
 
 .scheduleTaskApplyButton {
@@ -1356,6 +1436,91 @@
   min-height: 88px;
 }
 
+.guestParticipantEditor {
+  align-items: center;
+  animation: scheduleTokenDrop 180ms ease-out;
+  background: #ffffff;
+  border: 1px solid #b8d2ca;
+  border-radius: 7px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 8px;
+}
+
+.guestParticipantIdentityFields input {
+  background: #fbfcfe;
+  border: 1px solid #c8d4e0;
+  border-radius: 6px;
+  color: #17202a;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 30px;
+  min-width: 0;
+  padding: 0 8px;
+  width: 100%;
+}
+
+.guestParticipantIdentityFields input:focus,
+.guestParticipantCountField input:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 2px rgba(23, 107, 93, 0.14);
+  outline: 0;
+}
+
+.guestParticipantEditorActions {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+  justify-content: flex-end;
+}
+
+.guestParticipantCountField {
+  align-items: center;
+  color: #4f5d6b;
+  display: flex;
+  font-size: 11px;
+  font-weight: 900;
+  gap: 4px;
+}
+
+.guestParticipantCountField input {
+  appearance: textfield;
+  background: #ffffff;
+  border: 1px solid #b8d2ca;
+  border-radius: 6px;
+  color: #17202a;
+  font-size: 12px;
+  font-weight: 900;
+  height: 30px;
+  padding: 0 4px;
+  text-align: center;
+  width: 42px;
+}
+
+.addGuestParticipantBar {
+  align-items: center;
+  appearance: none;
+  background: #f1f5f4;
+  border: 0;
+  border-radius: 0 0 7px 7px;
+  border-top: 1px solid #c8d4e0;
+  color: #4f6f66;
+  display: flex;
+  font-size: 20px;
+  font-weight: 700;
+  justify-content: center;
+  margin: auto -10px -10px;
+  min-height: 34px;
+  width: calc(100% + 20px);
+}
+
+.addGuestParticipantBar:hover {
+  background: #e5efec;
+  color: #176b5d;
+  cursor: pointer;
+}
+
 .assignedWorkerRow {
   align-items: center;
   animation: scheduleTokenDrop 180ms ease-out;
@@ -1567,16 +1732,23 @@
     grid-template-columns: 1fr;
   }
 
+  .attendanceBulkActions {
+    flex-wrap: wrap;
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .attendanceBulkActions button {
+    flex: 1 1 130px;
+    min-width: 0;
+  }
+
   .scheduleDateControl {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
   .scheduleDateMoveButton {
     padding: 0 9px;
-  }
-
-  .scheduleStatusMessage {
-    justify-self: start;
   }
 
   .workScheduleSplit {
@@ -1733,9 +1905,13 @@
   }
 
   .scheduleTaskActions {
-    flex-wrap: wrap;
     gap: 4px;
     max-width: 100%;
+  }
+
+  .scheduleTaskPrimaryActions,
+  .scheduleTaskSecondaryActions {
+    gap: 4px;
   }
 
   .scheduleTaskApplyButton,
@@ -1797,6 +1973,27 @@
   .assignedWorkerTokenIdentity .scheduleWorkerMeta,
   .droppedWorkerToken .assignmentCountButton {
     font-size: 10px;
+  }
+
+  .guestParticipantEditor {
+    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 6px;
+  }
+
+  .guestParticipantEditorActions {
+    justify-content: flex-end;
+  }
+
+  .guestParticipantCount,
+  .guestParticipantCountField {
+    font-size: 10px;
+  }
+
+  .addGuestParticipantBar {
+    margin: auto -6px -6px;
+    min-height: 30px;
+    width: calc(100% + 12px);
   }
 
   .droppedWorkerToken .assignmentCountButton {

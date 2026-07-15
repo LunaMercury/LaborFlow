@@ -21,6 +21,8 @@ export type WorkerRow = {
   teamName?: string | null;
   teamRole?: string | null;
   teamDisplayOrder?: number;
+  lastWorkedDate?: string | null;
+  totalWorkDays?: number;
 };
 
 export const workerRows: WorkerRow[] = [

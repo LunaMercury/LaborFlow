@@ -1,0 +1,59 @@
+.snackbar {
+  align-items: center;
+  animation: snackbarEnter 180ms ease-out;
+  background: #24343a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  box-shadow: 0 14px 32px rgba(23, 32, 42, 0.24);
+  color: #ffffff;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  left: 50%;
+  max-width: min(520px, calc(100vw - 28px));
+  min-height: 46px;
+  padding: 10px 12px 10px 16px;
+  position: fixed;
+  transform: translateX(-50%);
+  width: max-content;
+  z-index: 2000;
+}
+
+.snackbar span {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.snackbar button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #dfe9e6;
+  display: flex;
+  flex: 0 0 28px;
+  font-size: 20px;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  width: 28px;
+}
+
+.snackbar button:hover {
+  color: #ffffff;
+  cursor: pointer;
+}
+
+@keyframes snackbarEnter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
