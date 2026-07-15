@@ -28,3 +28,5 @@ target/
 out/
 bin/
 coverage/
+# Local database backups may contain personal or sensitive information.
+backups/

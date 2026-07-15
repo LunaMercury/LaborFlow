@@ -325,20 +325,70 @@ public class JdbcScheduleDao implements ScheduleDao {
         UUID scheduleDayUuid,
         List<ScheduleAssignmentRequest> assignments
     ) {
-        jdbcTemplate.update(
-            """
-            UPDATE public.work_schedule_assignment
-            SET deleted_at = COALESCE(deleted_at, now()),
-                updated_at = now()
-            WHERE agency_owner_uuid = ?
-                AND schedule_day_uuid = ?
-                AND deleted_at IS NULL
-            """,
-            agencyOwnerUuid,
-            scheduleDayUuid
-        );
+        List<UUID> workerProfileUuids = assignments.stream()
+            .map(ScheduleAssignmentRequest::workerProfileUuid)
+            .toList();
+
+        if (workerProfileUuids.isEmpty()) {
+            jdbcTemplate.update(
+                """
+                UPDATE public.work_schedule_assignment
+                SET deleted_at = COALESCE(deleted_at, now()),
+                    updated_at = now()
+                WHERE agency_owner_uuid = ?
+                    AND schedule_day_uuid = ?
+                    AND participant_type = 'REGISTERED'
+                    AND deleted_at IS NULL
+                """,
+                agencyOwnerUuid,
+                scheduleDayUuid
+            );
+        } else {
+            String placeholders = String.join(",", workerProfileUuids.stream().map(ignored -> "?").toList());
+            List<Object> deleteParams = new ArrayList<>();
+            deleteParams.add(agencyOwnerUuid);
+            deleteParams.add(scheduleDayUuid);
+            deleteParams.addAll(workerProfileUuids);
+            jdbcTemplate.update(
+                """
+                UPDATE public.work_schedule_assignment
+                SET deleted_at = COALESCE(deleted_at, now()),
+                    updated_at = now()
+                WHERE agency_owner_uuid = ?
+                    AND schedule_day_uuid = ?
+                    AND participant_type = 'REGISTERED'
+                    AND worker_profile_uuid NOT IN (%s)
+                    AND deleted_at IS NULL
+                """.formatted(placeholders),
+                deleteParams.toArray()
+            );
+        }
 
         for (ScheduleAssignmentRequest assignment : assignments) {
+            int updatedRows = jdbcTemplate.update(
+                """
+                UPDATE public.work_schedule_assignment
+                SET assignment_area = ?,
+                    worker_count = ?,
+                    status = 'PLANNED',
+                    updated_at = now()
+                WHERE agency_owner_uuid = ?
+                    AND schedule_day_uuid = ?
+                    AND participant_type = 'REGISTERED'
+                    AND worker_profile_uuid = ?
+                    AND deleted_at IS NULL
+                """,
+                normalizeAssignmentArea(assignment.area()),
+                assignment.workerCount(),
+                agencyOwnerUuid,
+                scheduleDayUuid,
+                assignment.workerProfileUuid()
+            );
+
+            if (updatedRows > 0) {
+                continue;
+            }
+
             jdbcTemplate.update(
                 """
                 INSERT INTO public.work_schedule_assignment (
@@ -348,7 +398,9 @@ public class JdbcScheduleDao implements ScheduleDao {
                     work_date,
                     assignment_area,
                     schedule_day_uuid,
-                    worker_count
+                    worker_count,
+                    participant_type,
+                    status
                 )
                 SELECT
                     ?,
@@ -357,7 +409,9 @@ public class JdbcScheduleDao implements ScheduleDao {
                     d.work_date,
                     ?,
                     d.uuid,
-                    ?
+                    ?,
+                    'REGISTERED',
+                    'PLANNED'
                 FROM public.work_schedule_day d
                 JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
                 WHERE s.agency_owner_uuid = ?
@@ -373,6 +427,84 @@ public class JdbcScheduleDao implements ScheduleDao {
                 scheduleDayUuid
             );
         }
+    }
+
+    @Override
+    public void addGuestParticipants(
+        UUID agencyOwnerUuid,
+        UUID scheduleDayUuid,
+        UUID participantGroupUuid,
+        String area,
+        int participantCount,
+        String displayName,
+        String pickupLocation,
+        String introductionType,
+        UUID introducedByWorkerProfileUuid,
+        UUID settlementRecipientWorkerProfileUuid,
+        LocalTime plannedStartTime,
+        LocalTime plannedEndTime
+    ) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.work_schedule_assignment (
+                agency_owner_uuid,
+                work_site_uuid,
+                worker_profile_uuid,
+                work_date,
+                assignment_area,
+                schedule_day_uuid,
+                worker_count,
+                participant_group_uuid,
+                participant_type,
+                participant_display_name,
+                participant_pickup_location,
+                introduction_type,
+                introduced_by_worker_profile_uuid,
+                settlement_recipient_worker_profile_uuid,
+                planned_start_time,
+                planned_end_time,
+                status
+            )
+            SELECT
+                ?,
+                d.work_site_uuid,
+                NULL,
+                d.work_date,
+                ?,
+                d.uuid,
+                1,
+                ?,
+                'GUEST',
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                ?,
+                'PLANNED'
+            FROM public.work_schedule_day d
+            JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
+            CROSS JOIN generate_series(1, ?)
+            WHERE d.uuid = ?
+                AND d.deleted_at IS NULL
+                AND s.agency_owner_uuid = ?
+                AND s.deleted_at IS NULL
+            """,
+            agencyOwnerUuid,
+            normalizeAssignmentArea(area),
+            participantGroupUuid,
+            displayName,
+            pickupLocation,
+            introductionType,
+            introducedByWorkerProfileUuid,
+            settlementRecipientWorkerProfileUuid,
+            plannedStartTime,
+            plannedEndTime,
+            participantCount,
+            scheduleDayUuid,
+            agencyOwnerUuid
+        );
     }
 
     @Override
@@ -781,22 +913,47 @@ public class JdbcScheduleDao implements ScheduleDao {
 
         jdbcTemplate.query(
             """
-            SELECT a.schedule_day_uuid, a.worker_profile_uuid, a.assignment_area, a.worker_count
+            SELECT
+                a.schedule_day_uuid,
+                a.uuid AS assignment_uuid,
+                a.participant_group_uuid,
+                a.worker_profile_uuid,
+                a.participant_type,
+                COALESCE(a.participant_display_name, '') AS participant_display_name,
+                COALESCE(a.participant_pickup_location, '') AS participant_pickup_location,
+                a.assignment_area,
+                a.worker_count,
+                a.planned_start_time,
+                a.planned_end_time,
+                COALESCE(att.status, '') AS attendance_status
             FROM public.work_schedule_assignment a
-            JOIN public.labor_agency_worker_profile p ON p.uuid = a.worker_profile_uuid
+            LEFT JOIN public.labor_agency_worker_profile p ON p.uuid = a.worker_profile_uuid
+            LEFT JOIN public.worker_attendance_record att
+                ON att.assignment_uuid = a.uuid
+                AND att.deleted_at IS NULL
             WHERE a.schedule_day_uuid IN (%s)
                 AND a.deleted_at IS NULL
-                AND p.status = 'ACTIVE'
-                AND p.deleted_at IS NULL
+                AND (
+                    a.participant_type = 'GUEST'
+                    OR (p.status = 'ACTIVE' AND p.deleted_at IS NULL)
+                )
             ORDER BY a.created_at
             """.formatted(placeholders),
             resultSet -> {
                 UUID scheduleDayUuid = resultSet.getObject("schedule_day_uuid", UUID.class);
                 assignmentsByScheduleDayUuid.computeIfAbsent(scheduleDayUuid, ignored -> new ArrayList<>())
                     .add(new ScheduleAssignmentResponse(
+                        resultSet.getObject("assignment_uuid", UUID.class),
+                        resultSet.getObject("participant_group_uuid", UUID.class),
                         resultSet.getObject("worker_profile_uuid", UUID.class),
+                        resultSet.getString("participant_type").toLowerCase(),
+                        resultSet.getString("participant_display_name"),
+                        resultSet.getString("participant_pickup_location"),
                         denormalizeAssignmentArea(resultSet.getString("assignment_area")),
-                        resultSet.getInt("worker_count")
+                        resultSet.getInt("worker_count"),
+                        formatOptionalTime(resultSet.getObject("planned_start_time", LocalTime.class)),
+                        formatOptionalTime(resultSet.getObject("planned_end_time", LocalTime.class)),
+                        resultSet.getString("attendance_status").toLowerCase()
                     ));
             },
             scheduleDayUuids.toArray()
@@ -836,6 +993,10 @@ public class JdbcScheduleDao implements ScheduleDao {
         }
 
         return "%s - %s".formatted(TIME_FORMATTER.format(startTime), TIME_FORMATTER.format(endTime));
+    }
+
+    private String formatOptionalTime(LocalTime value) {
+        return value == null ? "" : TIME_FORMATTER.format(value);
     }
 
     private String normalizeAssignmentArea(String area) {

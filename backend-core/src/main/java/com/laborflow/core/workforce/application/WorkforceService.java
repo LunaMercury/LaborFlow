@@ -69,7 +69,7 @@ public class WorkforceService {
     }
 
     @Transactional
-    public void createWorker(String loginId, CreateWorkerRequest request) {
+    public UUID createWorker(String loginId, CreateWorkerRequest request) {
         String normalizedLoginId = normalizeLoginId(loginId);
         UUID agencyOwnerUuid = workforceDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
             .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
@@ -137,6 +137,26 @@ public class WorkforceService {
                 paymentInput.accountHolderName()
             );
         }
+        return workerProfileUuid;
+    }
+
+    @Transactional
+    public void createWorkerFromGuestAssignment(
+        String loginId,
+        UUID assignmentUuid,
+        CreateWorkerRequest request
+    ) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        if (!workforceDao.guestAssignmentBelongsToLoginId(normalizedLoginId, assignmentUuid)) {
+            throw new IllegalArgumentException("Guest participant was not found.");
+        }
+
+        String phoneHashSource = normalizePhoneHashSource(request.phone());
+        UUID workerProfileUuid = workforceDao.findWorkerProfileUuidByPhoneHashSource(
+            normalizedLoginId,
+            phoneHashSource
+        ).orElseGet(() -> createWorker(normalizedLoginId, request));
+        workforceDao.linkGuestAssignmentToWorkerProfile(assignmentUuid, workerProfileUuid);
     }
 
     @Transactional

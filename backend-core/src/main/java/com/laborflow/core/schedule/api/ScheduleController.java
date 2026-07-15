@@ -1,6 +1,7 @@
 package com.laborflow.core.schedule.api;
 
 import com.laborflow.core.schedule.application.ScheduleService;
+import com.laborflow.core.schedule.dto.AddGuestParticipantsRequest;
 import com.laborflow.core.schedule.dto.CreateScheduleTaskRequest;
 import com.laborflow.core.schedule.dto.DeleteScheduleTaskRangeRequest;
 import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
@@ -62,6 +63,16 @@ public class ScheduleController {
         @RequestBody UpdateScheduleTaskRequest request
     ) {
         return scheduleService.updateTask(loginId, scheduleDayUuid, workDate, request);
+    }
+
+    @PostMapping("/tasks/{scheduleDayUuid}/guest-participants")
+    public ScheduleTaskResponse addGuestParticipants(
+        @PathVariable UUID scheduleDayUuid,
+        @RequestParam String loginId,
+        @RequestParam LocalDate workDate,
+        @RequestBody AddGuestParticipantsRequest request
+    ) {
+        return scheduleService.addGuestParticipants(loginId, scheduleDayUuid, workDate, request);
     }
 
     @PutMapping("/tasks/range")

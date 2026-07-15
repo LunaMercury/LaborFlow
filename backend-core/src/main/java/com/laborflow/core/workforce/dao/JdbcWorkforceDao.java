@@ -4,6 +4,7 @@ import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerResponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,7 +46,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 t.uuid AS team_uuid,
                 t.name AS team_name,
                 tm.role AS team_role,
-                tm.display_order AS team_display_order
+                tm.display_order AS team_display_order,
+                activity.last_worked_date,
+                COALESCE(activity.total_work_days, 0) AS total_work_days
             FROM public.labor_agency_worker_profile p
             JOIN public.app_account a ON a.labor_agency_owner_uuid = p.agency_owner_uuid
             LEFT JOIN public.worker w ON w.uuid = p.worker_uuid
@@ -63,6 +66,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 AND t.agency_owner_uuid = p.agency_owner_uuid
                 AND t.status = 'ACTIVE'
                 AND t.deleted_at IS NULL
+            LEFT JOIN public.worker_activity_summary activity
+                ON activity.agency_owner_uuid = p.agency_owner_uuid
+                AND activity.worker_profile_uuid = p.uuid
             WHERE a.login_id = ?
                 AND p.status = 'ACTIVE'
                 AND p.deleted_at IS NULL
@@ -109,6 +115,8 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 worker.teamName(),
                 worker.teamRole(),
                 worker.teamDisplayOrder(),
+                worker.lastWorkedDate(),
+                worker.totalWorkDays(),
                 workTypeCodesByProfileUuid.getOrDefault(worker.profileUuid(), List.of()),
                 workTypeRatingsByProfileUuid.getOrDefault(worker.profileUuid(), Map.of())
             ))
@@ -201,6 +209,46 @@ public class JdbcWorkforceDao implements WorkforceDao {
         );
 
         return count != null && count > 0;
+    }
+
+    @Override
+    public boolean guestAssignmentBelongsToLoginId(String loginId, UUID assignmentUuid) {
+        Integer count = jdbcTemplate.queryForObject(
+            """
+            SELECT count(*)
+            FROM public.work_schedule_assignment assignment
+            JOIN public.app_account account
+                ON account.labor_agency_owner_uuid = assignment.agency_owner_uuid
+            WHERE account.login_id = ?
+                AND account.status = 'ACTIVE'
+                AND assignment.uuid = ?
+                AND assignment.participant_type = 'GUEST'
+                AND assignment.deleted_at IS NULL
+            """,
+            Integer.class,
+            loginId,
+            assignmentUuid
+        );
+        return count != null && count > 0;
+    }
+
+    @Override
+    public Optional<UUID> findWorkerProfileUuidByPhoneHashSource(String loginId, String phoneHashSource) {
+        return jdbcTemplate.query(
+            """
+            SELECT profile.uuid
+            FROM public.labor_agency_worker_profile profile
+            JOIN public.app_account account
+                ON account.labor_agency_owner_uuid = profile.agency_owner_uuid
+            WHERE account.login_id = ?
+                AND account.status = 'ACTIVE'
+                AND profile.local_phone_hash = encode(digest(?, 'sha256'), 'hex')
+                AND profile.deleted_at IS NULL
+            """,
+            (resultSet, rowNumber) -> resultSet.getObject("uuid", UUID.class),
+            loginId,
+            phoneHashSource
+        ).stream().findFirst();
     }
 
     @Override
@@ -526,6 +574,57 @@ public class JdbcWorkforceDao implements WorkforceDao {
     }
 
     @Override
+    public void linkGuestAssignmentToWorkerProfile(UUID assignmentUuid, UUID workerProfileUuid) {
+        Integer duplicateCount = jdbcTemplate.queryForObject(
+            """
+            SELECT count(*)
+            FROM public.work_schedule_assignment guest
+            JOIN public.work_schedule_assignment registered
+                ON registered.schedule_day_uuid = guest.schedule_day_uuid
+                AND registered.worker_profile_uuid = ?
+                AND registered.participant_type = 'REGISTERED'
+                AND registered.deleted_at IS NULL
+            WHERE guest.uuid = ?
+                AND guest.participant_type = 'GUEST'
+                AND guest.deleted_at IS NULL
+            """,
+            Integer.class,
+            workerProfileUuid,
+            assignmentUuid
+        );
+        if (duplicateCount != null && duplicateCount > 0) {
+            throw new IllegalArgumentException("Worker is already assigned to this schedule day.");
+        }
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.work_schedule_assignment
+            SET worker_profile_uuid = ?,
+                participant_type = 'REGISTERED',
+                participant_display_name = NULL,
+                updated_at = now()
+            WHERE uuid = ?
+                AND participant_type = 'GUEST'
+                AND deleted_at IS NULL
+            """,
+            workerProfileUuid,
+            assignmentUuid
+        );
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.worker_attendance_record
+            SET worker_profile_uuid = ?,
+                updated_at = now()
+            WHERE assignment_uuid = ?
+                AND deleted_at IS NULL
+            """,
+            workerProfileUuid,
+            assignmentUuid
+        );
+    }
+
+    @Override
     public UUID createWorkerTeam(UUID agencyOwnerUuid, String teamName, List<UUID> workerProfileUuids) {
         UUID leaderWorkerProfileUuid = workerProfileUuids.get(0);
         UUID teamUuid = jdbcTemplate.queryForObject(
@@ -841,7 +940,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
             resultSet.getObject("team_uuid", UUID.class),
             resultSet.getString("team_name"),
             resultSet.getString("team_role"),
-            Optional.ofNullable(resultSet.getObject("team_display_order", Integer.class)).orElse(0)
+            Optional.ofNullable(resultSet.getObject("team_display_order", Integer.class)).orElse(0),
+            resultSet.getObject("last_worked_date", LocalDate.class),
+            resultSet.getInt("total_work_days")
         );
     }
 
@@ -869,7 +970,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
         UUID teamUuid,
         String teamName,
         String teamRole,
-        int teamDisplayOrder
+        int teamDisplayOrder,
+        LocalDate lastWorkedDate,
+        int totalWorkDays
     ) {
     }
 }

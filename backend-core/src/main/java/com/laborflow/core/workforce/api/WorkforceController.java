@@ -52,6 +52,16 @@ public class WorkforceController {
         return workforceService.getWorkers(loginId);
     }
 
+    @PostMapping("/workers/from-guest-assignment/{assignmentUuid}")
+    public WorkerListResponse createWorkerFromGuestAssignment(
+        @PathVariable UUID assignmentUuid,
+        @RequestParam String loginId,
+        @RequestBody CreateWorkerRequest request
+    ) {
+        workforceService.createWorkerFromGuestAssignment(loginId, assignmentUuid, request);
+        return workforceService.getWorkers(loginId);
+    }
+
     @PostMapping("/worker-teams")
     public WorkerListResponse createWorkerTeam(
         @RequestParam(defaultValue = "test") String loginId,

@@ -6,6 +6,12 @@ Migration files are the source of truth for the PostgreSQL schema.
 The checked-in files keep the simple ordered name format (`001_...sql`).
 During build they are packaged as Flyway migrations (`V001__...sql`).
 
+Existing databases that were created before Flyway history was enabled must be
+baselined once at their verified schema version. Do not enable
+`SPRING_FLYWAY_BASELINE_ON_MIGRATE` permanently. After the one-time baseline,
+normal application startup applies only newer migrations and records them in
+`flyway_schema_history`.
+
 Manual execution is only for local troubleshooting.
 
 Local connection:

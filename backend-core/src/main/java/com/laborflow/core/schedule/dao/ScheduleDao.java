@@ -43,6 +43,21 @@ public interface ScheduleDao {
         List<ScheduleAssignmentRequest> assignments
     );
 
+    void addGuestParticipants(
+        UUID agencyOwnerUuid,
+        UUID scheduleDayUuid,
+        UUID participantGroupUuid,
+        String area,
+        int participantCount,
+        String displayName,
+        String pickupLocation,
+        String introductionType,
+        UUID introducedByWorkerProfileUuid,
+        UUID settlementRecipientWorkerProfileUuid,
+        LocalTime plannedStartTime,
+        LocalTime plannedEndTime
+    );
+
     UUID createTask(
         UUID agencyOwnerUuid,
         UUID farmOwnerUuid,

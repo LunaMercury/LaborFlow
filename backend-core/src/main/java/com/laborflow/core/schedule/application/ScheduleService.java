@@ -1,6 +1,7 @@
 package com.laborflow.core.schedule.application;
 
 import com.laborflow.core.schedule.dao.ScheduleDao;
+import com.laborflow.core.schedule.dto.AddGuestParticipantsRequest;
 import com.laborflow.core.schedule.dto.CreateScheduleTaskRequest;
 import com.laborflow.core.schedule.dto.DeleteScheduleTaskRangeRequest;
 import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
@@ -109,6 +110,58 @@ public class ScheduleService {
         );
         scheduleDao.replaceTaskWorkTypes(agencyOwnerUuid, scheduleDayUuid, workTypeCodes);
         scheduleDao.replaceAssignments(agencyOwnerUuid, scheduleDayUuid, assignments);
+
+        return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+    }
+
+    @Transactional
+    public ScheduleTaskResponse addGuestParticipants(
+        String loginId,
+        UUID scheduleDayUuid,
+        LocalDate workDate,
+        AddGuestParticipantsRequest request
+    ) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        if (!scheduleDao.scheduleDayBelongsToAgencyOwner(agencyOwnerUuid, scheduleDayUuid)) {
+            throw new IllegalArgumentException("Schedule day was not found.");
+        }
+
+        int participantCount = request.participantCount() <= 0 ? 1 : request.participantCount();
+        if (participantCount > 100) {
+            throw new IllegalArgumentException("Guest participant count is invalid.");
+        }
+        String introductionType = normalizeIntroductionType(request.introductionType());
+        UUID introducedByWorkerProfileUuid = request.introducedByWorkerProfileUuid();
+        if ("WORKER".equals(introductionType)) {
+            if (introducedByWorkerProfileUuid == null
+                || !scheduleDao.workerProfileBelongsToAgencyOwner(agencyOwnerUuid, introducedByWorkerProfileUuid)) {
+                throw new IllegalArgumentException("Introducing worker profile was not found.");
+            }
+        } else {
+            introducedByWorkerProfileUuid = null;
+        }
+        UUID settlementRecipientWorkerProfileUuid = request.settlementRecipientWorkerProfileUuid();
+        if (settlementRecipientWorkerProfileUuid != null
+            && !scheduleDao.workerProfileBelongsToAgencyOwner(agencyOwnerUuid, settlementRecipientWorkerProfileUuid)) {
+            throw new IllegalArgumentException("Settlement recipient worker profile was not found.");
+        }
+        validateTimeRange(request.plannedStartTime(), request.plannedEndTime());
+
+        scheduleDao.addGuestParticipants(
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            UUID.randomUUID(),
+            "women".equalsIgnoreCase(request.area()) ? "women" : "men",
+            participantCount,
+            normalizeOptionalText(request.displayName()),
+            normalizeOptionalText(request.pickupLocation()),
+            introductionType,
+            introducedByWorkerProfileUuid,
+            settlementRecipientWorkerProfileUuid,
+            request.plannedStartTime(),
+            request.plannedEndTime()
+        );
 
         return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
             .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
@@ -228,6 +281,14 @@ public class ScheduleService {
         }
 
         return value.trim();
+    }
+
+    private String normalizeIntroductionType(String value) {
+        String normalizedValue = value == null ? "NONE" : value.trim().toUpperCase();
+        return switch (normalizedValue) {
+            case "NONE", "WORKER", "EXTERNAL", "UNKNOWN" -> normalizedValue;
+            default -> throw new IllegalArgumentException("Introduction type is invalid.");
+        };
     }
 
     private String normalizeLoginId(String loginId) {
