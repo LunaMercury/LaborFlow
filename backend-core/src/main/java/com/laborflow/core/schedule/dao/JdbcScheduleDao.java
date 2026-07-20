@@ -51,7 +51,7 @@ public class JdbcScheduleDao implements ScheduleDao {
             """
             SELECT uuid
             FROM public.app_account
-            WHERE login_id = ? AND deleted_at IS NULL
+            WHERE login_id = ? AND status = 'ACTIVE'
             """,
             (resultSet, rowNumber) -> resultSet.getObject("uuid", UUID.class),
             loginId

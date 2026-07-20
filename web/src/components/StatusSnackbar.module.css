@@ -17,7 +17,7 @@
   position: fixed;
   transform: translateX(-50%);
   width: max-content;
-  z-index: 2000;
+  z-index: 10000;
 }
 
 .snackbar span {

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import styles from "./StatusSnackbar.module.css";
 
 type StatusSnackbarProps = {
@@ -26,12 +27,13 @@ export function StatusSnackbar({ message, onDismiss }: StatusSnackbarProps) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div className={styles.snackbar} role="status">
       <span>{message}</span>
       <button aria-label="알림 닫기" type="button" onClick={onDismiss}>
         ×
       </button>
-    </div>
+    </div>,
+    document.body,
   );
 }
