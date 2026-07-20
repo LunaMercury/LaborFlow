@@ -13,7 +13,8 @@ modules:
   data: database/** and docker-compose*.yaml (Flyway-managed PostgreSQL migrations plus local/production runtime dependencies)
   deployment: Dockerfile, docker-compose.prod.yaml, run-linux.sh, stop-linux.sh, run-windows.bat, stop-windows.bat
 contracts:
-  - Local health endpoints are web http://localhost:5580, backend-core http://localhost:5581/api/health, backend-fast http://localhost:5582/health, and Android debug build.
+  - Windows local health endpoints are web http://localhost:15580, backend-core http://localhost:15581/api/health, backend-fast http://localhost:15582/health, and Android debug build.
+  - Windows Tailscale launch prefers web 16210, backend-core 16211, and backend-fast 16212 on the active Tailscale IPv4 address, with a logged fallback port set when those ports are unavailable.
   - Local PostgreSQL uses localhost:55432, database laborflow_db, and temporary dev defaults that can be overridden by .env.
   - Local Redis uses localhost:56379, container laborflow_redis, and temporary dev defaults that can be overridden by .env.
   - Production deployments must use docker-compose.prod.yaml or equivalent infrastructure with secrets injected outside Git.
