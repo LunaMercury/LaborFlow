@@ -46,8 +46,10 @@ attendance:
   roleContracts:
     frontend:
       - "Document attendance UI states, empty states, and timezone display rules before implementing flows."
+      - "Require explicit operator acknowledgement before saving a no-show replacement whose work time overlaps another assignment."
     java:
       - "Document attendance write rules, audit history, timezone source, and permission checks."
+      - "Preserve no-show replacement changes and cancellations as account-attributed revisions, and restore captured assignment/attendance state instead of deleting history."
     rust:
       - "Review latency-sensitive attendance fan-out only when realtime updates are requested."
     mobile:

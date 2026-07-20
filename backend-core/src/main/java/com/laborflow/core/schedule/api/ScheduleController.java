@@ -118,6 +118,31 @@ public class ScheduleController {
         return scheduleService.replaceNoShow(loginId, scheduleDayUuid, workDate, request);
     }
 
+    @PutMapping("/tasks/{scheduleDayUuid}/no-show-replacement")
+    public ScheduleTaskResponse changeNoShowReplacement(
+        @PathVariable UUID scheduleDayUuid,
+        @RequestParam String loginId,
+        @RequestParam LocalDate workDate,
+        @RequestBody ReplaceNoShowRequest request
+    ) {
+        return scheduleService.changeNoShowReplacement(loginId, scheduleDayUuid, workDate, request);
+    }
+
+    @DeleteMapping("/tasks/{scheduleDayUuid}/no-show-replacement/{originalAssignmentUuid}")
+    public ScheduleTaskResponse cancelNoShow(
+        @PathVariable UUID scheduleDayUuid,
+        @PathVariable UUID originalAssignmentUuid,
+        @RequestParam String loginId,
+        @RequestParam LocalDate workDate
+    ) {
+        return scheduleService.cancelNoShow(
+            loginId,
+            scheduleDayUuid,
+            originalAssignmentUuid,
+            workDate
+        );
+    }
+
     @PutMapping("/tasks/range")
     public void rescheduleTaskRange(
         @RequestParam(defaultValue = "test") String loginId,

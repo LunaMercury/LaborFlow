@@ -713,6 +713,17 @@ public class JdbcScheduleDao implements ScheduleDao {
             throw new IllegalArgumentException("The no-show assignment was already replaced.");
         }
 
+        String previousAttendanceData = jdbcTemplate.query(
+            """
+            SELECT to_jsonb(att)::text AS attendance_data
+            FROM public.worker_attendance_record att
+            WHERE att.assignment_uuid = ?
+                AND att.deleted_at IS NULL
+            """,
+            (resultSet, rowNumber) -> resultSet.getString("attendance_data"),
+            originalAssignmentUuid
+        ).stream().findFirst().orElse(null);
+
         jdbcTemplate.update(
             """
             INSERT INTO public.worker_attendance_record (
@@ -755,7 +766,193 @@ public class JdbcScheduleDao implements ScheduleDao {
             agencyOwnerUuid
         );
 
-        UUID replacementAssignmentUuid = jdbcTemplate.query(
+        ReplacementAssignmentResult replacement = findOrCreateReplacementAssignment(
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            replacementWorkerProfileUuid,
+            original
+        );
+
+        UUID incidentUuid = jdbcTemplate.queryForObject(
+            """
+            INSERT INTO public.worker_no_show_incident (
+                agency_owner_uuid,
+                worker_profile_uuid,
+                original_assignment_uuid,
+                replacement_worker_profile_uuid,
+                replacement_assignment_uuid,
+                occurred_on,
+                status,
+                reported_by_account_uuid,
+                previous_assignment_status,
+                previous_attendance_data,
+                replacement_assignment_created,
+                resolved_by_account_uuid,
+                cancelled_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, 'REPLACED', ?, ?, CAST(? AS jsonb), ?, NULL, NULL)
+            ON CONFLICT (original_assignment_uuid) WHERE deleted_at IS NULL DO UPDATE
+            SET replacement_worker_profile_uuid = EXCLUDED.replacement_worker_profile_uuid,
+                replacement_assignment_uuid = EXCLUDED.replacement_assignment_uuid,
+                status = 'REPLACED',
+                reported_by_account_uuid = EXCLUDED.reported_by_account_uuid,
+                previous_assignment_status = EXCLUDED.previous_assignment_status,
+                previous_attendance_data = EXCLUDED.previous_attendance_data,
+                replacement_assignment_created = EXCLUDED.replacement_assignment_created,
+                resolved_by_account_uuid = NULL,
+                cancelled_at = NULL,
+                updated_at = now()
+            RETURNING uuid
+            """,
+            UUID.class,
+            agencyOwnerUuid,
+            original.workerProfileUuid(),
+            originalAssignmentUuid,
+            replacementWorkerProfileUuid,
+            replacement.assignmentUuid(),
+            original.workDate(),
+            accountUuid,
+            original.status(),
+            previousAttendanceData,
+            replacement.created()
+        );
+        recordNoShowRevision(
+            incidentUuid,
+            "CREATED",
+            null,
+            replacementWorkerProfileUuid,
+            null,
+            replacement.assignmentUuid(),
+            accountUuid
+        );
+    }
+
+    @Override
+    public void changeNoShowReplacement(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        UUID scheduleDayUuid,
+        UUID originalAssignmentUuid,
+        UUID replacementWorkerProfileUuid
+    ) {
+        NoShowIncidentContext incident = findActiveNoShowIncident(
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            originalAssignmentUuid
+        );
+        if (incident.originalWorkerProfileUuid().equals(replacementWorkerProfileUuid)) {
+            throw new IllegalArgumentException("The no-show worker cannot replace themselves.");
+        }
+        if (replacementWorkerProfileUuid.equals(incident.replacementWorkerProfileUuid())) {
+            return;
+        }
+
+        ReplacementAssignmentResult replacement = findOrCreateReplacementAssignment(
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            replacementWorkerProfileUuid,
+            incident.assignmentContext()
+        );
+        removeNoShowReplacementAssignment(
+            agencyOwnerUuid,
+            incident.replacementAssignmentUuid(),
+            incident.replacementAssignmentCreated()
+        );
+        jdbcTemplate.update(
+            """
+            UPDATE public.worker_no_show_incident
+            SET replacement_worker_profile_uuid = ?,
+                replacement_assignment_uuid = ?,
+                replacement_assignment_created = ?,
+                reported_by_account_uuid = ?,
+                updated_at = now()
+            WHERE uuid = ?
+                AND agency_owner_uuid = ?
+                AND status = 'REPLACED'
+                AND deleted_at IS NULL
+            """,
+            replacementWorkerProfileUuid,
+            replacement.assignmentUuid(),
+            replacement.created(),
+            accountUuid,
+            incident.incidentUuid(),
+            agencyOwnerUuid
+        );
+        recordNoShowRevision(
+            incident.incidentUuid(),
+            "REPLACEMENT_CHANGED",
+            incident.replacementWorkerProfileUuid(),
+            replacementWorkerProfileUuid,
+            incident.replacementAssignmentUuid(),
+            replacement.assignmentUuid(),
+            accountUuid
+        );
+    }
+
+    @Override
+    public void cancelNoShow(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        UUID scheduleDayUuid,
+        UUID originalAssignmentUuid
+    ) {
+        NoShowIncidentContext incident = findActiveNoShowIncident(
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            originalAssignmentUuid
+        );
+        removeNoShowReplacementAssignment(
+            agencyOwnerUuid,
+            incident.replacementAssignmentUuid(),
+            incident.replacementAssignmentCreated()
+        );
+        jdbcTemplate.update(
+            """
+            UPDATE public.work_schedule_assignment
+            SET status = ?, updated_at = now()
+            WHERE uuid = ?
+                AND agency_owner_uuid = ?
+                AND deleted_at IS NULL
+            """,
+            incident.previousAssignmentStatus(),
+            originalAssignmentUuid,
+            agencyOwnerUuid
+        );
+        restoreAttendanceAfterNoShow(originalAssignmentUuid, incident.previousAttendanceData());
+        jdbcTemplate.update(
+            """
+            UPDATE public.worker_no_show_incident
+            SET status = 'CANCELLED',
+                resolved_by_account_uuid = ?,
+                cancelled_at = now(),
+                updated_at = now()
+            WHERE uuid = ?
+                AND agency_owner_uuid = ?
+                AND status = 'REPLACED'
+                AND deleted_at IS NULL
+            """,
+            accountUuid,
+            incident.incidentUuid(),
+            agencyOwnerUuid
+        );
+        recordNoShowRevision(
+            incident.incidentUuid(),
+            "CANCELLED",
+            incident.replacementWorkerProfileUuid(),
+            null,
+            incident.replacementAssignmentUuid(),
+            null,
+            accountUuid
+        );
+    }
+
+    private ReplacementAssignmentResult findOrCreateReplacementAssignment(
+        UUID agencyOwnerUuid,
+        UUID scheduleDayUuid,
+        UUID replacementWorkerProfileUuid,
+        NoShowAssignmentContext original
+    ) {
+        UUID existingAssignmentUuid = jdbcTemplate.query(
             """
             SELECT uuid
             FROM public.work_schedule_assignment
@@ -771,65 +968,208 @@ public class JdbcScheduleDao implements ScheduleDao {
             scheduleDayUuid,
             replacementWorkerProfileUuid
         ).stream().findFirst().orElse(null);
-
-        if (replacementAssignmentUuid == null) {
-            replacementAssignmentUuid = jdbcTemplate.queryForObject(
-                """
-                INSERT INTO public.work_schedule_assignment (
-                    agency_owner_uuid,
-                    work_site_uuid,
-                    worker_profile_uuid,
-                    work_date,
-                    assignment_area,
-                    schedule_day_uuid,
-                    worker_count,
-                    participant_group_uuid,
-                    participant_type,
-                    planned_start_time,
-                    planned_end_time,
-                    status
-                )
-                VALUES (?, ?, ?, ?, ?, ?, 1, gen_random_uuid(), 'REGISTERED', ?, ?, 'PLANNED')
-                RETURNING uuid
-                """,
-                UUID.class,
-                agencyOwnerUuid,
-                original.workSiteUuid(),
-                replacementWorkerProfileUuid,
-                original.workDate(),
-                original.assignmentArea(),
-                scheduleDayUuid,
-                original.plannedStartTime(),
-                original.plannedEndTime()
-            );
+        if (existingAssignmentUuid != null) {
+            return new ReplacementAssignmentResult(existingAssignmentUuid, false);
         }
 
+        UUID assignmentUuid = jdbcTemplate.queryForObject(
+            """
+            INSERT INTO public.work_schedule_assignment (
+                agency_owner_uuid,
+                work_site_uuid,
+                worker_profile_uuid,
+                work_date,
+                assignment_area,
+                schedule_day_uuid,
+                worker_count,
+                participant_group_uuid,
+                participant_type,
+                planned_start_time,
+                planned_end_time,
+                status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, 1, gen_random_uuid(), 'REGISTERED', ?, ?, 'PLANNED')
+            RETURNING uuid
+            """,
+            UUID.class,
+            agencyOwnerUuid,
+            original.workSiteUuid(),
+            replacementWorkerProfileUuid,
+            original.workDate(),
+            original.assignmentArea(),
+            scheduleDayUuid,
+            original.plannedStartTime(),
+            original.plannedEndTime()
+        );
+        return new ReplacementAssignmentResult(assignmentUuid, true);
+    }
+
+    private NoShowIncidentContext findActiveNoShowIncident(
+        UUID agencyOwnerUuid,
+        UUID scheduleDayUuid,
+        UUID originalAssignmentUuid
+    ) {
+        return jdbcTemplate.query(
+            """
+            SELECT incident.uuid AS incident_uuid,
+                   incident.worker_profile_uuid,
+                   incident.replacement_worker_profile_uuid,
+                   incident.replacement_assignment_uuid,
+                   incident.replacement_assignment_created,
+                   incident.previous_assignment_status,
+                   incident.previous_attendance_data::text AS previous_attendance_data,
+                   assignment.assignment_area,
+                   assignment.work_date,
+                   assignment.work_site_uuid,
+                   assignment.planned_start_time,
+                   assignment.planned_end_time,
+                   assignment.status AS assignment_status
+            FROM public.worker_no_show_incident incident
+            JOIN public.work_schedule_assignment assignment
+                ON assignment.uuid = incident.original_assignment_uuid
+            WHERE incident.agency_owner_uuid = ?
+                AND assignment.schedule_day_uuid = ?
+                AND incident.original_assignment_uuid = ?
+                AND incident.status = 'REPLACED'
+                AND incident.deleted_at IS NULL
+                AND assignment.deleted_at IS NULL
+            """,
+            (resultSet, rowNumber) -> new NoShowIncidentContext(
+                resultSet.getObject("incident_uuid", UUID.class),
+                resultSet.getObject("worker_profile_uuid", UUID.class),
+                resultSet.getObject("replacement_worker_profile_uuid", UUID.class),
+                resultSet.getObject("replacement_assignment_uuid", UUID.class),
+                resultSet.getBoolean("replacement_assignment_created"),
+                resultSet.getString("previous_assignment_status"),
+                resultSet.getString("previous_attendance_data"),
+                new NoShowAssignmentContext(
+                    resultSet.getObject("worker_profile_uuid", UUID.class),
+                    resultSet.getString("assignment_area"),
+                    resultSet.getObject("work_date", LocalDate.class),
+                    resultSet.getObject("work_site_uuid", UUID.class),
+                    resultSet.getObject("planned_start_time", LocalTime.class),
+                    resultSet.getObject("planned_end_time", LocalTime.class),
+                    resultSet.getString("assignment_status")
+                )
+            ),
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            originalAssignmentUuid
+        ).stream().findFirst().orElseThrow(
+            () -> new IllegalArgumentException("Active no-show incident was not found.")
+        );
+    }
+
+    private void removeNoShowReplacementAssignment(
+        UUID agencyOwnerUuid,
+        UUID replacementAssignmentUuid,
+        boolean replacementAssignmentCreated
+    ) {
+        if (!replacementAssignmentCreated || replacementAssignmentUuid == null) {
+            return;
+        }
+        Integer workedCount = jdbcTemplate.queryForObject(
+            """
+            SELECT count(*)
+            FROM public.worker_attendance_record
+            WHERE assignment_uuid = ?
+                AND agency_owner_uuid = ?
+                AND status = 'WORKED'
+                AND deleted_at IS NULL
+            """,
+            Integer.class,
+            replacementAssignmentUuid,
+            agencyOwnerUuid
+        );
+        if (workedCount != null && workedCount > 0) {
+            throw new IllegalArgumentException("Confirmed replacement attendance must be corrected first.");
+        }
         jdbcTemplate.update(
             """
-            INSERT INTO public.worker_no_show_incident (
-                agency_owner_uuid,
-                worker_profile_uuid,
-                original_assignment_uuid,
-                replacement_worker_profile_uuid,
-                replacement_assignment_uuid,
-                occurred_on,
-                status,
-                reported_by_account_uuid
-            )
-            VALUES (?, ?, ?, ?, ?, ?, 'REPLACED', ?)
-            ON CONFLICT (original_assignment_uuid) WHERE deleted_at IS NULL DO UPDATE
-            SET replacement_worker_profile_uuid = EXCLUDED.replacement_worker_profile_uuid,
-                replacement_assignment_uuid = EXCLUDED.replacement_assignment_uuid,
-                status = 'REPLACED',
-                reported_by_account_uuid = EXCLUDED.reported_by_account_uuid,
-                updated_at = now()
+            UPDATE public.worker_attendance_record
+            SET deleted_at = now(), updated_at = now()
+            WHERE assignment_uuid = ?
+                AND agency_owner_uuid = ?
+                AND deleted_at IS NULL
             """,
-            agencyOwnerUuid,
-            original.workerProfileUuid(),
-            originalAssignmentUuid,
-            replacementWorkerProfileUuid,
             replacementAssignmentUuid,
-            original.workDate(),
+            agencyOwnerUuid
+        );
+        jdbcTemplate.update(
+            """
+            UPDATE public.work_schedule_assignment
+            SET status = 'CANCELLED', deleted_at = now(), updated_at = now()
+            WHERE uuid = ?
+                AND agency_owner_uuid = ?
+                AND deleted_at IS NULL
+            """,
+            replacementAssignmentUuid,
+            agencyOwnerUuid
+        );
+    }
+
+    private void restoreAttendanceAfterNoShow(UUID assignmentUuid, String previousAttendanceData) {
+        if (previousAttendanceData == null) {
+            jdbcTemplate.update(
+                """
+                UPDATE public.worker_attendance_record
+                SET deleted_at = now(), updated_at = now()
+                WHERE assignment_uuid = ? AND deleted_at IS NULL
+                """,
+                assignmentUuid
+            );
+            return;
+        }
+        jdbcTemplate.update(
+            """
+            WITH snapshot AS (SELECT CAST(? AS jsonb) AS data)
+            UPDATE public.worker_attendance_record attendance
+            SET actual_start_at = NULLIF(snapshot.data ->> 'actual_start_at', '')::timestamptz,
+                actual_end_at = NULLIF(snapshot.data ->> 'actual_end_at', '')::timestamptz,
+                break_minutes = COALESCE((snapshot.data ->> 'break_minutes')::integer, 0),
+                status = snapshot.data ->> 'status',
+                time_entry_type = snapshot.data ->> 'time_entry_type',
+                confirmed_at = NULLIF(snapshot.data ->> 'confirmed_at', '')::timestamptz,
+                confirmed_by_account_uuid = NULLIF(snapshot.data ->> 'confirmed_by_account_uuid', '')::uuid,
+                deleted_at = NULL,
+                updated_at = now()
+            FROM snapshot
+            WHERE attendance.assignment_uuid = ?
+                AND attendance.deleted_at IS NULL
+            """,
+            previousAttendanceData,
+            assignmentUuid
+        );
+    }
+
+    private void recordNoShowRevision(
+        UUID incidentUuid,
+        String action,
+        UUID previousReplacementWorkerProfileUuid,
+        UUID newReplacementWorkerProfileUuid,
+        UUID previousReplacementAssignmentUuid,
+        UUID newReplacementAssignmentUuid,
+        UUID accountUuid
+    ) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.worker_no_show_incident_revision (
+                incident_uuid,
+                action,
+                previous_replacement_worker_profile_uuid,
+                new_replacement_worker_profile_uuid,
+                previous_replacement_assignment_uuid,
+                new_replacement_assignment_uuid,
+                performed_by_account_uuid
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            incidentUuid,
+            action,
+            previousReplacementWorkerProfileUuid,
+            newReplacementWorkerProfileUuid,
+            previousReplacementAssignmentUuid,
+            newReplacementAssignmentUuid,
             accountUuid
         );
     }
@@ -1253,12 +1593,20 @@ public class JdbcScheduleDao implements ScheduleDao {
                 a.planned_start_time,
                 a.planned_end_time,
                 a.status AS assignment_status,
-                COALESCE(att.status, '') AS attendance_status
+                COALESCE(att.status, '') AS attendance_status,
+                incident.uuid AS no_show_incident_uuid,
+                incident.replacement_worker_profile_uuid AS no_show_replacement_worker_profile_uuid,
+                incident.replacement_assignment_uuid AS no_show_replacement_assignment_uuid,
+                COALESCE(incident.status, '') AS no_show_incident_status
             FROM public.work_schedule_assignment a
             LEFT JOIN public.labor_agency_worker_profile p ON p.uuid = a.worker_profile_uuid
             LEFT JOIN public.worker_attendance_record att
                 ON att.assignment_uuid = a.uuid
                 AND att.deleted_at IS NULL
+            LEFT JOIN public.worker_no_show_incident incident
+                ON incident.original_assignment_uuid = a.uuid
+                AND incident.status = 'REPLACED'
+                AND incident.deleted_at IS NULL
             WHERE a.schedule_day_uuid IN (%s)
                 AND a.deleted_at IS NULL
                 AND (
@@ -1282,7 +1630,11 @@ public class JdbcScheduleDao implements ScheduleDao {
                         formatOptionalTime(resultSet.getObject("planned_start_time", LocalTime.class)),
                         formatOptionalTime(resultSet.getObject("planned_end_time", LocalTime.class)),
                         resultSet.getString("assignment_status").toLowerCase(),
-                        resultSet.getString("attendance_status").toLowerCase()
+                        resultSet.getString("attendance_status").toLowerCase(),
+                        resultSet.getObject("no_show_incident_uuid", UUID.class),
+                        resultSet.getObject("no_show_replacement_worker_profile_uuid", UUID.class),
+                        resultSet.getObject("no_show_replacement_assignment_uuid", UUID.class),
+                        resultSet.getString("no_show_incident_status").toLowerCase()
                     ));
             },
             scheduleDayUuids.toArray()
@@ -1360,6 +1712,21 @@ public class JdbcScheduleDao implements ScheduleDao {
         LocalTime plannedStartTime,
         LocalTime plannedEndTime,
         String status
+    ) {
+    }
+
+    private record ReplacementAssignmentResult(UUID assignmentUuid, boolean created) {
+    }
+
+    private record NoShowIncidentContext(
+        UUID incidentUuid,
+        UUID originalWorkerProfileUuid,
+        UUID replacementWorkerProfileUuid,
+        UUID replacementAssignmentUuid,
+        boolean replacementAssignmentCreated,
+        String previousAssignmentStatus,
+        String previousAttendanceData,
+        NoShowAssignmentContext assignmentContext
     ) {
     }
 

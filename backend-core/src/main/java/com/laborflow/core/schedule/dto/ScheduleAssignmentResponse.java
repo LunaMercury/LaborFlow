@@ -14,6 +14,10 @@ public record ScheduleAssignmentResponse(
     String plannedStartTime,
     String plannedEndTime,
     String assignmentStatus,
-    String attendanceStatus
+    String attendanceStatus,
+    UUID noShowIncidentUuid,
+    UUID noShowReplacementWorkerProfileUuid,
+    UUID noShowReplacementAssignmentUuid,
+    String noShowIncidentStatus
 ) {
 }

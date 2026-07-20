@@ -8,6 +8,8 @@ import {
 } from "react";
 import {
   addGuestParticipants,
+  cancelNoShow,
+  changeNoShowReplacement,
   deleteGuestParticipants,
   deleteScheduleTaskRange,
   fetchScheduleTasks,
@@ -77,10 +79,19 @@ type GuestParticipantGroup = {
 };
 
 type NoShowReplacementDraft = {
+  allowTimeConflict: boolean;
+  currentReplacementWorkerId?: string;
+  mode: "create" | "change";
   originalAssignmentUuid: string;
   originalWorkerId: string;
   replacementWorkerId: string;
   taskId: string;
+};
+
+type NoShowCancelDraft = {
+  originalAssignmentUuid: string;
+  taskId: string;
+  workerName: string;
 };
 
 type RequiredWorkerCount = {
@@ -350,6 +361,34 @@ function getWorkTypeNames(codes: string[], workTypes: WorkTypeOption[]) {
   return codes
     .map((code) => workTypes.find((workType) => workType.code === code)?.name)
     .filter((name): name is string => Boolean(name));
+}
+
+function parseTimeToMinutes(value: string) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+
+  if (!match) {
+    return null;
+  }
+
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+function scheduleTasksOverlap(left: ScheduleTask, right: ScheduleTask) {
+  const leftStart = parseTimeToMinutes(left.startTime);
+  const leftEnd = parseTimeToMinutes(left.endTime);
+  const rightStart = parseTimeToMinutes(right.startTime);
+  const rightEnd = parseTimeToMinutes(right.endTime);
+
+  if (
+    leftStart === null ||
+    leftEnd === null ||
+    rightStart === null ||
+    rightEnd === null
+  ) {
+    return false;
+  }
+
+  return leftStart < rightEnd && rightStart < leftEnd;
 }
 
 function getWorkTypeGroupName(workTypeName: string) {
@@ -720,6 +759,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     useState<GuestParticipantDraft | null>(null);
   const [noShowReplacementDraft, setNoShowReplacementDraft] =
     useState<NoShowReplacementDraft | null>(null);
+  const [noShowCancelDraft, setNoShowCancelDraft] =
+    useState<NoShowCancelDraft | null>(null);
   const [isReplacingNoShow, setIsReplacingNoShow] = useState(false);
   const [editingTaskMemoId, setEditingTaskMemoId] = useState<string | null>(
     null,
@@ -798,7 +839,10 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
               assignment.assignmentStatus !== "replaced",
           ),
         );
-        return { assignedTasks, matchingWorkTypeCount, worker };
+        const timeConflicts = assignedTasks.filter((task) =>
+          scheduleTasksOverlap(noShowTask, task),
+        );
+        return { assignedTasks, matchingWorkTypeCount, timeConflicts, worker };
       })
       .sort(
         (left, right) =>
@@ -810,6 +854,16 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
           ),
       );
   }, [noShowReplacementDraft, noShowTask, tasks, workers]);
+  const selectedNoShowCandidate = noShowReplacementDraft
+    ? noShowCandidates.find(
+        (candidate) =>
+          getWorkerId(candidate.worker) ===
+          noShowReplacementDraft.replacementWorkerId,
+      ) ?? null
+    : null;
+  const selectedReplacementHasTimeConflict = Boolean(
+    selectedNoShowCandidate?.timeConflicts.length,
+  );
 
   useEffect(() => {
     tasksRef.current = tasks;
@@ -1652,19 +1706,36 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       return;
     }
 
+    if (
+      selectedReplacementHasTimeConflict &&
+      !noShowReplacementDraft.allowTimeConflict
+    ) {
+      setStatusMessage("시간이 겹치는 배정을 확인해 주세요.");
+      return;
+    }
+
     setIsReplacingNoShow(true);
     try {
-      const savedTask = await replaceNoShow(
-        loginId,
-        selectedDate,
-        noShowReplacementDraft.taskId,
-        {
-          originalAssignmentUuid:
-            noShowReplacementDraft.originalAssignmentUuid,
-          replacementWorkerProfileUuid:
-            noShowReplacementDraft.replacementWorkerId,
-        },
-      );
+      const request = {
+        originalAssignmentUuid:
+          noShowReplacementDraft.originalAssignmentUuid,
+        replacementWorkerProfileUuid:
+          noShowReplacementDraft.replacementWorkerId,
+      };
+      const savedTask =
+        noShowReplacementDraft.mode === "change"
+          ? await changeNoShowReplacement(
+              loginId,
+              selectedDate,
+              noShowReplacementDraft.taskId,
+              request,
+            )
+          : await replaceNoShow(
+              loginId,
+              selectedDate,
+              noShowReplacementDraft.taskId,
+              request,
+            );
       const nextWorkers = await fetchWorkers(loginId);
       setTasks((currentTasks) =>
         currentTasks.map((task) =>
@@ -1682,12 +1753,58 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       }));
       setWorkers(nextWorkers);
       setNoShowReplacementDraft(null);
-      setStatusMessage("노쇼를 기록하고 대체 작업자를 배정했습니다.");
+      setStatusMessage(
+        noShowReplacementDraft.mode === "change"
+          ? "노쇼 대체 작업자를 변경했습니다."
+          : "노쇼를 기록하고 대체 작업자를 배정했습니다.",
+      );
     } catch (error) {
       setStatusMessage(
         error instanceof Error
           ? error.message
           : "노쇼 대체 인원을 저장하지 못했습니다.",
+      );
+    } finally {
+      setIsReplacingNoShow(false);
+    }
+  };
+
+  const confirmNoShowCancellation = async () => {
+    if (!noShowCancelDraft) {
+      return;
+    }
+
+    setIsReplacingNoShow(true);
+    try {
+      const savedTask = await cancelNoShow(
+        loginId,
+        selectedDate,
+        noShowCancelDraft.taskId,
+        noShowCancelDraft.originalAssignmentUuid,
+      );
+      const nextWorkers = await fetchWorkers(loginId);
+      setTasks((currentTasks) =>
+        currentTasks.map((task) =>
+          task.id === savedTask.id ? savedTask : task,
+        ),
+      );
+      setPersistedTasks((currentTasks) =>
+        currentTasks.map((task) =>
+          task.id === savedTask.id ? savedTask : task,
+        ),
+      );
+      setAssignedWorkerIdsByTaskId((currentAssignments) => ({
+        ...currentAssignments,
+        [savedTask.id]: createAssignmentDrafts([savedTask])[savedTask.id],
+      }));
+      setWorkers(nextWorkers);
+      setNoShowCancelDraft(null);
+      setStatusMessage("노쇼 처리를 취소하고 기존 배정을 복원했습니다.");
+    } catch (error) {
+      setStatusMessage(
+        error instanceof Error
+          ? error.message
+          : "노쇼 처리를 취소하지 못했습니다.",
       );
     } finally {
       setIsReplacingNoShow(false);
@@ -2839,6 +2956,29 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                   const guestRequestKey = `${task.id}:${targetArea}`;
                   const isSavingGuest =
                     savingGuestParticipantKey === guestRequestKey;
+                  const noShowRecords = task.assignments
+                    .filter(
+                      (assignment) =>
+                        assignment.area === targetArea &&
+                        assignment.assignmentStatus === "replaced" &&
+                        assignment.noShowIncidentStatus === "replaced" &&
+                        Boolean(assignment.workerProfileUuid),
+                    )
+                    .map((assignment) => ({
+                      assignment,
+                      worker: workers.find(
+                        (worker) =>
+                          getWorkerId(worker) === assignment.workerProfileUuid,
+                      ),
+                    }))
+                    .filter(
+                      (
+                        record,
+                      ): record is {
+                        assignment: ScheduleAssignment;
+                        worker: WorkerRow;
+                      } => Boolean(record.worker),
+                    );
 
                   return (
                     <div
@@ -2849,11 +2989,81 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                       data-schedule-drop-task-id={task.id}
                     >
                       <div className={styles.scheduleDropZoneTitle}>{label}</div>
+                      {noShowRecords.map(({ assignment, worker }) => {
+                        const workerId = getWorkerId(worker);
+                        const workerName = worker.name.trim();
+                        const workerNickname = worker.nickname?.trim() ?? "";
+                        const identityText =
+                          workerName && workerNickname
+                            ? `${workerName} - ${workerNickname}`
+                            : workerName || workerNickname || "이름 없음";
+
+                        return (
+                          <div
+                            className={styles.noShowWorkerRow}
+                            key={`no-show-${assignment.assignmentUuid}`}
+                          >
+                            <div className={styles.noShowWorkerToken}>
+                              <div className={styles.noShowWorkerIdentity}>
+                                <strong>{identityText}</strong>
+                                <span
+                                  className={
+                                    worker.pickupLocation
+                                      ? ""
+                                      : styles.emptyPickupLocation
+                                  }
+                                >
+                                  {worker.pickupLocation || "승차장소 없음"}
+                                </span>
+                                <b>
+                                  노쇼 - {Math.max(worker.noShowCount ?? 1, 1)}회
+                                </b>
+                              </div>
+                              <div className={styles.noShowRecordActions}>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setNoShowReplacementDraft({
+                                      allowTimeConflict: false,
+                                      currentReplacementWorkerId:
+                                        assignment.noShowReplacementWorkerProfileUuid ??
+                                        undefined,
+                                      mode: "change",
+                                      originalAssignmentUuid:
+                                        assignment.assignmentUuid as string,
+                                      originalWorkerId: workerId,
+                                      replacementWorkerId: "",
+                                      taskId: task.id,
+                                    })
+                                  }
+                                >
+                                  대체 변경
+                                </button>
+                                <button
+                                  className={styles.noShowCancelButton}
+                                  type="button"
+                                  onClick={() =>
+                                    setNoShowCancelDraft({
+                                      originalAssignmentUuid:
+                                        assignment.assignmentUuid as string,
+                                      taskId: task.id,
+                                      workerName: identityText,
+                                    })
+                                  }
+                                >
+                                  노쇼 취소
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                       {assignedWorkers.map((worker) => {
                         const workerId = getWorkerId(worker);
                         const persistedAssignment = task.assignments.find(
                           (assignment) =>
-                            assignment.workerProfileUuid === workerId,
+                            assignment.workerProfileUuid === workerId &&
+                            assignment.assignmentStatus !== "replaced",
                         );
                         const assignmentCountAction =
                           editingAssignmentCount?.taskId === task.id &&
@@ -2949,6 +3159,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                                   type="button"
                                   onClick={() =>
                                     setNoShowReplacementDraft({
+                                      allowTimeConflict: false,
+                                      mode: "create",
                                       originalAssignmentUuid:
                                         persistedAssignment.assignmentUuid as string,
                                       originalWorkerId: workerId,
@@ -3543,7 +3755,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             >
               <header className={styles.noShowModalHeader}>
                 <div>
-                  <h2 id="no-show-replacement-title">노쇼 대체 인원 선택</h2>
+                  <h2 id="no-show-replacement-title">
+                    {noShowReplacementDraft.mode === "change"
+                      ? "노쇼 대체 인원 변경"
+                      : "노쇼 대체 인원 선택"}
+                  </h2>
                   <p>{noShowTask.title} · 가능한 작업 순으로 표시됩니다.</p>
                 </div>
                 <div>
@@ -3551,12 +3767,16 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                     className={styles.noShowConfirmButton}
                     disabled={
                       isReplacingNoShow ||
-                      !noShowReplacementDraft.replacementWorkerId
+                      !noShowReplacementDraft.replacementWorkerId ||
+                      (selectedReplacementHasTimeConflict &&
+                        !noShowReplacementDraft.allowTimeConflict)
                     }
                     type="button"
                     onClick={() => void saveNoShowReplacement()}
                   >
-                    대체 적용
+                    {noShowReplacementDraft.mode === "change"
+                      ? "변경 적용"
+                      : "대체 적용"}
                   </button>
                   <button
                     type="button"
@@ -3566,6 +3786,24 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                   </button>
                 </div>
               </header>
+              {selectedReplacementHasTimeConflict ? (
+                <label className={styles.noShowConflictWarning}>
+                  <input
+                    checked={noShowReplacementDraft.allowTimeConflict}
+                    type="checkbox"
+                    onChange={(event) =>
+                      setNoShowReplacementDraft({
+                        ...noShowReplacementDraft,
+                        allowTimeConflict: event.target.checked,
+                      })
+                    }
+                  />
+                  <span>
+                    선택한 작업자는 같은 시간대의 다른 작업에 배정되어 있습니다.
+                    시간 중복을 확인했습니다.
+                  </span>
+                </label>
+              ) : null}
               <div className={styles.noShowCandidateList}>
                 {noShowCandidates.length === 0 ? (
                   <p className={styles.noShowCandidateEmpty}>
@@ -3584,6 +3822,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                       onClick={() =>
                         setNoShowReplacementDraft({
                           ...noShowReplacementDraft,
+                          allowTimeConflict: false,
                           replacementWorkerId: workerId,
                         })
                       }
@@ -3592,15 +3831,72 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                       <span>
                         일치 작업 {candidate.matchingWorkTypeCount}개 · {candidate.worker.pickupLocation || "승차장소 없음"}
                       </span>
-                      <small>
+                      <small
+                        className={
+                          candidate.assignedTasks.length > 0
+                            ? styles.noShowCurrentAssignment
+                            : ""
+                        }
+                      >
                         {candidate.assignedTasks.length > 0
-                          ? `현재 배정: ${candidate.assignedTasks.map((task) => `${task.title}/${task.ownerName}`).join(", ")}`
+                          ? `현재배정 : ${candidate.assignedTasks.map((task) => `${task.title}/${task.ownerName}`).join(", ")}`
                           : "현재 미배정"}
                       </small>
+                      {candidate.timeConflicts.length > 0 ? (
+                        <small className={styles.noShowTimeConflict}>
+                          시간 중복 : {candidate.timeConflicts
+                            .map(
+                              (task) =>
+                                `${task.timeRange} ${task.title}/${task.ownerName}`,
+                            )
+                            .join(", ")}
+                        </small>
+                      ) : null}
                     </button>
                   );
                 })}
               </div>
+            </section>
+          </div>
+        ) : null}
+        {noShowCancelDraft ? (
+          <div
+            className={styles.noShowModalBackdrop}
+            role="presentation"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <section
+              aria-labelledby="no-show-cancel-title"
+              aria-modal="true"
+              className={`${styles.noShowModal} ${styles.noShowCancelModal}`}
+              role="dialog"
+            >
+              <header className={styles.noShowModalHeader}>
+                <div>
+                  <h2 id="no-show-cancel-title">노쇼 처리를 취소하시겠습니까?</h2>
+                  <p>
+                    {noShowCancelDraft.workerName}의 기존 배정을 복원하고 현재
+                    대체 배정을 해제합니다.
+                  </p>
+                </div>
+                <div>
+                  <button
+                    disabled={isReplacingNoShow}
+                    type="button"
+                    onClick={() => setNoShowCancelDraft(null)}
+                  >
+                    노쇼 유지
+                  </button>
+                  <button
+                    className={styles.noShowCancelConfirmButton}
+                    disabled={isReplacingNoShow}
+                    type="button"
+                    onClick={() => void confirmNoShowCancellation()}
+                  >
+                    노쇼 취소
+                  </button>
+                </div>
+              </header>
             </section>
           </div>
         ) : null}

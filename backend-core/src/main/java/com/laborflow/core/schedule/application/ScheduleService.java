@@ -246,6 +246,76 @@ public class ScheduleService {
             .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
     }
 
+    @Transactional
+    public ScheduleTaskResponse changeNoShowReplacement(
+        String loginId,
+        UUID scheduleDayUuid,
+        LocalDate workDate,
+        ReplaceNoShowRequest request
+    ) {
+        NoShowRequestContext context = validateNoShowRequest(loginId, scheduleDayUuid, request);
+        scheduleDao.changeNoShowReplacement(
+            context.agencyOwnerUuid(),
+            context.accountUuid(),
+            scheduleDayUuid,
+            request.originalAssignmentUuid(),
+            request.replacementWorkerProfileUuid()
+        );
+        return scheduleDao.findTask(context.agencyOwnerUuid(), scheduleDayUuid, workDate)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+    }
+
+    @Transactional
+    public ScheduleTaskResponse cancelNoShow(
+        String loginId,
+        UUID scheduleDayUuid,
+        UUID originalAssignmentUuid,
+        LocalDate workDate
+    ) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(normalizedLoginId);
+        if (!scheduleDao.scheduleDayBelongsToAgencyOwner(agencyOwnerUuid, scheduleDayUuid)) {
+            throw new IllegalArgumentException("Schedule day was not found.");
+        }
+        UUID accountUuid = scheduleDao.findAccountUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Account was not found."));
+        scheduleDao.cancelNoShow(
+            agencyOwnerUuid,
+            accountUuid,
+            scheduleDayUuid,
+            originalAssignmentUuid
+        );
+        return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+    }
+
+    private NoShowRequestContext validateNoShowRequest(
+        String loginId,
+        UUID scheduleDayUuid,
+        ReplaceNoShowRequest request
+    ) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(normalizedLoginId);
+        if (!scheduleDao.scheduleDayBelongsToAgencyOwner(agencyOwnerUuid, scheduleDayUuid)) {
+            throw new IllegalArgumentException("Schedule day was not found.");
+        }
+        if (request.originalAssignmentUuid() == null || request.replacementWorkerProfileUuid() == null) {
+            throw new IllegalArgumentException("No-show replacement is invalid.");
+        }
+        if (!scheduleDao.workerProfileBelongsToAgencyOwner(
+            agencyOwnerUuid,
+            request.replacementWorkerProfileUuid()
+        )) {
+            throw new IllegalArgumentException("Replacement worker was not found.");
+        }
+        UUID accountUuid = scheduleDao.findAccountUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Account was not found."));
+        return new NoShowRequestContext(accountUuid, agencyOwnerUuid);
+    }
+
+    private record NoShowRequestContext(UUID accountUuid, UUID agencyOwnerUuid) {
+    }
+
     private void validateGuestParticipantRequest(
         UUID agencyOwnerUuid,
         AddGuestParticipantsRequest request

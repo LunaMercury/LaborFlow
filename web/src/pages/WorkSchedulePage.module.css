@@ -135,6 +135,87 @@
   font-weight: 900;
 }
 
+.noShowWorkerRow {
+  min-width: 0;
+  width: 100%;
+}
+
+.noShowWorkerToken {
+  align-items: center;
+  background: #fff8f4;
+  border: 1px solid #d8aa98;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 9px 10px;
+}
+
+.noShowWorkerIdentity {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.noShowWorkerIdentity strong,
+.noShowWorkerIdentity span,
+.noShowWorkerIdentity b {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noShowWorkerIdentity strong {
+  color: #17202a;
+  font-size: 13px;
+}
+
+.noShowWorkerIdentity span {
+  color: #687789;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.noShowWorkerIdentity b {
+  color: #a13f2d;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.noShowRecordActions {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.noShowRecordActions button {
+  background: #ffffff;
+  border: 1px solid #d4a793;
+  border-radius: 6px;
+  color: #8d4634;
+  font-size: 10px;
+  font-weight: 900;
+  min-height: 24px;
+  padding: 0 7px;
+}
+
+.noShowRecordActions button:hover {
+  cursor: pointer;
+  filter: brightness(0.97);
+}
+
+.noShowRecordActions .noShowCancelButton {
+  background: #f0f3f5;
+  border-color: #c9d2db;
+  color: #50606f;
+}
+
 .noShowModalBackdrop {
   align-items: center;
   background: rgba(23, 32, 42, 0.38);
@@ -204,6 +285,34 @@
   color: #ffffff;
 }
 
+.noShowModalHeader .noShowCancelConfirmButton {
+  background: #984c36;
+  color: #ffffff;
+}
+
+.noShowCancelModal {
+  width: min(560px, 100%);
+}
+
+.noShowConflictWarning {
+  align-items: center;
+  background: #fff3ed;
+  border-bottom: 1px solid #ebc4b5;
+  color: #8f3f30;
+  display: flex;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 9px;
+  padding: 10px 14px;
+}
+
+.noShowConflictWarning input {
+  accent-color: #984c36;
+  flex: 0 0 auto;
+  height: 16px;
+  width: 16px;
+}
+
 .noShowModalHeader button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
@@ -241,6 +350,18 @@
 .noShowCandidateList small {
   color: #687789;
   font-size: 11px;
+}
+
+.noShowCandidateList .noShowCurrentAssignment,
+.noShowCandidateList .noShowTimeConflict {
+  color: #a13f2d;
+  font-weight: 900;
+}
+
+.noShowCandidateList .noShowTimeConflict {
+  background: #fff0ea;
+  border-radius: 4px;
+  padding: 3px 5px;
 }
 
 .noShowCandidateEmpty {
@@ -1914,6 +2035,32 @@
 }
 
 @media (max-width: 819px) {
+  .noShowModalBackdrop {
+    padding: 12px;
+  }
+
+  .noShowModalHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .noShowModalHeader > div:last-child {
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .noShowWorkerToken {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .noShowRecordActions {
+    align-items: center;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
   .scheduleDateBar {
     align-items: stretch;
     grid-template-columns: 1fr;

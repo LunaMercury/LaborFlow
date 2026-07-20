@@ -17,6 +17,10 @@ export type ScheduleAssignment = {
   plannedStartTime?: string;
   workerProfileUuid?: string | null;
   workerCount: number;
+  noShowIncidentUuid?: string | null;
+  noShowReplacementWorkerProfileUuid?: string | null;
+  noShowReplacementAssignmentUuid?: string | null;
+  noShowIncidentStatus?: string;
 };
 
 export type ScheduleTask = {
@@ -260,6 +264,42 @@ export async function replaceNoShow(
   );
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response, "노쇼 대체 인원을 저장하지 못했습니다."));
+  }
+  return (await response.json()) as ScheduleTask;
+}
+
+export async function changeNoShowReplacement(
+  loginId: string,
+  workDate: string,
+  taskId: string,
+  payload: ReplaceNoShowPayload,
+): Promise<ScheduleTask> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/schedule/tasks/${taskId}/no-show-replacement?loginId=${encodeURIComponent(loginId)}&workDate=${encodeURIComponent(workDate)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+      method: "PUT",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "노쇼 대체 작업자를 변경하지 못했습니다."));
+  }
+  return (await response.json()) as ScheduleTask;
+}
+
+export async function cancelNoShow(
+  loginId: string,
+  workDate: string,
+  taskId: string,
+  originalAssignmentUuid: string,
+): Promise<ScheduleTask> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/schedule/tasks/${taskId}/no-show-replacement/${originalAssignmentUuid}?loginId=${encodeURIComponent(loginId)}&workDate=${encodeURIComponent(workDate)}`,
+    { method: "DELETE" },
+  );
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "노쇼 처리를 취소하지 못했습니다."));
   }
   return (await response.json()) as ScheduleTask;
 }

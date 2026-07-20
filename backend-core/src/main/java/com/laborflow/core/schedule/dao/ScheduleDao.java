@@ -5,7 +5,6 @@ import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -87,6 +86,21 @@ public interface ScheduleDao {
         UUID scheduleDayUuid,
         UUID originalAssignmentUuid,
         UUID replacementWorkerProfileUuid
+    );
+
+    void changeNoShowReplacement(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        UUID scheduleDayUuid,
+        UUID originalAssignmentUuid,
+        UUID replacementWorkerProfileUuid
+    );
+
+    void cancelNoShow(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        UUID scheduleDayUuid,
+        UUID originalAssignmentUuid
     );
 
     UUID createTask(
