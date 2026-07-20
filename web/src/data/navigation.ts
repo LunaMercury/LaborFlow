@@ -13,10 +13,10 @@ export const menuItems: NavigationItem[] = [
       { label: "작업자 목록", path: "/workers" },
       { label: "팀 목록", path: "/teams" },
     ],
-  },
-  { label: "근태 관리", path: "/attendance" },
+  },  
   { label: "일정 관리", path: "/schedule" },
   { label: "작업자 배치", path: "/work-schedule" },
+  { label: "근태 관리", path: "/attendance" },
   { label: "각종 서식", path: "/forms" },
 ];
 
