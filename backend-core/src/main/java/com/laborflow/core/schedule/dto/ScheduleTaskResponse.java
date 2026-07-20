@@ -12,6 +12,8 @@ public record ScheduleTaskResponse(
     String siteName,
     String address,
     String timeRange,
+    String startTime,
+    String endTime,
     int requiredMen,
     int requiredWomen,
     List<String> workTypeCodes,

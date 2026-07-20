@@ -187,6 +187,34 @@
   justify-content: space-between;
 }
 
+.workerRiskSetting {
+  align-items: center;
+  background: #fff8f4;
+  border: 1px solid #e8c8b8;
+  border-radius: 7px;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.workerRiskSetting > div {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.workerRiskSetting strong {
+  color: #7d3f31;
+  font-size: 13px;
+}
+
+.workerRiskSetting > div > span {
+  color: #82675e;
+  font-size: 11px;
+}
+
 .availabilityHeader span,
 .availabilityMemoField span {
   color: #2f3f50;

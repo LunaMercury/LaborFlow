@@ -10,6 +10,12 @@ import {
 } from "../api/attendanceApi";
 import appStyles from "../App.module.css";
 import { StatusSnackbar } from "../components/StatusSnackbar";
+import { WorkerProfileModal } from "../components/WorkerProfileModal";
+import { fetchWorkers, fetchWorkTypes } from "../api/workforceApi";
+import type { WorkerRow } from "../data/workerRows";
+import {
+  workTypeOptions as fallbackWorkTypeOptions,
+} from "../data/workTypeOptions";
 import attendanceStyles from "./AttendancePage.module.css";
 
 const styles = { ...appStyles, ...attendanceStyles };
@@ -27,6 +33,12 @@ type AttendanceDraft = {
 };
 
 type StatusFilter = "ALL" | AttendanceStatus;
+
+type AttendanceWorkerModalState = {
+  mode: "create" | "edit";
+  record: AttendanceRecord;
+  worker?: WorkerRow;
+};
 
 const statusOptions: Array<{ label: string; value: AttendanceStatus }> = [
   { label: "미확인", value: "DRAFT" },
@@ -131,6 +143,10 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
   >(null);
   const [savingScheduleDayUuid, setSavingScheduleDayUuid] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
+  const [workers, setWorkers] = useState<WorkerRow[]>([]);
+  const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
+  const [workerModalState, setWorkerModalState] =
+    useState<AttendanceWorkerModalState | null>(null);
 
   const loadRecords = useCallback(async () => {
     setIsLoading(true);
@@ -168,6 +184,31 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
   useEffect(() => {
     void loadRecords();
   }, [loadRecords]);
+
+  useEffect(() => {
+    Promise.all([fetchWorkers(loginId), fetchWorkTypes()])
+      .then(([nextWorkers, nextWorkTypes]) => {
+        setWorkers(nextWorkers);
+        setWorkTypes(nextWorkTypes);
+      })
+      .catch(() => setStatusMessage("작업자 정보를 불러오지 못했습니다."));
+  }, [loginId]);
+
+  const openWorkerModal = (record: AttendanceRecord) => {
+    if (record.participantType === "guest") {
+      setWorkerModalState({ mode: "create", record });
+      return;
+    }
+
+    const worker = workers.find(
+      (candidate) => candidate.profileUuid === record.workerProfileUuid,
+    );
+    if (!worker) {
+      setStatusMessage("수정할 작업자 정보를 찾지 못했습니다.");
+      return;
+    }
+    setWorkerModalState({ mode: "edit", record, worker });
+  };
 
   const visibleRecords = useMemo(
     () =>
@@ -455,6 +496,7 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                           <th scope="col">휴게(분)</th>
                           <th scope="col">상태</th>
                           <th scope="col">시간 확인</th>
+                          <th scope="col">관리</th>
                           <th scope="col">저장</th>
                         </tr>
                       </thead>
@@ -474,7 +516,7 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                             isValidOptionalTime(draft.actualEndTime);
                           return (
                             <tr key={record.assignmentUuid}>
-                              <td>
+                              <td data-label="작업자">
                                 <div
                                   className={styles.attendanceWorkerIdentity}
                                 >
@@ -487,12 +529,12 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                                   )}
                                 </div>
                               </td>
-                              <td>{record.area === "men" ? "남자" : "여자"}</td>
-                              <td className={styles.plannedTimeCell}>
+                              <td data-label="성별">{record.area === "men" ? "남자" : "여자"}</td>
+                              <td className={styles.plannedTimeCell} data-label="예정 시간">
                                 {record.plannedStartTime || "--:--"} -{" "}
                                 {record.plannedEndTime || "--:--"}
                               </td>
-                              <td>
+                              <td data-label="실제 시작">
                                 <input
                                   aria-label={`${record.displayName} 실제 시작 시간`}
                                   disabled={disablesTime || isFutureDate}
@@ -510,7 +552,7 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                                   }
                                 />
                               </td>
-                              <td>
+                              <td data-label="실제 종료">
                                 <input
                                   aria-label={`${record.displayName} 실제 종료 시간`}
                                   disabled={disablesTime || isFutureDate}
@@ -528,7 +570,7 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                                   }
                                 />
                               </td>
-                              <td>
+                              <td data-label="휴게(분)">
                                 <input
                                   aria-label={`${record.displayName} 휴게 시간`}
                                   disabled={disablesTime || isFutureDate}
@@ -550,7 +592,7 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                                   }
                                 />
                               </td>
-                              <td>
+                              <td data-label="상태">
                                 <select
                                   aria-label={`${record.displayName} 근태 상태`}
                                   disabled={isFutureDate}
@@ -572,7 +614,7 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                                   ))}
                                 </select>
                               </td>
-                              <td>
+                              <td data-label="시간 확인">
                                 <select
                                   aria-label={`${record.displayName} 시간 기록 방식`}
                                   disabled={disablesTime || isFutureDate}
@@ -594,7 +636,18 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                                   ))}
                                 </select>
                               </td>
-                              <td>
+                              <td data-label="관리">
+                                <button
+                                  className={styles.editAttendanceWorkerButton}
+                                  type="button"
+                                  onClick={() => openWorkerModal(record)}
+                                >
+                                  {record.participantType === "guest"
+                                    ? "작업자 등록"
+                                    : "수정/평가"}
+                                </button>
+                              </td>
+                              <td data-label="저장">
                                 <button
                                   className={styles.saveAttendanceButton}
                                   disabled={
@@ -650,6 +703,39 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
         message={statusMessage}
         onDismiss={() => setStatusMessage("")}
       />
+      {workerModalState ? (
+        <WorkerProfileModal
+          loginId={loginId}
+          mode={workerModalState.mode}
+          sourceAssignmentUuid={
+            workerModalState.mode === "create"
+              ? workerModalState.record.assignmentUuid
+              : undefined
+          }
+          worker={
+            workerModalState.mode === "edit"
+              ? workerModalState.worker
+              : {
+                  name: workerModalState.record.displayName,
+                  phone: "",
+                  pickupLocation: workerModalState.record.pickupLocation,
+                  workTypeCodes: [],
+                }
+          }
+          workTypeOptions={workTypes}
+          onClose={() => setWorkerModalState(null)}
+          onSaved={(nextWorkers) => {
+            setWorkers(nextWorkers);
+            setWorkerModalState(null);
+            void loadRecords();
+            setStatusMessage(
+              workerModalState.mode === "create"
+                ? "익명 참여자를 작업자로 등록했습니다."
+                : "작업자 정보를 저장했습니다.",
+            );
+          }}
+        />
+      ) : null}
     </main>
   );
 }

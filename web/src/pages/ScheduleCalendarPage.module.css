@@ -206,7 +206,7 @@
 }
 
 .todayCalendarDay {
-  background: #eef2f6;
+  background: #d8e0e7;
 }
 
 .calendarDayNumber {
@@ -244,6 +244,17 @@
   justify-content: flex-start;
   min-height: 108px;
   padding: 10px 8px 12px;
+  position: relative;
+}
+
+.calendarTodayColumn {
+  background: #d8e0e7;
+  bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: calc(100% / 7);
+  z-index: 0;
 }
 
 .calendarOwnerLane {
@@ -253,6 +264,8 @@
   gap: 5px;
   justify-content: flex-start;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .calendarOwnerGrid,
@@ -419,6 +432,8 @@
   font-weight: 800;
   justify-content: center;
   min-height: 62px;
+  position: relative;
+  z-index: 1;
 }
 
 .scheduleCreateOverlay {

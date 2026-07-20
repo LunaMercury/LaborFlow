@@ -76,6 +76,8 @@ public interface WorkforceDao {
 
     void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes, Map<String, Integer> workTypeRatings);
 
+    void setWorkerNoShowRisk(UUID workerProfileUuid, boolean enabled);
+
     void linkGuestAssignmentToWorkerProfile(UUID assignmentUuid, UUID workerProfileUuid);
 
     UUID createWorkerTeam(UUID agencyOwnerUuid, String teamName, List<UUID> workerProfileUuids);

@@ -50,6 +50,15 @@ LaborFlow는 Java Spring Boot 기반 core backend, Rust 기반 hot path backend,
 - 근태 원본과 변경 이력은 PostgreSQL에 저장하며, 수정 시 인력사무소 소유권 검사를 서버에서 수행합니다.
 - 작업별 근태 메모는 계획 단계의 `work_schedule_day.memo`를 덮어쓰지 않고 `work_schedule_day_attendance_summary`와 변경 이력 테이블에 별도로 저장합니다.
 
+## 노쇼 대응 계약
+
+- 노쇼는 근태의 `ABSENT` 상태를 사용하되, 대체 대응 이력은 `worker_no_show_incident`에 별도로 기록합니다.
+- 원래 배정은 삭제하지 않고 `REPLACED` 상태로 보존하며, 대체 작업자는 같은 작업과 성별 배정 영역에 새 배정으로 연결합니다.
+- 같은 원배정과 같은 대체 작업자 요청은 멱등하게 처리하며, 이미 다른 대체자로 완료된 원배정을 재변경하는 요청은 거부합니다.
+- 노쇼 이력 횟수와 사무소가 직접 지정한 노쇼 주의 태그는 서로 다른 신호로 관리합니다. 수동 태그를 해제해도 실제 노쇼 이력은 유지합니다.
+- 인력사무소별 수동 주의 태그는 `worker_risk_flag`, 발생 및 대체 이력은 `worker_no_show_incident`를 원본으로 사용합니다.
+- 미등록 참여자의 수정은 참여자 그룹 단위로 처리하고 삭제는 `deleted_at`을 기록하는 소프트 삭제를 사용합니다.
+
 ## Toolchain 기준
 
 - Java/Spring backend-core는 JDK 26과 Spring Boot 4.x 최신 안정 버전을 기준으로 합니다.

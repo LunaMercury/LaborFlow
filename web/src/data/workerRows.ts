@@ -23,6 +23,9 @@ export type WorkerRow = {
   teamDisplayOrder?: number;
   lastWorkedDate?: string | null;
   totalWorkDays?: number;
+  noShowRisk?: boolean;
+  noShowRiskManual?: boolean;
+  noShowCount?: number;
 };
 
 export const workerRows: WorkerRow[] = [

@@ -18,6 +18,7 @@ public record UpdateWorkerProfileRequest(
     String bankName,
     String accountNumber,
     String accountHolderName,
+    Boolean noShowRisk,
     List<String> workTypeCodes,
     Map<String, Integer> workTypeRatings
 ) {

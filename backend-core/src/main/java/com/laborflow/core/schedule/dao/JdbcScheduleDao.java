@@ -46,6 +46,20 @@ public class JdbcScheduleDao implements ScheduleDao {
     }
 
     @Override
+    public Optional<UUID> findAccountUuidByLoginId(String loginId) {
+        List<UUID> accountUuids = jdbcTemplate.query(
+            """
+            SELECT uuid
+            FROM public.app_account
+            WHERE login_id = ? AND deleted_at IS NULL
+            """,
+            (resultSet, rowNumber) -> resultSet.getObject("uuid", UUID.class),
+            loginId
+        );
+        return accountUuids.stream().findFirst();
+    }
+
+    @Override
     public boolean scheduleDayBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID scheduleDayUuid) {
         Integer count = jdbcTemplate.queryForObject(
             """
@@ -206,6 +220,8 @@ public class JdbcScheduleDao implements ScheduleDao {
                 task.siteName(),
                 task.address(),
                 formatTimeRange(task.startTime(), task.endTime()),
+                formatOptionalTime(task.startTime()),
+                formatOptionalTime(task.endTime()),
                 task.requiredMen(),
                 task.requiredWomen(),
                 workTypeCodesBySiteUuid.getOrDefault(task.workSiteId(), List.of()),
@@ -229,6 +245,8 @@ public class JdbcScheduleDao implements ScheduleDao {
         UUID ownerUuid,
         String title,
         String address,
+        LocalTime startTime,
+        LocalTime endTime,
         int requiredMen,
         int requiredWomen,
         String memo
@@ -257,6 +275,8 @@ public class JdbcScheduleDao implements ScheduleDao {
             """
             UPDATE public.work_schedule_day d
             SET
+                daily_start_time = ?,
+                daily_end_time = ?,
                 male_required_count = ?,
                 female_required_count = ?,
                 memo = ?
@@ -267,6 +287,8 @@ public class JdbcScheduleDao implements ScheduleDao {
                 AND d.uuid = ?
                 AND d.deleted_at IS NULL
             """,
+            startTime,
+            endTime,
             requiredMen,
             requiredWomen,
             memo,
@@ -338,6 +360,7 @@ public class JdbcScheduleDao implements ScheduleDao {
                 WHERE agency_owner_uuid = ?
                     AND schedule_day_uuid = ?
                     AND participant_type = 'REGISTERED'
+                    AND status <> 'REPLACED'
                     AND deleted_at IS NULL
                 """,
                 agencyOwnerUuid,
@@ -357,6 +380,7 @@ public class JdbcScheduleDao implements ScheduleDao {
                 WHERE agency_owner_uuid = ?
                     AND schedule_day_uuid = ?
                     AND participant_type = 'REGISTERED'
+                    AND status <> 'REPLACED'
                     AND worker_profile_uuid NOT IN (%s)
                     AND deleted_at IS NULL
                 """.formatted(placeholders),
@@ -504,6 +528,309 @@ public class JdbcScheduleDao implements ScheduleDao {
             participantCount,
             scheduleDayUuid,
             agencyOwnerUuid
+        );
+    }
+
+    @Override
+    public void updateGuestParticipants(
+        UUID agencyOwnerUuid,
+        UUID scheduleDayUuid,
+        UUID participantGroupUuid,
+        String area,
+        int participantCount,
+        String displayName,
+        String pickupLocation,
+        LocalTime plannedStartTime,
+        LocalTime plannedEndTime
+    ) {
+        List<UUID> assignmentUuids = jdbcTemplate.queryForList(
+            """
+            SELECT a.uuid
+            FROM public.work_schedule_assignment a
+            WHERE a.agency_owner_uuid = ?
+                AND a.schedule_day_uuid = ?
+                AND a.participant_group_uuid = ?
+                AND a.participant_type = 'GUEST'
+                AND a.deleted_at IS NULL
+            ORDER BY a.created_at, a.uuid
+            """,
+            UUID.class,
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            participantGroupUuid
+        );
+        if (assignmentUuids.isEmpty()) {
+            throw new IllegalArgumentException("Guest participant group was not found.");
+        }
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.work_schedule_assignment
+            SET assignment_area = ?,
+                participant_display_name = ?,
+                participant_pickup_location = ?,
+                planned_start_time = ?,
+                planned_end_time = ?,
+                updated_at = now()
+            WHERE agency_owner_uuid = ?
+                AND schedule_day_uuid = ?
+                AND participant_group_uuid = ?
+                AND participant_type = 'GUEST'
+                AND deleted_at IS NULL
+            """,
+            normalizeAssignmentArea(area),
+            displayName,
+            pickupLocation,
+            plannedStartTime,
+            plannedEndTime,
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            participantGroupUuid
+        );
+
+        if (assignmentUuids.size() > participantCount) {
+            List<UUID> surplusAssignmentUuids = assignmentUuids.subList(
+                participantCount,
+                assignmentUuids.size()
+            );
+            String placeholders = String.join(
+                ",",
+                surplusAssignmentUuids.stream().map(ignored -> "?").toList()
+            );
+            jdbcTemplate.update(
+                """
+                UPDATE public.work_schedule_assignment
+                SET deleted_at = now(), updated_at = now()
+                WHERE uuid IN (%s)
+                """.formatted(placeholders),
+                surplusAssignmentUuids.toArray()
+            );
+        } else if (assignmentUuids.size() < participantCount) {
+            addGuestParticipants(
+                agencyOwnerUuid,
+                scheduleDayUuid,
+                participantGroupUuid,
+                area,
+                participantCount - assignmentUuids.size(),
+                displayName,
+                pickupLocation,
+                "NONE",
+                null,
+                null,
+                plannedStartTime,
+                plannedEndTime
+            );
+        }
+    }
+
+    @Override
+    public void deleteGuestParticipants(
+        UUID agencyOwnerUuid,
+        UUID scheduleDayUuid,
+        UUID participantGroupUuid
+    ) {
+        int updatedRows = jdbcTemplate.update(
+            """
+            UPDATE public.work_schedule_assignment
+            SET deleted_at = now(), updated_at = now()
+            WHERE agency_owner_uuid = ?
+                AND schedule_day_uuid = ?
+                AND participant_group_uuid = ?
+                AND participant_type = 'GUEST'
+                AND deleted_at IS NULL
+            """,
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            participantGroupUuid
+        );
+        if (updatedRows == 0) {
+            throw new IllegalArgumentException("Guest participant group was not found.");
+        }
+    }
+
+    @Override
+    public void replaceNoShow(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        UUID scheduleDayUuid,
+        UUID originalAssignmentUuid,
+        UUID replacementWorkerProfileUuid
+    ) {
+        NoShowAssignmentContext original = jdbcTemplate.query(
+            """
+            SELECT a.worker_profile_uuid,
+                   a.assignment_area,
+                   a.work_date,
+                   a.work_site_uuid,
+                   a.planned_start_time,
+                   a.planned_end_time,
+                   a.status
+            FROM public.work_schedule_assignment a
+            WHERE a.agency_owner_uuid = ?
+                AND a.schedule_day_uuid = ?
+                AND a.uuid = ?
+                AND a.participant_type = 'REGISTERED'
+                AND a.worker_profile_uuid IS NOT NULL
+                AND a.deleted_at IS NULL
+            """,
+            (resultSet, rowNumber) -> new NoShowAssignmentContext(
+                resultSet.getObject("worker_profile_uuid", UUID.class),
+                resultSet.getString("assignment_area"),
+                resultSet.getObject("work_date", LocalDate.class),
+                resultSet.getObject("work_site_uuid", UUID.class),
+                resultSet.getObject("planned_start_time", LocalTime.class),
+                resultSet.getObject("planned_end_time", LocalTime.class),
+                resultSet.getString("status")
+            ),
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            originalAssignmentUuid
+        ).stream().findFirst().orElseThrow(
+            () -> new IllegalArgumentException("Original assignment was not found.")
+        );
+        if (original.workerProfileUuid().equals(replacementWorkerProfileUuid)) {
+            throw new IllegalArgumentException("The no-show worker cannot replace themselves.");
+        }
+        if ("REPLACED".equalsIgnoreCase(original.status())) {
+            UUID persistedReplacementWorkerUuid = jdbcTemplate.query(
+                """
+                SELECT replacement_worker_profile_uuid
+                FROM public.worker_no_show_incident
+                WHERE agency_owner_uuid = ?
+                    AND original_assignment_uuid = ?
+                    AND deleted_at IS NULL
+                """,
+                (resultSet, rowNumber) -> resultSet.getObject(
+                    "replacement_worker_profile_uuid",
+                    UUID.class
+                ),
+                agencyOwnerUuid,
+                originalAssignmentUuid
+            ).stream().findFirst().orElse(null);
+            if (replacementWorkerProfileUuid.equals(persistedReplacementWorkerUuid)) {
+                return;
+            }
+            throw new IllegalArgumentException("The no-show assignment was already replaced.");
+        }
+
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.worker_attendance_record (
+                agency_owner_uuid,
+                assignment_uuid,
+                schedule_day_uuid,
+                worker_profile_uuid,
+                work_date,
+                break_minutes,
+                status,
+                time_entry_type,
+                confirmed_at,
+                confirmed_by_account_uuid
+            )
+            VALUES (?, ?, ?, ?, ?, 0, 'ABSENT', 'UNKNOWN', now(), ?)
+            ON CONFLICT (assignment_uuid) WHERE deleted_at IS NULL DO UPDATE
+            SET actual_start_at = NULL,
+                actual_end_at = NULL,
+                break_minutes = 0,
+                status = 'ABSENT',
+                time_entry_type = 'UNKNOWN',
+                confirmed_at = now(),
+                confirmed_by_account_uuid = EXCLUDED.confirmed_by_account_uuid,
+                updated_at = now()
+            """,
+            agencyOwnerUuid,
+            originalAssignmentUuid,
+            scheduleDayUuid,
+            original.workerProfileUuid(),
+            original.workDate(),
+            accountUuid
+        );
+        jdbcTemplate.update(
+            """
+            UPDATE public.work_schedule_assignment
+            SET status = 'REPLACED', updated_at = now()
+            WHERE uuid = ? AND agency_owner_uuid = ? AND deleted_at IS NULL
+            """,
+            originalAssignmentUuid,
+            agencyOwnerUuid
+        );
+
+        UUID replacementAssignmentUuid = jdbcTemplate.query(
+            """
+            SELECT uuid
+            FROM public.work_schedule_assignment
+            WHERE agency_owner_uuid = ?
+                AND schedule_day_uuid = ?
+                AND worker_profile_uuid = ?
+                AND participant_type = 'REGISTERED'
+                AND status <> 'REPLACED'
+                AND deleted_at IS NULL
+            """,
+            (resultSet, rowNumber) -> resultSet.getObject("uuid", UUID.class),
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            replacementWorkerProfileUuid
+        ).stream().findFirst().orElse(null);
+
+        if (replacementAssignmentUuid == null) {
+            replacementAssignmentUuid = jdbcTemplate.queryForObject(
+                """
+                INSERT INTO public.work_schedule_assignment (
+                    agency_owner_uuid,
+                    work_site_uuid,
+                    worker_profile_uuid,
+                    work_date,
+                    assignment_area,
+                    schedule_day_uuid,
+                    worker_count,
+                    participant_group_uuid,
+                    participant_type,
+                    planned_start_time,
+                    planned_end_time,
+                    status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, 1, gen_random_uuid(), 'REGISTERED', ?, ?, 'PLANNED')
+                RETURNING uuid
+                """,
+                UUID.class,
+                agencyOwnerUuid,
+                original.workSiteUuid(),
+                replacementWorkerProfileUuid,
+                original.workDate(),
+                original.assignmentArea(),
+                scheduleDayUuid,
+                original.plannedStartTime(),
+                original.plannedEndTime()
+            );
+        }
+
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.worker_no_show_incident (
+                agency_owner_uuid,
+                worker_profile_uuid,
+                original_assignment_uuid,
+                replacement_worker_profile_uuid,
+                replacement_assignment_uuid,
+                occurred_on,
+                status,
+                reported_by_account_uuid
+            )
+            VALUES (?, ?, ?, ?, ?, ?, 'REPLACED', ?)
+            ON CONFLICT (original_assignment_uuid) WHERE deleted_at IS NULL DO UPDATE
+            SET replacement_worker_profile_uuid = EXCLUDED.replacement_worker_profile_uuid,
+                replacement_assignment_uuid = EXCLUDED.replacement_assignment_uuid,
+                status = 'REPLACED',
+                reported_by_account_uuid = EXCLUDED.reported_by_account_uuid,
+                updated_at = now()
+            """,
+            agencyOwnerUuid,
+            original.workerProfileUuid(),
+            originalAssignmentUuid,
+            replacementWorkerProfileUuid,
+            replacementAssignmentUuid,
+            original.workDate(),
+            accountUuid
         );
     }
 
@@ -925,6 +1252,7 @@ public class JdbcScheduleDao implements ScheduleDao {
                 a.worker_count,
                 a.planned_start_time,
                 a.planned_end_time,
+                a.status AS assignment_status,
                 COALESCE(att.status, '') AS attendance_status
             FROM public.work_schedule_assignment a
             LEFT JOIN public.labor_agency_worker_profile p ON p.uuid = a.worker_profile_uuid
@@ -953,6 +1281,7 @@ public class JdbcScheduleDao implements ScheduleDao {
                         resultSet.getInt("worker_count"),
                         formatOptionalTime(resultSet.getObject("planned_start_time", LocalTime.class)),
                         formatOptionalTime(resultSet.getObject("planned_end_time", LocalTime.class)),
+                        resultSet.getString("assignment_status").toLowerCase(),
                         resultSet.getString("attendance_status").toLowerCase()
                     ));
             },
@@ -1020,6 +1349,17 @@ public class JdbcScheduleDao implements ScheduleDao {
         String memo,
         LocalTime startTime,
         LocalTime endTime
+    ) {
+    }
+
+    private record NoShowAssignmentContext(
+        UUID workerProfileUuid,
+        String assignmentArea,
+        LocalDate workDate,
+        UUID workSiteUuid,
+        LocalTime plannedStartTime,
+        LocalTime plannedEndTime,
+        String status
     ) {
     }
 

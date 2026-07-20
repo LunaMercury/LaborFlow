@@ -20,6 +20,7 @@ export type CreateWorkerPayload = {
   bankName: string;
   accountNumber: string;
   accountHolderName: string;
+  noShowRisk: boolean;
   phone: string;
   pickupLocation: string;
   workTypeCodes: string[];
@@ -38,6 +39,7 @@ export type UpdateWorkerProfilePayload = {
   bankName: string;
   accountNumber: string;
   accountHolderName: string;
+  noShowRisk: boolean;
   name: string;
   nickname: string;
   phone: string;

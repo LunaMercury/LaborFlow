@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import {
   createWorker,
+  createWorkerFromGuestAssignment,
   deleteWorkerProfile,
   updateWorkerProfile,
 } from "../api/workforceApi";
@@ -20,6 +21,7 @@ type WorkerProfileModalProps = {
   onClose: () => void;
   onDeleted?: (workers: WorkerRow[]) => void;
   onSaved: (workers: WorkerRow[]) => void;
+  sourceAssignmentUuid?: string;
 };
 
 type GenderValue = "M" | "F" | "N";
@@ -87,6 +89,7 @@ export function WorkerProfileModal({
   onClose,
   onDeleted,
   onSaved,
+  sourceAssignmentUuid,
 }: WorkerProfileModalProps) {
   const formId = `worker-profile-${mode}-form`;
   const isEditMode = mode === "edit";
@@ -104,6 +107,9 @@ export function WorkerProfileModal({
   );
   const [memo, setMemo] = useState(worker?.memo ?? "");
   const [isActive, setIsActive] = useState(worker?.isActive ?? true);
+  const [noShowRisk, setNoShowRisk] = useState(
+    worker?.noShowRiskManual ?? false,
+  );
   const [availableDaysMask, setAvailableDaysMask] = useState(
     worker?.availableDaysMask ?? EVERY_DAY_MASK,
   );
@@ -205,6 +211,7 @@ export function WorkerProfileModal({
         gender,
         isActive,
         memo: memo.trim(),
+        noShowRisk,
         phone: formatKoreanPhoneNumber(workerPhone),
         pickupLocation: pickupLocation.trim(),
         workTypeCodes,
@@ -218,11 +225,21 @@ export function WorkerProfileModal({
               name: normalizedName,
               nickname: normalizedNickname,
             })
-          : await createWorker(loginId, {
-              ...payload,
-              localNickname: normalizedNickname,
-              workerName: normalizedName,
-            });
+          : sourceAssignmentUuid
+            ? await createWorkerFromGuestAssignment(
+                loginId,
+                sourceAssignmentUuid,
+                {
+                  ...payload,
+                  localNickname: normalizedNickname,
+                  workerName: normalizedName,
+                },
+              )
+            : await createWorker(loginId, {
+                ...payload,
+                localNickname: normalizedNickname,
+                workerName: normalizedName,
+              });
 
       onSaved(workers);
       onClose();
@@ -414,6 +431,23 @@ export function WorkerProfileModal({
                       onChange={(event) => setIsActive(event.target.checked)}
                     />
                     <span>{isActive ? "활성" : "휴식중"}</span>
+                  </label>
+                </div>
+
+                <div className={styles.workerRiskSetting}>
+                  <div>
+                    <strong>노쇼 위험 인물</strong>
+                    <span>
+                      수동 주의 태그입니다. 실제 노쇼 이력은 별도로 유지됩니다.
+                    </span>
+                  </div>
+                  <label className={styles.availabilityToggle}>
+                    <input
+                      checked={noShowRisk}
+                      type="checkbox"
+                      onChange={(event) => setNoShowRisk(event.target.checked)}
+                    />
+                    <span>{noShowRisk ? "위험 표시" : "일반"}</span>
                   </label>
                 </div>
 

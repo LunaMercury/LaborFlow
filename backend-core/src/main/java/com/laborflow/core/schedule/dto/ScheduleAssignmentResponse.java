@@ -13,6 +13,7 @@ public record ScheduleAssignmentResponse(
     int workerCount,
     String plannedStartTime,
     String plannedEndTime,
+    String assignmentStatus,
     String attendanceStatus
 ) {
 }

@@ -5,12 +5,15 @@ import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface ScheduleDao {
     Optional<UUID> findAgencyOwnerUuidByLoginId(String loginId);
+
+    Optional<UUID> findAccountUuidByLoginId(String loginId);
 
     boolean scheduleDayBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID scheduleDayUuid);
 
@@ -30,6 +33,8 @@ public interface ScheduleDao {
         UUID ownerUuid,
         String title,
         String address,
+        LocalTime startTime,
+        LocalTime endTime,
         int requiredMen,
         int requiredWomen,
         String memo
@@ -56,6 +61,32 @@ public interface ScheduleDao {
         UUID settlementRecipientWorkerProfileUuid,
         LocalTime plannedStartTime,
         LocalTime plannedEndTime
+    );
+
+    void updateGuestParticipants(
+        UUID agencyOwnerUuid,
+        UUID scheduleDayUuid,
+        UUID participantGroupUuid,
+        String area,
+        int participantCount,
+        String displayName,
+        String pickupLocation,
+        LocalTime plannedStartTime,
+        LocalTime plannedEndTime
+    );
+
+    void deleteGuestParticipants(
+        UUID agencyOwnerUuid,
+        UUID scheduleDayUuid,
+        UUID participantGroupUuid
+    );
+
+    void replaceNoShow(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        UUID scheduleDayUuid,
+        UUID originalAssignmentUuid,
+        UUID replacementWorkerProfileUuid
     );
 
     UUID createTask(

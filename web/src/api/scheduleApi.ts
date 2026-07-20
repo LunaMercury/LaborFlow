@@ -7,6 +7,7 @@ export type ScheduleAssignmentArea = "men" | "women";
 export type ScheduleAssignment = {
   assignmentUuid?: string;
   area: ScheduleAssignmentArea;
+  assignmentStatus?: string;
   attendanceStatus?: string;
   displayName?: string;
   participantGroupUuid?: string;
@@ -28,6 +29,8 @@ export type ScheduleTask = {
   requiredMen: number;
   requiredWomen: number;
   siteName: string;
+  startTime: string;
+  endTime: string;
   timeRange: string;
   title: string;
   workSiteId: string;
@@ -62,10 +65,12 @@ export type CreateScheduleTaskPayload = {
 export type UpdateScheduleTaskPayload = {
   address: string;
   assignments: ScheduleAssignment[];
+  endTime: string | null;
   memo: string;
   ownerUuid?: string | null;
   requiredMen: number;
   requiredWomen: number;
+  startTime: string | null;
   title: string;
   workTypeCodes: string[];
 };
@@ -90,6 +95,11 @@ export type AddGuestParticipantsPayload = {
   plannedEndTime?: string;
   plannedStartTime?: string;
   settlementRecipientWorkerProfileUuid?: string;
+};
+
+export type ReplaceNoShowPayload = {
+  originalAssignmentUuid: string;
+  replacementWorkerProfileUuid: string;
 };
 
 async function parseErrorMessage(response: Response, fallbackMessage: string) {
@@ -194,6 +204,63 @@ export async function addGuestParticipants(
     throw new Error(await parseErrorMessage(response, "미등록 작업자를 추가하지 못했습니다."));
   }
 
+  return (await response.json()) as ScheduleTask;
+}
+
+export async function updateGuestParticipants(
+  loginId: string,
+  workDate: string,
+  taskId: string,
+  participantGroupUuid: string,
+  payload: AddGuestParticipantsPayload,
+): Promise<ScheduleTask> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/schedule/tasks/${taskId}/guest-participants/${participantGroupUuid}?loginId=${encodeURIComponent(loginId)}&workDate=${encodeURIComponent(workDate)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+      method: "PUT",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "미등록 작업자를 수정하지 못했습니다."));
+  }
+  return (await response.json()) as ScheduleTask;
+}
+
+export async function deleteGuestParticipants(
+  loginId: string,
+  workDate: string,
+  taskId: string,
+  participantGroupUuid: string,
+): Promise<ScheduleTask> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/schedule/tasks/${taskId}/guest-participants/${participantGroupUuid}?loginId=${encodeURIComponent(loginId)}&workDate=${encodeURIComponent(workDate)}`,
+    { method: "DELETE" },
+  );
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "미등록 작업자를 삭제하지 못했습니다."));
+  }
+  return (await response.json()) as ScheduleTask;
+}
+
+export async function replaceNoShow(
+  loginId: string,
+  workDate: string,
+  taskId: string,
+  payload: ReplaceNoShowPayload,
+): Promise<ScheduleTask> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/schedule/tasks/${taskId}/no-show-replacement?loginId=${encodeURIComponent(loginId)}&workDate=${encodeURIComponent(workDate)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "노쇼 대체 인원을 저장하지 못했습니다."));
+  }
   return (await response.json()) as ScheduleTask;
 }
 

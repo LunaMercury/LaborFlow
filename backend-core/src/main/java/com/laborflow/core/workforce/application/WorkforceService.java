@@ -127,6 +127,7 @@ public class WorkforceService {
             workTypeCodes,
             normalizeWorkTypeRatings(workTypeCodes, request.workTypeRatings())
         );
+        workforceDao.setWorkerNoShowRisk(workerProfileUuid, Boolean.TRUE.equals(request.noShowRisk()));
         if (paymentInput.hasValue()) {
             workforceDao.upsertWorkerPaymentProfile(
                 workerProfileUuid,
@@ -211,6 +212,7 @@ public class WorkforceService {
             workTypeCodes,
             normalizeWorkTypeRatings(workTypeCodes, request.workTypeRatings())
         );
+        workforceDao.setWorkerNoShowRisk(workerProfileUuid, Boolean.TRUE.equals(request.noShowRisk()));
     }
 
     @Transactional

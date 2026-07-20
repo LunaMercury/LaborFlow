@@ -22,6 +22,8 @@ contracts:
   - PostgreSQL is the source of truth for personal data, attendance records, schedules, workflow history, and audit trails.
   - Attendance records use Asia/Seoul as the business timezone; confirmed manual records must not be overwritten by bulk planned-attendance confirmation.
   - Attendance task notes are stored separately from planning memos and retain account-attributed revision history in PostgreSQL.
+  - A no-show response records ABSENT attendance, preserves the original assignment as REPLACED, and stores the replacement link in PostgreSQL instead of deleting history.
+  - Manual no-show risk flags and observed no-show incident counts are separate signals; clearing a manual flag must not erase incident history.
   - Redis is limited to short-lived cache, rate limit counters, idempotency keys, distributed locks, and realtime fan-out support.
   - Redis keys and values must not contain raw personal data, passwords, provider secrets, or long-lived audit records.
   - Backend-core feature packages use api/application/dto/dao layers; shared infrastructure belongs under common only when reused across domains.

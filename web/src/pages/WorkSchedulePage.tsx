@@ -8,9 +8,12 @@ import {
 } from "react";
 import {
   addGuestParticipants,
+  deleteGuestParticipants,
   deleteScheduleTaskRange,
   fetchScheduleTasks,
+  replaceNoShow,
   updateScheduleTask,
+  updateGuestParticipants,
   type ScheduleAssignment,
   type ScheduleTask,
 } from "../api/scheduleApi";
@@ -62,6 +65,7 @@ type GuestParticipantDraft = {
   displayName: string;
   participantCount: string;
   pickupLocation: string;
+  participantGroupUuid?: string;
   taskId: string;
 };
 
@@ -70,6 +74,13 @@ type GuestParticipantGroup = {
   groupUuid: string;
   participantCount: number;
   pickupLocation: string;
+};
+
+type NoShowReplacementDraft = {
+  originalAssignmentUuid: string;
+  originalWorkerId: string;
+  replacementWorkerId: string;
+  taskId: string;
 };
 
 type RequiredWorkerCount = {
@@ -84,6 +95,8 @@ type EditingRequiredCount = {
 };
 
 type DraggingWorkerState = {
+  initialClientX: number;
+  initialClientY: number;
   label: string;
   workerIds: string[];
 };
@@ -135,6 +148,8 @@ type EditingWorkerDraft = {
 
 type TaskDetailDraft = {
   address: string;
+  endTime: string;
+  startTime: string;
   title: string;
   workTypeCodes: string[];
 };
@@ -496,7 +511,9 @@ function createAssignmentDrafts(
   return Object.fromEntries(
     tasks.map((task) => {
       const registeredAssignments = task.assignments.filter(
-        (assignment) => Boolean(assignment.workerProfileUuid),
+        (assignment) =>
+          Boolean(assignment.workerProfileUuid) &&
+          assignment.assignmentStatus !== "replaced",
       );
       const workerCounts = Object.fromEntries(
         registeredAssignments.map((assignment) => [
@@ -581,6 +598,8 @@ function createTaskDetailDrafts(
       task.id,
       {
         address: task.address,
+        endTime: task.endTime,
+        startTime: task.startTime,
         title: task.title,
         workTypeCodes: task.workTypeCodes,
       },
@@ -699,6 +718,9 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     useState<EditingAssignmentCount | null>(null);
   const [guestParticipantDraft, setGuestParticipantDraft] =
     useState<GuestParticipantDraft | null>(null);
+  const [noShowReplacementDraft, setNoShowReplacementDraft] =
+    useState<NoShowReplacementDraft | null>(null);
+  const [isReplacingNoShow, setIsReplacingNoShow] = useState(false);
   const [editingTaskMemoId, setEditingTaskMemoId] = useState<string | null>(
     null,
   );
@@ -740,6 +762,54 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     [draggingWorker],
   );
   const isDraggingWorkers = draggingWorkerIds.size > 0;
+  const noShowTask = noShowReplacementDraft
+    ? tasks.find((task) => task.id === noShowReplacementDraft.taskId) ?? null
+    : null;
+  const noShowCandidates = useMemo(() => {
+    if (!noShowReplacementDraft || !noShowTask) {
+      return [];
+    }
+
+    const targetWorkerIds = new Set(
+      noShowTask.assignments
+        .filter((assignment) => assignment.assignmentStatus !== "replaced")
+        .map((assignment) => assignment.workerProfileUuid)
+        .filter((workerId): workerId is string => Boolean(workerId)),
+    );
+
+    return workers
+      .filter((worker) => {
+        const workerId = getWorkerId(worker);
+        return (
+          worker.isActive !== false &&
+          workerId !== noShowReplacementDraft.originalWorkerId &&
+          !targetWorkerIds.has(workerId)
+        );
+      })
+      .map((worker) => {
+        const workerId = getWorkerId(worker);
+        const matchingWorkTypeCount = worker.workTypeCodes.filter((code) =>
+          noShowTask.workTypeCodes.includes(code),
+        ).length;
+        const assignedTasks = tasks.filter((task) =>
+          task.assignments.some(
+            (assignment) =>
+              assignment.workerProfileUuid === workerId &&
+              assignment.assignmentStatus !== "replaced",
+          ),
+        );
+        return { assignedTasks, matchingWorkTypeCount, worker };
+      })
+      .sort(
+        (left, right) =>
+          right.matchingWorkTypeCount - left.matchingWorkTypeCount ||
+          left.assignedTasks.length - right.assignedTasks.length ||
+          getWorkerDisplayName(left.worker).localeCompare(
+            getWorkerDisplayName(right.worker),
+            "ko-KR",
+          ),
+      );
+  }, [noShowReplacementDraft, noShowTask, tasks, workers]);
 
   useEffect(() => {
     tasksRef.current = tasks;
@@ -1144,6 +1214,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
   const getTaskDetailDraft = (task: ScheduleTask) =>
     taskDetailDraftsByTaskId[task.id] ?? {
       address: task.address,
+      endTime: task.endTime,
+      startTime: task.startTime,
       title: task.title,
       workTypeCodes: task.workTypeCodes,
     };
@@ -1167,6 +1239,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       (memoByTaskId[task.id] ?? task.memo) !== persistedTask.memo ||
       detailDraft.title !== persistedTask.title ||
       detailDraft.address !== persistedTask.address ||
+      detailDraft.startTime !== persistedTask.startTime ||
+      detailDraft.endTime !== persistedTask.endTime ||
       detailDraft.workTypeCodes.join("|") !==
         persistedTask.workTypeCodes.join("|")
     );
@@ -1253,9 +1327,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         {
           address: detailDraft.address,
           assignments: toScheduleAssignments(taskAssignments),
+          endTime: detailDraft.endTime || null,
           memo: memoByTaskId[task.id] ?? task.memo,
           requiredMen: requiredCounts.men,
           requiredWomen: requiredCounts.women,
+          startTime: detailDraft.startTime || null,
           title: detailDraft.title,
           workTypeCodes: detailDraft.workTypeCodes,
         },
@@ -1424,6 +1500,21 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     });
   };
 
+  const startGuestParticipantEdit = (
+    taskId: string,
+    area: AssignmentArea,
+    group: GuestParticipantGroup,
+  ) => {
+    setGuestParticipantDraft({
+      area,
+      displayName: group.displayName,
+      participantCount: String(group.participantCount),
+      participantGroupUuid: group.groupUuid,
+      pickupLocation: group.pickupLocation,
+      taskId,
+    });
+  };
+
   const saveGuestParticipant = async () => {
     if (!guestParticipantDraft) {
       return;
@@ -1448,18 +1539,27 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     setStatusMessage("");
 
     try {
-      const savedTask = await addGuestParticipants(
-        loginId,
-        selectedDate,
-        draft.taskId,
-        {
-          area: draft.area,
-          displayName: draft.displayName.trim() || undefined,
-          introductionType: "NONE",
-          participantCount,
-          pickupLocation: draft.pickupLocation.trim() || undefined,
-        },
-      );
+      const payload = {
+        area: draft.area,
+        displayName: draft.displayName.trim() || undefined,
+        introductionType: "NONE" as const,
+        participantCount,
+        pickupLocation: draft.pickupLocation.trim() || undefined,
+      };
+      const savedTask = draft.participantGroupUuid
+        ? await updateGuestParticipants(
+            loginId,
+            selectedDate,
+            draft.taskId,
+            draft.participantGroupUuid,
+            payload,
+          )
+        : await addGuestParticipants(
+            loginId,
+            selectedDate,
+            draft.taskId,
+            payload,
+          );
 
       setTasks((currentTasks) =>
         currentTasks.map((currentTask) =>
@@ -1488,7 +1588,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         [savedTask.id]: createTaskDetailDrafts([savedTask])[savedTask.id],
       }));
       setGuestParticipantDraft(null);
-      setStatusMessage(`미등록 작업자 ${participantCount}명을 추가했습니다.`);
+      setStatusMessage(
+        draft.participantGroupUuid
+          ? "미등록 작업자 정보를 수정했습니다."
+          : `미등록 작업자 ${participantCount}명을 추가했습니다.`,
+      );
     } catch (error) {
       setStatusMessage(
         error instanceof Error
@@ -1497,6 +1601,96 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       );
     } finally {
       setSavingGuestParticipantKey(null);
+    }
+  };
+
+  const removeGuestParticipantGroup = async (
+    taskId: string,
+    group: GuestParticipantGroup,
+  ) => {
+    if (!window.confirm("이 미등록 작업자를 배정에서 삭제하시겠습니까?")) {
+      return;
+    }
+
+    const requestKey = `${taskId}:${group.groupUuid}`;
+    setSavingGuestParticipantKey(requestKey);
+    try {
+      const savedTask = await deleteGuestParticipants(
+        loginId,
+        selectedDate,
+        taskId,
+        group.groupUuid,
+      );
+      setTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask.id === savedTask.id ? savedTask : currentTask,
+        ),
+      );
+      setPersistedTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask.id === savedTask.id ? savedTask : currentTask,
+        ),
+      );
+      setStatusMessage("미등록 작업자를 배정에서 삭제했습니다.");
+    } catch (error) {
+      setStatusMessage(
+        error instanceof Error
+          ? error.message
+          : "미등록 작업자를 삭제하지 못했습니다.",
+      );
+    } finally {
+      setSavingGuestParticipantKey(null);
+    }
+  };
+
+  const saveNoShowReplacement = async () => {
+    if (
+      !noShowReplacementDraft ||
+      !noShowReplacementDraft.replacementWorkerId
+    ) {
+      setStatusMessage("대체 작업자를 선택해 주세요.");
+      return;
+    }
+
+    setIsReplacingNoShow(true);
+    try {
+      const savedTask = await replaceNoShow(
+        loginId,
+        selectedDate,
+        noShowReplacementDraft.taskId,
+        {
+          originalAssignmentUuid:
+            noShowReplacementDraft.originalAssignmentUuid,
+          replacementWorkerProfileUuid:
+            noShowReplacementDraft.replacementWorkerId,
+        },
+      );
+      const nextWorkers = await fetchWorkers(loginId);
+      setTasks((currentTasks) =>
+        currentTasks.map((task) =>
+          task.id === savedTask.id ? savedTask : task,
+        ),
+      );
+      setPersistedTasks((currentTasks) =>
+        currentTasks.map((task) =>
+          task.id === savedTask.id ? savedTask : task,
+        ),
+      );
+      setAssignedWorkerIdsByTaskId((currentAssignments) => ({
+        ...currentAssignments,
+        [savedTask.id]: createAssignmentDrafts([savedTask])[savedTask.id],
+      }));
+      setWorkers(nextWorkers);
+      setNoShowReplacementDraft(null);
+      setStatusMessage("노쇼를 기록하고 대체 작업자를 배정했습니다.");
+    } catch (error) {
+      setStatusMessage(
+        error instanceof Error
+          ? error.message
+          : "노쇼 대체 인원을 저장하지 못했습니다.",
+      );
+    } finally {
+      setIsReplacingNoShow(false);
     }
   };
 
@@ -1949,6 +2143,16 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     };
 
     const handlePointerEnd = (event: PointerEvent) => {
+      const movement = Math.hypot(
+        event.clientX - draggingWorker.initialClientX,
+        event.clientY - draggingWorker.initialClientY,
+      );
+
+      if (movement < 7) {
+        setDraggingWorker(null);
+        return;
+      }
+
       const targetElement = document.elementFromPoint(
         event.clientX,
         event.clientY,
@@ -2010,6 +2214,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       (currentWorker) => getWorkerId(currentWorker) === workerId,
     );
     setDraggingWorker({
+      initialClientX: event.clientX,
+      initialClientY: event.clientY,
       label: worker ? getWorkerDisplayName(worker) : "작업자",
       workerIds: [workerId],
     });
@@ -2028,6 +2234,8 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     event.currentTarget.setPointerCapture?.(event.pointerId);
     moveDragPreview(event.clientX, event.clientY);
     setDraggingWorker({
+      initialClientX: event.clientX,
+      initialClientY: event.clientY,
       label: team.teamName,
       workerIds: team.workers.map(getWorkerId),
     });
@@ -2136,6 +2344,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
               <span className={pickupLocationClassName}>
                 {worker.pickupLocation || "승차장소 없음"}
               </span>
+              {worker.noShowRisk ? (
+                <span className={styles.workerNoShowRisk}>
+                  노쇼 위험{worker.noShowCount ? ` · ${worker.noShowCount}회` : ""}
+                </span>
+              ) : null}
             </div>
             <div className={styles.assignedWorkerTokenCount}>
               {assignmentAction}
@@ -2697,33 +2910,59 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                           <div className={styles.assignedWorkerActions}>
                             {assignmentCountAction}
                             {persistedAssignment?.assignmentUuid ? (
-                              <button
-                                className={styles.assignmentAttendanceButton}
-                                disabled={
-                                  confirmingAttendanceKey !== null ||
-                                  persistedAssignment.attendanceStatus ===
-                                    "worked"
-                                }
-                                type="button"
-                                onClick={() =>
-                                  confirmAttendanceAsPlanned(
-                                    `assignment:${persistedAssignment.assignmentUuid}`,
-                                    {
-                                      assignmentUuid:
-                                        persistedAssignment.assignmentUuid,
-                                      scope: "ASSIGNMENT",
-                                    },
-                                  )
-                                }
-                                onPointerDown={(event) =>
-                                  event.stopPropagation()
-                                }
-                              >
-                                {persistedAssignment.attendanceStatus ===
-                                "worked"
-                                  ? "근무 확인됨"
-                                  : "예정대로"}
-                              </button>
+                              <>
+                                <button
+                                  className={styles.assignmentAttendanceButton}
+                                  disabled={
+                                    confirmingAttendanceKey !== null ||
+                                    persistedAssignment.attendanceStatus ===
+                                      "worked"
+                                  }
+                                  type="button"
+                                  onClick={() =>
+                                    confirmAttendanceAsPlanned(
+                                      `assignment:${persistedAssignment.assignmentUuid}`,
+                                      {
+                                        assignmentUuid:
+                                          persistedAssignment.assignmentUuid,
+                                        scope: "ASSIGNMENT",
+                                      },
+                                    )
+                                  }
+                                  onPointerDown={(event) =>
+                                    event.stopPropagation()
+                                  }
+                                >
+                                  {persistedAssignment.attendanceStatus ===
+                                  "worked"
+                                    ? "근무 확인됨"
+                                    : "예정대로"}
+                                </button>
+                                <button
+                                  className={styles.assignmentNoShowButton}
+                                  disabled={
+                                    persistedAssignment.attendanceStatus ===
+                                      "absent" ||
+                                    persistedAssignment.attendanceStatus ===
+                                      "worked"
+                                  }
+                                  type="button"
+                                  onClick={() =>
+                                    setNoShowReplacementDraft({
+                                      originalAssignmentUuid:
+                                        persistedAssignment.assignmentUuid as string,
+                                      originalWorkerId: workerId,
+                                      replacementWorkerId: "",
+                                      taskId: task.id,
+                                    })
+                                  }
+                                  onPointerDown={(event) =>
+                                    event.stopPropagation()
+                                  }
+                                >
+                                  노쇼
+                                </button>
+                              </>
                             ) : null}
                           </div>
                         );
@@ -2751,29 +2990,75 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                           </div>
                         );
                       })}
-                      {guestGroups.map((group) => (
+                      {guestGroups
+                        .filter(
+                          (group) =>
+                            guestParticipantDraft?.participantGroupUuid !==
+                            group.groupUuid,
+                        )
+                        .map((group) => (
                         <div
-                          className={`${styles.scheduleWorkerToken} ${styles.droppedWorkerToken} ${styles.guestWorkerToken}`}
+                          className={styles.assignedWorkerRow}
                           key={group.groupUuid}
                         >
-                          <div className={styles.assignedWorkerTokenContent}>
-                            <div className={styles.assignedWorkerTokenIdentity}>
-                              <span className={styles.scheduleWorkerName}>
-                                {group.displayName || "미등록 작업자"}
-                              </span>
-                              <span
-                                className={`${styles.scheduleWorkerMeta} ${
-                                  group.pickupLocation
-                                    ? ""
-                                    : styles.emptyPickupLocation
-                                }`}
-                              >
-                                {group.pickupLocation || "승차장소 없음"}
+                          <div
+                            className={`${styles.scheduleWorkerToken} ${styles.droppedWorkerToken} ${styles.guestWorkerToken}`}
+                          >
+                            <div className={styles.assignedWorkerTokenContent}>
+                              <div className={styles.assignedWorkerTokenIdentity}>
+                                <span className={styles.scheduleWorkerName}>
+                                  {group.displayName || "미등록 작업자"}
+                                </span>
+                                <span
+                                  className={`${styles.scheduleWorkerMeta} ${
+                                    group.pickupLocation
+                                      ? ""
+                                      : styles.emptyPickupLocation
+                                  }`}
+                                >
+                                  {group.pickupLocation || "승차장소 없음"}
+                                </span>
+                              </div>
+                              <span className={styles.guestParticipantCount}>
+                                인원 {group.participantCount}
                               </span>
                             </div>
-                            <span className={styles.guestParticipantCount}>
-                              인원 {group.participantCount}
-                            </span>
+                          </div>
+                          <div className={styles.guestParticipantRowActions}>
+                            <button
+                              aria-label={`${group.displayName || "미등록 작업자"} 수정`}
+                              type="button"
+                              onClick={() =>
+                                startGuestParticipantEdit(
+                                  task.id,
+                                  targetArea,
+                                  group,
+                                )
+                              }
+                            >
+                              ✎
+                            </button>
+                            <button
+                              aria-label={`${group.displayName || "미등록 작업자"} 삭제`}
+                              className={styles.guestParticipantDeleteButton}
+                              type="button"
+                              onClick={() =>
+                                void removeGuestParticipantGroup(task.id, group)
+                              }
+                            >
+                              <svg
+                                aria-hidden="true"
+                                className={styles.guestParticipantDeleteIcon}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M5 7h14" />
+                                <path d="M9 7V4h6v3" />
+                                <path d="M8 7l1 13h6l1-13" />
+                                <path d="M10.5 11v5" />
+                                <path d="M13.5 11v5" />
+                              </svg>
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -2840,7 +3125,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                               />
                             </label>
                             <button
-                              aria-label="미등록 작업자 추가"
+                              aria-label={
+                                guestParticipantDraft.participantGroupUuid
+                                  ? "미등록 작업자 수정"
+                                  : "미등록 작업자 추가"
+                              }
                               className={styles.inlineConfirmButton}
                               disabled={isSavingGuest}
                               type="submit"
@@ -2848,7 +3137,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                               ✓
                             </button>
                             <button
-                              aria-label="미등록 작업자 추가 취소"
+                              aria-label="미등록 작업자 입력 취소"
                               className={styles.inlineCancelButton}
                               disabled={isSavingGuest}
                               type="button"
@@ -2938,6 +3227,46 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                                 }
                               />
                             </label>
+                            <div className={styles.scheduleTaskTimeEditor}>
+                              <label>
+                                <span>시작 시간</span>
+                                <input
+                                  aria-label={`${task.title} 시작 시간`}
+                                  type="time"
+                                  value={taskDetailDraft.startTime}
+                                  onChange={(event) =>
+                                    setTaskDetailDraftsByTaskId(
+                                      (currentDrafts) => ({
+                                        ...currentDrafts,
+                                        [task.id]: {
+                                          ...taskDetailDraft,
+                                          startTime: event.target.value,
+                                        },
+                                      }),
+                                    )
+                                  }
+                                />
+                              </label>
+                              <label>
+                                <span>종료 시간</span>
+                                <input
+                                  aria-label={`${task.title} 종료 시간`}
+                                  type="time"
+                                  value={taskDetailDraft.endTime}
+                                  onChange={(event) =>
+                                    setTaskDetailDraftsByTaskId(
+                                      (currentDrafts) => ({
+                                        ...currentDrafts,
+                                        [task.id]: {
+                                          ...taskDetailDraft,
+                                          endTime: event.target.value,
+                                        },
+                                      }),
+                                    )
+                                  }
+                                />
+                              </label>
+                            </div>
                           </div>
                         ) : (
                           <>
@@ -3198,6 +3527,81 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             <small>
               남 {draggingTask.requiredMen} / 여 {draggingTask.requiredWomen}
             </small>
+          </div>
+        ) : null}
+        {noShowReplacementDraft && noShowTask ? (
+          <div
+            className={styles.noShowModalBackdrop}
+            role="presentation"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <section
+              aria-labelledby="no-show-replacement-title"
+              aria-modal="true"
+              className={styles.noShowModal}
+              role="dialog"
+            >
+              <header className={styles.noShowModalHeader}>
+                <div>
+                  <h2 id="no-show-replacement-title">노쇼 대체 인원 선택</h2>
+                  <p>{noShowTask.title} · 가능한 작업 순으로 표시됩니다.</p>
+                </div>
+                <div>
+                  <button
+                    className={styles.noShowConfirmButton}
+                    disabled={
+                      isReplacingNoShow ||
+                      !noShowReplacementDraft.replacementWorkerId
+                    }
+                    type="button"
+                    onClick={() => void saveNoShowReplacement()}
+                  >
+                    대체 적용
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNoShowReplacementDraft(null)}
+                  >
+                    취소
+                  </button>
+                </div>
+              </header>
+              <div className={styles.noShowCandidateList}>
+                {noShowCandidates.length === 0 ? (
+                  <p className={styles.noShowCandidateEmpty}>
+                    대체 가능한 작업자가 없습니다.
+                  </p>
+                ) : null}
+                {noShowCandidates.map((candidate) => {
+                  const workerId = getWorkerId(candidate.worker);
+                  const isSelected =
+                    noShowReplacementDraft.replacementWorkerId === workerId;
+                  return (
+                    <button
+                      className={isSelected ? styles.noShowCandidateSelected : ""}
+                      key={workerId}
+                      type="button"
+                      onClick={() =>
+                        setNoShowReplacementDraft({
+                          ...noShowReplacementDraft,
+                          replacementWorkerId: workerId,
+                        })
+                      }
+                    >
+                      <strong>{getWorkerDisplayName(candidate.worker)}</strong>
+                      <span>
+                        일치 작업 {candidate.matchingWorkTypeCount}개 · {candidate.worker.pickupLocation || "승차장소 없음"}
+                      </span>
+                      <small>
+                        {candidate.assignedTasks.length > 0
+                          ? `현재 배정: ${candidate.assignedTasks.map((task) => `${task.title}/${task.ownerName}`).join(", ")}`
+                          : "현재 미배정"}
+                      </small>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
           </div>
         ) : null}
         <StatusSnackbar

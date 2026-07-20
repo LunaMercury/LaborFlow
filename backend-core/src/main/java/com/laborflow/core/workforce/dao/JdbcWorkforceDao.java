@@ -48,7 +48,10 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 tm.role AS team_role,
                 tm.display_order AS team_display_order,
                 activity.last_worked_date,
-                COALESCE(activity.total_work_days, 0) AS total_work_days
+                COALESCE(activity.total_work_days, 0) AS total_work_days,
+                (risk.has_active_flag OR no_show.no_show_count > 0) AS no_show_risk,
+                risk.has_manual_flag AS no_show_risk_manual,
+                COALESCE(no_show.no_show_count, 0) AS no_show_count
             FROM public.labor_agency_worker_profile p
             JOIN public.app_account a ON a.labor_agency_owner_uuid = p.agency_owner_uuid
             LEFT JOIN public.worker w ON w.uuid = p.worker_uuid
@@ -69,6 +72,24 @@ public class JdbcWorkforceDao implements WorkforceDao {
             LEFT JOIN public.worker_activity_summary activity
                 ON activity.agency_owner_uuid = p.agency_owner_uuid
                 AND activity.worker_profile_uuid = p.uuid
+            LEFT JOIN LATERAL (
+                SELECT count(*)::integer AS no_show_count
+                FROM public.worker_no_show_incident incident
+                WHERE incident.agency_owner_uuid = p.agency_owner_uuid
+                    AND incident.worker_profile_uuid = p.uuid
+                    AND incident.status <> 'CANCELLED'
+                    AND incident.deleted_at IS NULL
+            ) no_show ON true
+            LEFT JOIN LATERAL (
+                SELECT count(*) > 0 AS has_active_flag,
+                       count(*) FILTER (WHERE risk.source = 'MANUAL') > 0 AS has_manual_flag
+                FROM public.worker_risk_flag risk
+                WHERE risk.agency_owner_uuid = p.agency_owner_uuid
+                    AND risk.worker_profile_uuid = p.uuid
+                    AND risk.risk_type = 'NO_SHOW'
+                    AND risk.status = 'ACTIVE'
+                    AND risk.deleted_at IS NULL
+            ) risk ON true
             WHERE a.login_id = ?
                 AND p.status = 'ACTIVE'
                 AND p.deleted_at IS NULL
@@ -117,6 +138,9 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 worker.teamDisplayOrder(),
                 worker.lastWorkedDate(),
                 worker.totalWorkDays(),
+                worker.noShowRisk(),
+                worker.noShowRiskManual(),
+                worker.noShowCount(),
                 workTypeCodesByProfileUuid.getOrDefault(worker.profileUuid(), List.of()),
                 workTypeRatingsByProfileUuid.getOrDefault(worker.profileUuid(), Map.of())
             ))
@@ -483,6 +507,52 @@ public class JdbcWorkforceDao implements WorkforceDao {
             isActive,
             availableDaysMask,
             availabilityMemo,
+            workerProfileUuid
+        );
+    }
+
+    @Override
+    public void setWorkerNoShowRisk(UUID workerProfileUuid, boolean enabled) {
+        if (enabled) {
+            jdbcTemplate.update(
+                """
+                INSERT INTO public.worker_risk_flag (
+                    agency_owner_uuid,
+                    worker_profile_uuid,
+                    risk_type,
+                    status,
+                    source
+                )
+                SELECT p.agency_owner_uuid, p.uuid, 'NO_SHOW', 'ACTIVE', 'MANUAL'
+                FROM public.labor_agency_worker_profile p
+                WHERE p.uuid = ?
+                    AND p.deleted_at IS NULL
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM public.worker_risk_flag risk
+                        WHERE risk.agency_owner_uuid = p.agency_owner_uuid
+                            AND risk.worker_profile_uuid = p.uuid
+                            AND risk.risk_type = 'NO_SHOW'
+                            AND risk.source = 'MANUAL'
+                            AND risk.status = 'ACTIVE'
+                            AND risk.deleted_at IS NULL
+                    )
+                """,
+                workerProfileUuid
+            );
+            return;
+        }
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.worker_risk_flag
+            SET status = 'CLEARED', cleared_at = now(), updated_at = now()
+            WHERE worker_profile_uuid = ?
+                AND risk_type = 'NO_SHOW'
+                AND source = 'MANUAL'
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
+            """,
             workerProfileUuid
         );
     }
@@ -942,7 +1012,10 @@ public class JdbcWorkforceDao implements WorkforceDao {
             resultSet.getString("team_role"),
             Optional.ofNullable(resultSet.getObject("team_display_order", Integer.class)).orElse(0),
             resultSet.getObject("last_worked_date", LocalDate.class),
-            resultSet.getInt("total_work_days")
+            resultSet.getInt("total_work_days"),
+            resultSet.getBoolean("no_show_risk"),
+            resultSet.getBoolean("no_show_risk_manual"),
+            resultSet.getInt("no_show_count")
         );
     }
 
@@ -972,7 +1045,10 @@ public class JdbcWorkforceDao implements WorkforceDao {
         String teamRole,
         int teamDisplayOrder,
         LocalDate lastWorkedDate,
-        int totalWorkDays
+        int totalWorkDays,
+        boolean noShowRisk,
+        boolean noShowRiskManual,
+        int noShowCount
     ) {
     }
 }

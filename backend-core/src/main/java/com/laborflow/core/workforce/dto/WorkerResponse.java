@@ -28,6 +28,9 @@ public record WorkerResponse(
     int teamDisplayOrder,
     LocalDate lastWorkedDate,
     int totalWorkDays,
+    boolean noShowRisk,
+    boolean noShowRiskManual,
+    int noShowCount,
     List<String> workTypeCodes,
     Map<String, Integer> workTypeRatings
 ) {

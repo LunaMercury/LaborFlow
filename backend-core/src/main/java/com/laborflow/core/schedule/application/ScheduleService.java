@@ -6,6 +6,7 @@ import com.laborflow.core.schedule.dto.CreateScheduleTaskRequest;
 import com.laborflow.core.schedule.dto.DeleteScheduleTaskRangeRequest;
 import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
 import com.laborflow.core.schedule.dto.RescheduleTaskRangeRequest;
+import com.laborflow.core.schedule.dto.ReplaceNoShowRequest;
 import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
 import com.laborflow.core.schedule.dto.ScheduleTaskListResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
@@ -88,6 +89,7 @@ public class ScheduleService {
 
         int requiredMen = normalizeRequiredCount(request.requiredMen());
         int requiredWomen = normalizeRequiredCount(request.requiredWomen());
+        validateTimeRange(request.startTime(), request.endTime());
         List<String> workTypeCodes = normalizeWorkTypeCodes(request.workTypeCodes());
         List<ScheduleAssignmentRequest> assignments = normalizeAssignments(
             agencyOwnerUuid,
@@ -104,6 +106,8 @@ public class ScheduleService {
             ownerUuid,
             normalizeRequiredText(request.title()),
             normalizeRequiredText(request.address()),
+            request.startTime(),
+            request.endTime(),
             requiredMen,
             requiredWomen,
             normalizeOptionalText(request.memo())
@@ -165,6 +169,98 @@ public class ScheduleService {
 
         return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
             .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+    }
+
+    @Transactional
+    public ScheduleTaskResponse updateGuestParticipants(
+        String loginId,
+        UUID scheduleDayUuid,
+        UUID participantGroupUuid,
+        LocalDate workDate,
+        AddGuestParticipantsRequest request
+    ) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        validateGuestParticipantRequest(agencyOwnerUuid, request);
+        scheduleDao.updateGuestParticipants(
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            participantGroupUuid,
+            "women".equalsIgnoreCase(request.area()) ? "women" : "men",
+            request.participantCount(),
+            normalizeOptionalText(request.displayName()),
+            normalizeOptionalText(request.pickupLocation()),
+            request.plannedStartTime(),
+            request.plannedEndTime()
+        );
+
+        return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+    }
+
+    @Transactional
+    public ScheduleTaskResponse deleteGuestParticipants(
+        String loginId,
+        UUID scheduleDayUuid,
+        UUID participantGroupUuid,
+        LocalDate workDate
+    ) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        scheduleDao.deleteGuestParticipants(agencyOwnerUuid, scheduleDayUuid, participantGroupUuid);
+        return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+    }
+
+    @Transactional
+    public ScheduleTaskResponse replaceNoShow(
+        String loginId,
+        UUID scheduleDayUuid,
+        LocalDate workDate,
+        ReplaceNoShowRequest request
+    ) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(normalizedLoginId);
+        if (!scheduleDao.scheduleDayBelongsToAgencyOwner(agencyOwnerUuid, scheduleDayUuid)) {
+            throw new IllegalArgumentException("Schedule day was not found.");
+        }
+        if (request.originalAssignmentUuid() == null || request.replacementWorkerProfileUuid() == null) {
+            throw new IllegalArgumentException("No-show replacement is invalid.");
+        }
+        if (!scheduleDao.workerProfileBelongsToAgencyOwner(
+            agencyOwnerUuid,
+            request.replacementWorkerProfileUuid()
+        )) {
+            throw new IllegalArgumentException("Replacement worker was not found.");
+        }
+
+        UUID accountUuid = scheduleDao.findAccountUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Account was not found."));
+        scheduleDao.replaceNoShow(
+            agencyOwnerUuid,
+            accountUuid,
+            scheduleDayUuid,
+            request.originalAssignmentUuid(),
+            request.replacementWorkerProfileUuid()
+        );
+
+        return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+    }
+
+    private void validateGuestParticipantRequest(
+        UUID agencyOwnerUuid,
+        AddGuestParticipantsRequest request
+    ) {
+        if (request.participantCount() < 1 || request.participantCount() > 100) {
+            throw new IllegalArgumentException("Guest participant count is invalid.");
+        }
+        if (request.introducedByWorkerProfileUuid() != null
+            && !scheduleDao.workerProfileBelongsToAgencyOwner(
+                agencyOwnerUuid,
+                request.introducedByWorkerProfileUuid()
+            )) {
+            throw new IllegalArgumentException("Introducing worker profile was not found.");
+        }
+        validateTimeRange(request.plannedStartTime(), request.plannedEndTime());
     }
 
     @Transactional

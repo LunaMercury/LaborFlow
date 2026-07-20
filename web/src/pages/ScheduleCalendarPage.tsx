@@ -39,6 +39,7 @@ type CalendarEvent = {
   address: string;
   assignmentsCount: number;
   endDate: string;
+  endTime: string;
   id: string;
   memo: string;
   ownerName: string;
@@ -48,6 +49,7 @@ type CalendarEvent = {
   siteName: string;
   sourceDates: string[];
   startDate: string;
+  startTime: string;
   taskIds: string[];
   timeRange: string;
   title: string;
@@ -338,7 +340,14 @@ function createVisibleDates(monthValue: string) {
 }
 
 function createEventGroupKey(task: DatedScheduleTask) {
-  return [task.workSiteId, task.ownerName, task.title, task.address].join("|");
+  return [
+    task.workSiteId,
+    task.ownerName,
+    task.title,
+    task.address,
+    task.startTime,
+    task.endTime,
+  ].join("|");
 }
 
 function taskToEvent(task: DatedScheduleTask): CalendarEvent {
@@ -350,6 +359,7 @@ function taskToEvent(task: DatedScheduleTask): CalendarEvent {
       0,
     ),
     endDate: task.date,
+    endTime: task.endTime,
     id: `${task.workSiteId}-${task.id}`,
     memo: task.memo,
     ownerName: task.ownerName,
@@ -359,6 +369,7 @@ function taskToEvent(task: DatedScheduleTask): CalendarEvent {
     siteName: task.siteName,
     sourceDates: [task.date],
     startDate: task.date,
+    startTime: task.startTime,
     taskIds: [task.id],
     timeRange: task.timeRange,
     title: task.title,
@@ -665,6 +676,8 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
     getDefaultCalendarViewMode,
   );
   const [monthValue, setMonthValue] = useState(getMonthInputValue(new Date()));
+  const [todayScrollRequest, setTodayScrollRequest] = useState(0);
+  const [isCalendarLoading, setIsCalendarLoading] = useState(true);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
   const [dragState, setDragState] = useState<CalendarDragState | null>(null);
@@ -830,6 +843,7 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
   useEffect(() => {
     let isMounted = true;
 
+    setIsCalendarLoading(true);
     setStatusMessage("일정을 불러오는 중입니다.");
     Promise.all([
       fetchWorkTypes(),
@@ -849,6 +863,7 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
         setWorkTypes(nextWorkTypes);
         setEvents(groupTasksIntoEvents(datedTaskGroups.flat()));
         setStatusMessage("");
+        setIsCalendarLoading(false);
       })
       .catch(() => {
         if (!isMounted) {
@@ -857,12 +872,39 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
 
         setEvents([]);
         setStatusMessage("일정을 불러오지 못했습니다.");
+        setIsCalendarLoading(false);
       });
 
     return () => {
       isMounted = false;
     };
   }, [loginId, reloadToken, visibleDates]);
+
+  useEffect(() => {
+    if (
+      isCalendarLoading ||
+      monthValue !== getMonthInputValue(new Date())
+    ) {
+      return;
+    }
+
+    const selector =
+      calendarViewMode === "calendar"
+        ? `[data-calendar-date="${todayDate}"]`
+        : `[data-calendar-agenda-date="${todayDate}"]`;
+
+    document.querySelector<HTMLElement>(selector)?.scrollIntoView({
+      behavior: todayScrollRequest > 0 ? "smooth" : "auto",
+      block: "center",
+      inline: "nearest",
+    });
+  }, [
+    calendarViewMode,
+    isCalendarLoading,
+    monthValue,
+    todayDate,
+    todayScrollRequest,
+  ]);
 
   const moveMonth = (months: number) => {
     const [year, month] = monthValue.split("-").map(Number);
@@ -872,6 +914,11 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
         : new Date();
 
     changeMonthValue(getMonthInputValue(baseDate));
+  };
+
+  const moveToToday = () => {
+    changeMonthValue(getMonthInputValue(new Date()));
+    setTodayScrollRequest((currentRequest) => currentRequest + 1);
   };
 
   const createAdjustedEvent = (
@@ -1169,10 +1216,12 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
         {
           address,
           assignments: editingEvent.assignments,
+          endTime: editingEvent.endTime || null,
           memo,
           ownerUuid: editDraft.ownerUuid,
           requiredMen,
           requiredWomen,
+          startTime: editingEvent.startTime || null,
           title,
           workTypeCodes: editDraft.workTypeCodes,
         },
@@ -1464,7 +1513,7 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
             />
             <button
               type="button"
-              onClick={() => changeMonthValue(getMonthInputValue(new Date()))}
+              onClick={moveToToday}
             >
               오늘
             </button>
@@ -1542,6 +1591,15 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                 </div>
 
                 <div className={styles.calendarOwnerGroupList}>
+                  {week.dates.includes(todayDate) ? (
+                    <div
+                      aria-hidden="true"
+                      className={styles.calendarTodayColumn}
+                      style={{
+                        left: `calc(${week.dates.indexOf(todayDate)} * 100% / 7)`,
+                      }}
+                    />
+                  ) : null}
                   {week.ownerLanes.length === 0 ? (
                     <div className={styles.calendarEmptyWeek}>
                       등록된 작업 일정이 없습니다.
@@ -1668,6 +1726,7 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
               className={`${styles.mobileAgendaDay} ${
                 agendaDay.date === todayDate ? styles.todayAgendaDay : ""
               }`}
+              data-calendar-agenda-date={agendaDay.date}
               key={agendaDay.id}
             >
               <div className={styles.mobileAgendaDayHeader}>

@@ -6,6 +6,7 @@ import com.laborflow.core.schedule.dto.CreateScheduleTaskRequest;
 import com.laborflow.core.schedule.dto.DeleteScheduleTaskRangeRequest;
 import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
 import com.laborflow.core.schedule.dto.RescheduleTaskRangeRequest;
+import com.laborflow.core.schedule.dto.ReplaceNoShowRequest;
 import com.laborflow.core.schedule.dto.ScheduleTaskListResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import com.laborflow.core.schedule.dto.UpdateScheduleTaskRequest;
@@ -73,6 +74,48 @@ public class ScheduleController {
         @RequestBody AddGuestParticipantsRequest request
     ) {
         return scheduleService.addGuestParticipants(loginId, scheduleDayUuid, workDate, request);
+    }
+
+    @PutMapping("/tasks/{scheduleDayUuid}/guest-participants/{participantGroupUuid}")
+    public ScheduleTaskResponse updateGuestParticipants(
+        @PathVariable UUID scheduleDayUuid,
+        @PathVariable UUID participantGroupUuid,
+        @RequestParam String loginId,
+        @RequestParam LocalDate workDate,
+        @RequestBody AddGuestParticipantsRequest request
+    ) {
+        return scheduleService.updateGuestParticipants(
+            loginId,
+            scheduleDayUuid,
+            participantGroupUuid,
+            workDate,
+            request
+        );
+    }
+
+    @DeleteMapping("/tasks/{scheduleDayUuid}/guest-participants/{participantGroupUuid}")
+    public ScheduleTaskResponse deleteGuestParticipants(
+        @PathVariable UUID scheduleDayUuid,
+        @PathVariable UUID participantGroupUuid,
+        @RequestParam String loginId,
+        @RequestParam LocalDate workDate
+    ) {
+        return scheduleService.deleteGuestParticipants(
+            loginId,
+            scheduleDayUuid,
+            participantGroupUuid,
+            workDate
+        );
+    }
+
+    @PostMapping("/tasks/{scheduleDayUuid}/no-show-replacement")
+    public ScheduleTaskResponse replaceNoShow(
+        @PathVariable UUID scheduleDayUuid,
+        @RequestParam String loginId,
+        @RequestParam LocalDate workDate,
+        @RequestBody ReplaceNoShowRequest request
+    ) {
+        return scheduleService.replaceNoShow(loginId, scheduleDayUuid, workDate, request);
     }
 
     @PutMapping("/tasks/range")
