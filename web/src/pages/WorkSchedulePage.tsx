@@ -198,6 +198,27 @@ function addDaysToInputValue(value: string, days: number) {
   return `${year}-${month}-${day}`;
 }
 
+function getInitialSelectedDate() {
+  const workDate = new URLSearchParams(window.location.search).get("workDate");
+
+  if (!workDate || !/^\d{4}-\d{2}-\d{2}$/.test(workDate)) {
+    return getTodayInputValue();
+  }
+
+  const parsedDate = new Date(`${workDate}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return getTodayInputValue();
+  }
+
+  const normalizedDate = [
+    parsedDate.getFullYear(),
+    String(parsedDate.getMonth() + 1).padStart(2, "0"),
+    String(parsedDate.getDate()).padStart(2, "0"),
+  ].join("-");
+
+  return normalizedDate === workDate ? workDate : getTodayInputValue();
+}
+
 function getTaskOrderStorageKey(loginId: string, selectedDate: string) {
   return `${TASK_ORDER_STORAGE_PREFIX}:${loginId}:${selectedDate}`;
 }
@@ -731,7 +752,7 @@ function TaskMemoEditor({
 }
 
 export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
-  const [selectedDate, setSelectedDate] = useState(getTodayInputValue);
+  const [selectedDate, setSelectedDate] = useState(getInitialSelectedDate);
   const [workerSearchDraft, setWorkerSearchDraft] = useState("");
   const [workFilters, setWorkFilters] = useState<string[]>([]);
   const [isTeamViewEnabled, setIsTeamViewEnabled] = useState(false);

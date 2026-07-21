@@ -28,6 +28,7 @@ const OWNER_SEARCH_DEBOUNCE_MS = 300;
 
 type ScheduleCalendarPageProps = {
   loginId: string;
+  onNavigate: (path: string) => void;
 };
 
 type DatedScheduleTask = ScheduleTask & {
@@ -661,7 +662,10 @@ function getPointerColumnIndex(
   return Math.min(6, Math.max(0, Math.floor(adjustedColumn)));
 }
 
-export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
+export function ScheduleCalendarPage({
+  loginId,
+  onNavigate,
+}: ScheduleCalendarPageProps) {
   const calendarGridRef = useRef<HTMLDivElement>(null);
   const dragPreviewElementRef = useRef<HTMLElement | null>(null);
   const dragPreviewFrameRef = useRef<number | null>(null);
@@ -2029,6 +2033,18 @@ export function ScheduleCalendarPage({ loginId }: ScheduleCalendarPageProps) {
                 <h2 id="schedule-edit-title">작업내용 수정</h2>
                 <div className={styles.scheduleEditHeaderActions}>
                   <div className={styles.scheduleCreateActions}>
+                    <button
+                      className={styles.scheduleAssignmentButton}
+                      disabled={isUpdatingSchedule}
+                      type="button"
+                      onClick={() =>
+                        onNavigate(
+                          `/work-schedule?workDate=${encodeURIComponent(editingEvent.startDate)}`,
+                        )
+                      }
+                    >
+                      작업자 배치
+                    </button>
                     <button
                       className={styles.scheduleDeleteButton}
                       disabled={isUpdatingSchedule}

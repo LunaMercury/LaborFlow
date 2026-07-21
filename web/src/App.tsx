@@ -41,7 +41,7 @@ export default function App() {
 
   const navigateTo = (path: string) => {
     window.history.pushState(null, "", path);
-    setCurrentPath(path);
+    setCurrentPath(window.location.pathname);
   };
 
   const handleLogin = (rememberLogin: boolean, loginId: string) => {
@@ -102,7 +102,10 @@ export default function App() {
       ) : isLoggedIn && isTeamsPage ? (
         <TeamsPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isSchedulePage ? (
-        <ScheduleCalendarPage loginId={readDemoSession()?.loginId ?? "test"} />
+        <ScheduleCalendarPage
+          loginId={readDemoSession()?.loginId ?? "test"}
+          onNavigate={navigateTo}
+        />
       ) : isLoggedIn && isWorkSchedulePage ? (
         <WorkSchedulePage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isFormsPage ? (
