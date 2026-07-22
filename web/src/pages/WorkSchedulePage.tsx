@@ -2722,6 +2722,13 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
               <button
                 className={styles.scheduleDateMoveButton}
                 type="button"
+                onClick={() => setSelectedDate(getTodayInputValue())}
+              >
+                오늘
+              </button>
+              <button
+                className={styles.scheduleDateMoveButton}
+                type="button"
                 onClick={() =>
                   setSelectedDate(getNextDateInputValue(selectedDate))
                 }

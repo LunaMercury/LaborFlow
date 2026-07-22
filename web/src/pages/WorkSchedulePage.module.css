@@ -58,7 +58,7 @@
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: auto minmax(150px, 190px) auto;
+  grid-template-columns: auto minmax(150px, 190px) auto auto;
 }
 
 .scheduleDateMoveButton {
@@ -2078,7 +2078,7 @@
   }
 
   .scheduleDateControl {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
   }
 
   .scheduleDateMoveButton {
