@@ -23,6 +23,7 @@ import calendarStyles from "./ScheduleCalendarPage.module.css";
 
 const styles = { ...appStyles, ...calendarStyles };
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+const DRAG_ACTIVATION_DISTANCE_PX = 8;
 const RESIZE_SNAP_THRESHOLD = 0.3;
 const OWNER_SEARCH_DEBOUNCE_MS = 300;
 
@@ -728,6 +729,7 @@ export function ScheduleCalendarPage({
   const dragPreviewElementRef = useRef<HTMLElement | null>(null);
   const dragPreviewFrameRef = useRef<number | null>(null);
   const dragPreviewStateRef = useRef<CalendarDragPreview | null>(null);
+  const dragActivatedRef = useRef(false);
   const dragClickSuppressedRef = useRef(false);
   const editFormRef = useRef<HTMLFormElement | null>(null);
   const latestMovePointRef = useRef<{
@@ -1415,17 +1417,27 @@ export function ScheduleCalendarPage({
       return;
     }
 
-    if (currentPreview.mode === "move") {
-      const movedDistance = Math.hypot(
-        event.clientX - currentPreview.clientX,
-        event.clientY - currentPreview.clientY,
-      );
-
-      if (movedDistance > 5) {
-        dragClickSuppressedRef.current = true;
-      }
-    } else {
+    const movedDistance = Math.hypot(
+      event.clientX - currentPreview.clientX,
+      event.clientY - currentPreview.clientY,
+    );
+    if (
+      !dragActivatedRef.current &&
+      movedDistance > DRAG_ACTIVATION_DISTANCE_PX
+    ) {
+      dragActivatedRef.current = true;
       dragClickSuppressedRef.current = true;
+      const activatedPreview = {
+        ...currentPreview,
+        clientX: event.clientX,
+        clientY: event.clientY,
+      };
+      dragPreviewStateRef.current = activatedPreview;
+      setDragPreview(activatedPreview);
+    }
+
+    if (!dragActivatedRef.current) {
+      return;
     }
 
     latestMovePointRef.current = {
@@ -1470,7 +1482,11 @@ export function ScheduleCalendarPage({
       (calendarEvent) => calendarEvent.id === dragState.eventId,
     );
 
-    if (currentEvent) {
+    if (
+      event.type !== "pointercancel" &&
+      currentEvent &&
+      dragActivatedRef.current
+    ) {
       const targetElement = document.elementFromPoint(
         event.clientX,
         event.clientY,
@@ -1529,6 +1545,7 @@ export function ScheduleCalendarPage({
 
     setDragState(null);
     setDragPreview(null);
+    dragActivatedRef.current = false;
     latestMovePointRef.current = null;
 
     if (dragPreviewFrameRef.current !== null) {
@@ -1571,6 +1588,7 @@ export function ScheduleCalendarPage({
       pointerEvent.currentTarget.closest<HTMLElement>("article") ??
       pointerEvent.currentTarget;
     const sourceRect = sourceElement.getBoundingClientRect();
+    dragActivatedRef.current = false;
     dragClickSuppressedRef.current = mode !== "move";
     const nextPreview = {
       clientX: pointerEvent.clientX,
@@ -1587,7 +1605,7 @@ export function ScheduleCalendarPage({
 
     setDragState({ eventId: event.id, mode });
     dragPreviewStateRef.current = nextPreview;
-    setDragPreview(nextPreview);
+    setDragPreview(null);
   };
 
   return (
@@ -1741,7 +1759,7 @@ export function ScheduleCalendarPage({
                             return (
                               <article
                                 className={`${styles.calendarEventCard} ${
-                                  dragState?.eventId === event.id
+                                  dragPreview?.eventId === event.id
                                     ? styles.draggingCalendarEvent
                                     : ""
                                 }`}
