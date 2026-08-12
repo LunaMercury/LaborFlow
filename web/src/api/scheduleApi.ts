@@ -48,7 +48,15 @@ type ScheduleTaskListResponse = {
 export type FarmOwnerOption = {
   uuid: string;
   displayName: string;
+  name: string;
+  nickname: string;
   businessName: string;
+  phone: string;
+  recentTitle: string;
+  recentSiteName: string;
+  recentAddress: string;
+  recentStartTime: string | null;
+  recentEndTime: string | null;
 };
 
 export type CreateScheduleTaskPayload = {
@@ -56,7 +64,10 @@ export type CreateScheduleTaskPayload = {
   endDate: string;
   endTime: string | null;
   memo: string;
-  ownerUuid: string;
+  ownerUuid: string | null;
+  ownerName: string;
+  ownerNickname: string;
+  ownerPhone: string;
   requiredMen: number;
   requiredWomen: number;
   siteName: string;

@@ -21,6 +21,7 @@ contracts:
   - Ubuntu/Linux verification scripts live beside Windows scripts under .skills and must remain path-relative.
   - PostgreSQL schema changes must be added under database/migrations and applied by backend-core Flyway packaging.
   - PostgreSQL is the source of truth for personal data, attendance records, schedules, workflow history, and audit trails.
+  - Creating a schedule for an unregistered farm owner requires a name or nickname plus a valid phone number; the client profile and schedule must be committed in one transaction.
   - Attendance records use Asia/Seoul as the business timezone; confirmed manual records must not be overwritten by bulk planned-attendance confirmation.
   - Attendance task notes are stored separately from planning memos and retain account-attributed revision history in PostgreSQL.
   - A no-show response records ABSENT attendance, preserves the original assignment as REPLACED, and stores the replacement link in PostgreSQL instead of deleting history.

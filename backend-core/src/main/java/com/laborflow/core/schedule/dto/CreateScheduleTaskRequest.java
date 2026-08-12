@@ -7,6 +7,9 @@ import java.util.UUID;
 
 public record CreateScheduleTaskRequest(
     UUID ownerUuid,
+    String ownerName,
+    String ownerNickname,
+    String ownerPhone,
     LocalDate startDate,
     LocalDate endDate,
     String title,

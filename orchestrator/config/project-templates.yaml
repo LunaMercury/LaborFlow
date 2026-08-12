@@ -37,6 +37,7 @@ enterprise:
     - "Confirm backend-core feature packages use api/application/dto/dao layers and shared infrastructure stays under common."
     - "Confirm PostgreSQL remains the source of truth for personal data, attendance, schedules, workflow history, and audit logs."
     - "Confirm high-traffic writes define idempotency, transaction boundary, audit behavior, and cache invalidation before implementation."
+    - "Confirm schedule-created client profiles and their first schedule are committed in one PostgreSQL transaction."
 
 realtime:
   verifierChecks:

@@ -124,32 +124,84 @@ public class JdbcScheduleDao implements ScheduleDao {
 
         return jdbcTemplate.query(
             """
+            WITH matched_owner AS (
+                SELECT
+                    fp.agency_owner_uuid,
+                    fo.uuid,
+                    COALESCE(fp.local_name, fp.local_nickname, fp.local_business_name, fo.canonical_name, '') AS display_name,
+                    COALESCE(fp.local_name, '') AS name,
+                    COALESCE(fp.local_nickname, '') AS nickname,
+                    COALESCE(fp.local_business_name, fo.canonical_business_name, '') AS business_name,
+                    COALESCE(fp.local_phone_encrypted, '') AS phone
+                FROM public.labor_agency_farm_owner_profile fp
+                JOIN public.farm_owner fo ON fo.uuid = fp.farm_owner_uuid
+                WHERE fp.agency_owner_uuid = ?
+                    AND fp.status = 'ACTIVE'
+                    AND fp.deleted_at IS NULL
+                    AND fo.status = 'ACTIVE'
+                    AND fo.deleted_at IS NULL
+                    AND (
+                        ? = ''
+                        OR COALESCE(fp.local_name, '') ILIKE ?
+                        OR COALESCE(fp.local_nickname, '') ILIKE ?
+                        OR COALESCE(fp.local_business_name, '') ILIKE ?
+                        OR COALESCE(fo.canonical_name, '') ILIKE ?
+                        OR COALESCE(fo.canonical_business_name, '') ILIKE ?
+                    )
+                ORDER BY display_name, business_name
+                LIMIT 20
+            )
             SELECT
-                fo.uuid,
-                COALESCE(fp.local_name, fp.local_nickname, fp.local_business_name, fo.canonical_name, '') AS display_name,
-                COALESCE(fp.local_business_name, fo.canonical_business_name, '') AS business_name
-            FROM public.labor_agency_farm_owner_profile fp
-            JOIN public.farm_owner fo ON fo.uuid = fp.farm_owner_uuid
-            WHERE fp.agency_owner_uuid = ?
-                AND fp.status = 'ACTIVE'
-                AND fp.deleted_at IS NULL
-                AND fo.status = 'ACTIVE'
-                AND fo.deleted_at IS NULL
-                AND (
-                    ? = ''
-                    OR COALESCE(fp.local_name, '') ILIKE ?
-                    OR COALESCE(fp.local_nickname, '') ILIKE ?
-                    OR COALESCE(fp.local_business_name, '') ILIKE ?
-                    OR COALESCE(fo.canonical_name, '') ILIKE ?
-                    OR COALESCE(fo.canonical_business_name, '') ILIKE ?
-                )
-            ORDER BY display_name, business_name
-            LIMIT 20
+                matched_owner.uuid,
+                matched_owner.display_name,
+                matched_owner.name,
+                matched_owner.nickname,
+                matched_owner.business_name,
+                matched_owner.phone,
+                COALESCE(recent.work_description, '') AS recent_title,
+                COALESCE(recent.site_name, '') AS recent_site_name,
+                COALESCE(recent.farm_address, '') AS recent_address,
+                recent.daily_start_time AS recent_start_time,
+                recent.daily_end_time AS recent_end_time
+            FROM matched_owner
+            LEFT JOIN LATERAL (
+                SELECT
+                    site.work_description,
+                    site.site_name,
+                    site.farm_address,
+                    COALESCE(day.daily_start_time, site.daily_start_time) AS daily_start_time,
+                    COALESCE(day.daily_end_time, site.daily_end_time) AS daily_end_time
+                FROM public.farm_work_site site
+                LEFT JOIN LATERAL (
+                    SELECT schedule_day.daily_start_time, schedule_day.daily_end_time
+                    FROM public.work_schedule_day schedule_day
+                    WHERE schedule_day.work_site_uuid = site.uuid
+                        AND schedule_day.status = 'ACTIVE'
+                        AND schedule_day.deleted_at IS NULL
+                    ORDER BY schedule_day.work_date DESC, schedule_day.updated_at DESC
+                    LIMIT 1
+                ) day ON true
+                WHERE site.agency_owner_uuid = matched_owner.agency_owner_uuid
+                    AND site.owner_uuid = matched_owner.uuid
+                    AND site.status = 'ACTIVE'
+                    AND site.deleted_at IS NULL
+                ORDER BY site.updated_at DESC, site.created_at DESC
+                LIMIT 1
+            ) recent ON true
+            ORDER BY matched_owner.display_name, matched_owner.business_name
             """,
             (resultSet, rowNumber) -> new FarmOwnerOptionResponse(
                 resultSet.getObject("uuid", UUID.class),
                 resultSet.getString("display_name"),
-                resultSet.getString("business_name")
+                resultSet.getString("name"),
+                resultSet.getString("nickname"),
+                resultSet.getString("business_name"),
+                resultSet.getString("phone"),
+                resultSet.getObject("recent_title", String.class),
+                resultSet.getObject("recent_site_name", String.class),
+                resultSet.getObject("recent_address", String.class),
+                resultSet.getObject("recent_start_time", LocalTime.class),
+                resultSet.getObject("recent_end_time", LocalTime.class)
             ),
             agencyOwnerUuid,
             normalizedQuery,

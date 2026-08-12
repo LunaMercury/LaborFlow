@@ -1,5 +1,7 @@
 package com.laborflow.core.schedule.application;
 
+import com.laborflow.core.clients.application.ClientsService;
+import com.laborflow.core.clients.dto.CreateClientRequest;
 import com.laborflow.core.schedule.dao.ScheduleDao;
 import com.laborflow.core.schedule.dto.AddGuestParticipantsRequest;
 import com.laborflow.core.schedule.dto.CreateScheduleTaskRequest;
@@ -22,9 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ScheduleService {
     private final ScheduleDao scheduleDao;
+    private final ClientsService clientsService;
 
-    public ScheduleService(ScheduleDao scheduleDao) {
+    public ScheduleService(ScheduleDao scheduleDao, ClientsService clientsService) {
         this.scheduleDao = scheduleDao;
+        this.clientsService = clientsService;
     }
 
     public ScheduleTaskListResponse getTasks(String loginId, LocalDate workDate) {
@@ -40,10 +44,6 @@ public class ScheduleService {
     @Transactional
     public ScheduleTaskResponse createTask(String loginId, CreateScheduleTaskRequest request) {
         UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
-        if (request.ownerUuid() == null || !scheduleDao.farmOwnerBelongsToAgencyOwner(agencyOwnerUuid, request.ownerUuid())) {
-            throw new IllegalArgumentException("Farm owner was not found.");
-        }
-
         LocalDate startDate = request.startDate();
         LocalDate endDate = request.endDate();
         if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
@@ -55,14 +55,35 @@ public class ScheduleService {
         }
 
         validateTimeRange(request.startTime(), request.endTime());
+        String title = normalizeRequiredText(request.title());
+        String address = normalizeRequiredText(request.address());
+        UUID ownerUuid = request.ownerUuid();
+        if (ownerUuid == null) {
+            ownerUuid = clientsService.createClientAndReturnFarmOwnerUuid(
+                loginId,
+                new CreateClientRequest(
+                    request.ownerName(),
+                    request.ownerNickname(),
+                    null,
+                    request.ownerPhone(),
+                    null,
+                    null
+                )
+            );
+        } else if (!scheduleDao.farmOwnerBelongsToAgencyOwner(agencyOwnerUuid, ownerUuid)) {
+            throw new IllegalArgumentException("Farm owner was not found.");
+        } else {
+            clientsService.addPhoneIfMissing(loginId, ownerUuid, request.ownerPhone());
+        }
+
         UUID scheduleDayUuid = scheduleDao.createTask(
             agencyOwnerUuid,
-            request.ownerUuid(),
+            ownerUuid,
             startDate,
             endDate,
-            normalizeRequiredText(request.title()),
+            title,
             normalizeOptionalText(request.siteName()),
-            normalizeRequiredText(request.address()),
+            address,
             normalizeRequiredCount(request.requiredMen()),
             normalizeRequiredCount(request.requiredWomen()),
             request.startTime(),

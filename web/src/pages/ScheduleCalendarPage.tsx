@@ -122,6 +122,8 @@ type ScheduleCreateDraft = {
   endTime: string;
   memo: string;
   ownerName: string;
+  ownerNickname: string;
+  ownerPhone: string;
   ownerQuery: string;
   ownerUuid: string;
   requiredMen: string;
@@ -147,6 +149,17 @@ type ScheduleEditDraft = {
   workTypeCodes: string[];
 };
 
+function formatClientPhoneInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 3) {
+    return digits;
+  }
+  if (digits.length <= 7) {
+    return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  }
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
 function toInputDate(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -162,6 +175,8 @@ function createEmptyScheduleDraft(date: string): ScheduleCreateDraft {
     endTime: "17:00",
     memo: "",
     ownerName: "",
+    ownerNickname: "",
+    ownerPhone: "",
     ownerQuery: "",
     ownerUuid: "",
     requiredMen: "0",
@@ -191,20 +206,26 @@ function createEditScheduleDraft(event: CalendarEvent): ScheduleEditDraft {
 }
 
 type FarmOwnerSearchFieldProps = {
+  allowNewOwner?: boolean;
   initialQuery: string;
   label: string;
   loginId: string;
+  onCommitQuery?: (query: string) => void;
   onInvalidate: () => void;
   onSelect: (farmOwner: FarmOwnerOption) => void;
+  onUseNewOwner?: (query: string) => void;
   selectedOwnerUuid: string;
 };
 
 function FarmOwnerSearchField({
+  allowNewOwner = false,
   initialQuery,
   label,
   loginId,
+  onCommitQuery,
   onInvalidate,
   onSelect,
+  onUseNewOwner,
   selectedOwnerUuid,
 }: FarmOwnerSearchFieldProps) {
   const [query, setQuery] = useState(initialQuery);
@@ -247,6 +268,25 @@ function FarmOwnerSearchField({
     onSelect(farmOwner);
   };
 
+  const normalizedQuery = query.trim();
+  const hasExactMatch = options.some((farmOwner) =>
+    [farmOwner.displayName, farmOwner.name, farmOwner.nickname]
+      .filter(Boolean)
+      .some(
+        (value) =>
+          value.trim().toLocaleLowerCase() === normalizedQuery.toLocaleLowerCase(),
+      ),
+  );
+
+  const useNewOwner = () => {
+    if (!normalizedQuery || !onUseNewOwner) {
+      return;
+    }
+
+    setIsDropdownOpen(false);
+    onUseNewOwner(normalizedQuery);
+  };
+
   return (
     <label className={styles.scheduleCreateOwnerField}>
       <span>{label}</span>
@@ -255,7 +295,10 @@ function FarmOwnerSearchField({
         placeholder="농장주명을 입력하세요"
         type="text"
         value={query}
-        onBlur={() => window.setTimeout(() => setIsDropdownOpen(false), 120)}
+        onBlur={() => {
+          onCommitQuery?.(query.trim());
+          window.setTimeout(() => setIsDropdownOpen(false), 120);
+        }}
         onChange={(event) => {
           const nextValue = event.target.value;
           setQuery(nextValue);
@@ -283,11 +326,22 @@ function FarmOwnerSearchField({
                 ) : null}
               </button>
             ))
-          ) : (
+          ) : !normalizedQuery ? (
             <div className={styles.scheduleOwnerEmpty}>
-              검색 결과가 없습니다.
+              농장주 이름이나 호칭을 입력하세요.
             </div>
-          )}
+          ) : null}
+          {allowNewOwner && normalizedQuery && !hasExactMatch ? (
+            <button
+              className={styles.scheduleOwnerCreateOption}
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={useNewOwner}
+            >
+              <strong>{normalizedQuery}</strong>
+              <span>신규 거래처로 등록</span>
+            </button>
+          ) : null}
         </div>
       ) : null}
     </label>
@@ -1062,9 +1116,27 @@ export function ScheduleCalendarPage({
   const selectFarmOwner = (farmOwner: FarmOwnerOption) => {
     setCreateDraft((currentDraft) => ({
       ...currentDraft,
-      ownerName: farmOwner.displayName,
+      address: farmOwner.recentAddress || "",
+      endTime: farmOwner.recentEndTime?.slice(0, 5) || "17:00",
+      ownerName: farmOwner.name,
+      ownerNickname: farmOwner.nickname,
+      ownerPhone: farmOwner.phone,
       ownerQuery: farmOwner.displayName,
       ownerUuid: farmOwner.uuid,
+      siteName: farmOwner.recentSiteName || "",
+      startTime: farmOwner.recentStartTime?.slice(0, 5) || "07:00",
+      title: farmOwner.recentTitle || "",
+    }));
+  };
+
+  const useNewFarmOwner = (ownerName: string) => {
+    setCreateDraft((currentDraft) => ({
+      ...currentDraft,
+      ownerName,
+      ownerNickname: "",
+      ownerPhone: "",
+      ownerQuery: ownerName,
+      ownerUuid: "",
     }));
   };
 
@@ -1091,8 +1163,16 @@ export function ScheduleCalendarPage({
   };
 
   const submitCreateSchedule = async () => {
-    if (!createDraft.ownerUuid) {
-      window.alert("농장주를 선택해주세요.");
+    const ownerName = createDraft.ownerName.trim();
+    const ownerNickname = createDraft.ownerNickname.trim();
+    const ownerPhoneDigits = createDraft.ownerPhone.replace(/\D/g, "");
+    if (!createDraft.ownerUuid && !ownerName && !ownerNickname) {
+      window.alert("농장주 이름 또는 호칭을 입력해주세요.");
+      return;
+    }
+
+    if (![10, 11].includes(ownerPhoneDigits.length)) {
+      window.alert("거래처 전화번호는 숫자 10~11자리로 입력해주세요.");
       return;
     }
 
@@ -1127,7 +1207,10 @@ export function ScheduleCalendarPage({
         endDate: createDraft.endDate,
         endTime: createDraft.endTime || null,
         memo: createDraft.memo.trim(),
-        ownerUuid: createDraft.ownerUuid,
+        ownerName,
+        ownerNickname,
+        ownerPhone: createDraft.ownerPhone,
+        ownerUuid: createDraft.ownerUuid || null,
         requiredMen: Number(createDraft.requiredMen) || 0,
         requiredWomen: Number(createDraft.requiredWomen) || 0,
         siteName: createDraft.siteName.trim(),
@@ -1884,19 +1967,91 @@ export function ScheduleCalendarPage({
                 </div>
 
                 <FarmOwnerSearchField
+                  allowNewOwner
                   initialQuery={createDraft.ownerQuery}
-                  label="농장주 *"
+                  label="농장주 이름 (이름 또는 호칭 *)"
                   loginId={loginId}
                   selectedOwnerUuid={createDraft.ownerUuid}
                   onInvalidate={() =>
                     setCreateDraft((currentDraft) => ({
                       ...currentDraft,
                       ownerName: "",
+                      ownerNickname: "",
+                      ownerPhone: "",
                       ownerUuid: "",
+                      address: "",
+                      endTime: "17:00",
+                      siteName: "",
+                      startTime: "07:00",
+                      title: "",
                     }))
                   }
+                  onCommitQuery={(query) =>
+                    setCreateDraft((currentDraft) =>
+                      currentDraft.ownerUuid
+                        ? currentDraft
+                        : {
+                            ...currentDraft,
+                            ownerName: query,
+                            ownerQuery: query,
+                          },
+                    )
+                  }
                   onSelect={selectFarmOwner}
+                  onUseNewOwner={useNewFarmOwner}
                 />
+
+                <div className={styles.scheduleCreateTwoColumn}>
+                  <label>
+                    <span>호칭</span>
+                    <input
+                      className={
+                        createDraft.ownerUuid ? styles.scheduleReadOnlyField : ""
+                      }
+                      placeholder="예: 김농주"
+                      readOnly={Boolean(createDraft.ownerUuid)}
+                      type="text"
+                      value={createDraft.ownerNickname}
+                      onChange={(event) =>
+                        setCreateDraft((currentDraft) => ({
+                          ...currentDraft,
+                          ownerNickname: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>전화번호 *</span>
+                    <input
+                      className={
+                        createDraft.ownerUuid && createDraft.ownerPhone
+                          ? styles.scheduleReadOnlyField
+                          : ""
+                      }
+                      inputMode="numeric"
+                      placeholder="010-1234-5678"
+                      readOnly={Boolean(
+                        createDraft.ownerUuid && createDraft.ownerPhone,
+                      )}
+                      type="tel"
+                      value={createDraft.ownerPhone}
+                      onChange={(event) =>
+                        setCreateDraft((currentDraft) => ({
+                          ...currentDraft,
+                          ownerPhone: formatClientPhoneInput(event.target.value),
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+                <p className={styles.scheduleOwnerHelp}>
+                  이름 또는 호칭 중 하나와 전화번호는 필수입니다.
+                  {createDraft.ownerUuid
+                    ? createDraft.ownerPhone
+                      ? " 기존 전화번호는 거래처 목록에서 수정할 수 있습니다."
+                      : " 전화번호를 입력하면 기존 거래처 정보에 함께 저장됩니다."
+                    : " 신규 농장주는 일정 등록과 함께 거래처 목록에 등록됩니다."}
+                </p>
 
                 <div className={styles.scheduleCreateTwoColumn}>
                   <label>

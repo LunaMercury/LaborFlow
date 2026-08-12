@@ -23,6 +23,11 @@ public class ClientsService {
 
     @Transactional
     public void createClient(String loginId, CreateClientRequest request) {
+        createClientAndReturnFarmOwnerUuid(loginId, request);
+    }
+
+    @Transactional
+    public UUID createClientAndReturnFarmOwnerUuid(String loginId, CreateClientRequest request) {
         String normalizedLoginId = normalizeLoginId(loginId);
         UUID agencyOwnerUuid = clientsDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
             .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
@@ -32,7 +37,8 @@ public class ClientsService {
             request.businessName(),
             request.phone(),
             request.bankAccount(),
-            request.memo()
+            request.memo(),
+            true
         );
 
         if (clientsDao.localPhoneExists(agencyOwnerUuid, values.phoneHashSource())) {
@@ -50,6 +56,7 @@ public class ClientsService {
 
         clientsDao.upsertFarmOwnerSensitiveProfile(farmOwnerUuid, values);
         clientsDao.insertClientProfile(agencyOwnerUuid, farmOwnerUuid, values);
+        return farmOwnerUuid;
     }
 
     @Transactional
@@ -63,7 +70,8 @@ public class ClientsService {
             request.businessName(),
             request.phone(),
             request.bankAccount(),
-            request.memo()
+            request.memo(),
+            false
         );
 
         clientsDao.findFarmOwnerUuidByProfileUuid(agencyOwnerUuid, profileUuid)
@@ -74,6 +82,40 @@ public class ClientsService {
         }
 
         clientsDao.updateClientProfile(agencyOwnerUuid, profileUuid, values);
+    }
+
+    @Transactional
+    public void addPhoneIfMissing(String loginId, UUID farmOwnerUuid, String rawPhone) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        UUID agencyOwnerUuid = clientsDao.findAgencyOwnerUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
+        if (!clientsDao.clientProfileExists(agencyOwnerUuid, farmOwnerUuid)) {
+            throw new IllegalArgumentException("Client profile was not found.");
+        }
+        if (clientsDao.clientPhoneExists(agencyOwnerUuid, farmOwnerUuid)) {
+            return;
+        }
+
+        PhoneInput phone = normalizePhone(rawPhone);
+        if (phone == null) {
+            throw new IllegalArgumentException("Client phone number is required.");
+        }
+        if (clientsDao.localPhoneExists(agencyOwnerUuid, phone.hashSource())) {
+            throw new DuplicateClientPhoneException();
+        }
+        clientsDao.findFarmOwnerUuidByPhoneHashSource(phone.hashSource())
+            .filter(existingFarmOwnerUuid -> !existingFarmOwnerUuid.equals(farmOwnerUuid))
+            .ifPresent(existingFarmOwnerUuid -> {
+                throw new DuplicateClientPhoneException();
+            });
+
+        clientsDao.addFarmOwnerPhone(farmOwnerUuid, phone.displayValue(), phone.hashSource());
+        clientsDao.addClientPhone(
+            agencyOwnerUuid,
+            farmOwnerUuid,
+            phone.displayValue(),
+            phone.hashSource()
+        );
     }
 
     @Transactional
@@ -91,7 +133,8 @@ public class ClientsService {
         String rawBusinessName,
         String rawPhone,
         String rawBankAccount,
-        String rawMemo
+        String rawMemo,
+        boolean requireRegistrationFields
     ) {
         String name = normalizeOptionalText(rawName);
         String nickname = normalizeOptionalText(rawNickname);
@@ -100,7 +143,13 @@ public class ClientsService {
         String bankAccount = normalizeBankAccount(rawBankAccount);
         String memo = normalizeOptionalText(rawMemo);
 
-        if (name == null && nickname == null && businessName == null && phone == null) {
+        if (requireRegistrationFields && name == null && nickname == null) {
+            throw new IllegalArgumentException("Client name or nickname is required.");
+        }
+        if (requireRegistrationFields && phone == null) {
+            throw new IllegalArgumentException("Client phone number is required.");
+        }
+        if (!requireRegistrationFields && name == null && nickname == null && businessName == null && phone == null) {
             throw new IllegalArgumentException("Client identity is required.");
         }
 

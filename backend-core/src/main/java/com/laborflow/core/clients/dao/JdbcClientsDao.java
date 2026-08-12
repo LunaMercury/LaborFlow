@@ -127,6 +127,25 @@ public class JdbcClientsDao implements ClientsDao {
     }
 
     @Override
+    public boolean clientPhoneExists(UUID agencyOwnerUuid, UUID farmOwnerUuid) {
+        Integer count = jdbcTemplate.queryForObject(
+            """
+            SELECT COUNT(*)
+            FROM public.labor_agency_farm_owner_profile
+            WHERE agency_owner_uuid = ?
+                AND farm_owner_uuid = ?
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
+                AND local_phone_hash IS NOT NULL
+            """,
+            Integer.class,
+            agencyOwnerUuid,
+            farmOwnerUuid
+        );
+        return count != null && count > 0;
+    }
+
+    @Override
     public boolean localPhoneExists(UUID agencyOwnerUuid, String phoneHashSource) {
         if (phoneHashSource == null) {
             return false;
@@ -233,10 +252,11 @@ public class JdbcClientsDao implements ClientsDao {
                 CASE WHEN ?::text IS NULL THEN NULL ELSE encode(digest(?::text, 'sha256'), 'hex') END
             )
             ON CONFLICT (owner_uuid) DO UPDATE
-            SET phone_encrypted = EXCLUDED.phone_encrypted,
-                phone_hash = EXCLUDED.phone_hash,
-                bank_account_encrypted = EXCLUDED.bank_account_encrypted,
-                bank_account_hash = EXCLUDED.bank_account_hash
+            SET phone_encrypted = COALESCE(EXCLUDED.phone_encrypted, farm_owner_sensitive_profile.phone_encrypted),
+                phone_hash = COALESCE(EXCLUDED.phone_hash, farm_owner_sensitive_profile.phone_hash),
+                bank_account_encrypted = COALESCE(EXCLUDED.bank_account_encrypted, farm_owner_sensitive_profile.bank_account_encrypted),
+                bank_account_hash = COALESCE(EXCLUDED.bank_account_hash, farm_owner_sensitive_profile.bank_account_hash),
+                updated_at = now()
             """,
             farmOwnerUuid,
             values.phone(),
@@ -291,6 +311,53 @@ public class JdbcClientsDao implements ClientsDao {
             values.bankAccountHashSource(),
             values.bankAccountHashSource(),
             values.memo()
+        );
+    }
+
+    @Override
+    public void addClientPhone(
+        UUID agencyOwnerUuid,
+        UUID farmOwnerUuid,
+        String phone,
+        String phoneHashSource
+    ) {
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_farm_owner_profile
+            SET local_phone_encrypted = ?,
+                local_phone_hash = encode(digest(?::text, 'sha256'), 'hex'),
+                updated_at = now()
+            WHERE agency_owner_uuid = ?
+                AND farm_owner_uuid = ?
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
+                AND local_phone_hash IS NULL
+            """,
+            phone,
+            phoneHashSource,
+            agencyOwnerUuid,
+            farmOwnerUuid
+        );
+    }
+
+    @Override
+    public void addFarmOwnerPhone(UUID farmOwnerUuid, String phone, String phoneHashSource) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.farm_owner_sensitive_profile (
+                owner_uuid,
+                phone_encrypted,
+                phone_hash
+            )
+            VALUES (?, ?, encode(digest(?::text, 'sha256'), 'hex'))
+            ON CONFLICT (owner_uuid) DO UPDATE
+            SET phone_encrypted = COALESCE(farm_owner_sensitive_profile.phone_encrypted, EXCLUDED.phone_encrypted),
+                phone_hash = COALESCE(farm_owner_sensitive_profile.phone_hash, EXCLUDED.phone_hash),
+                updated_at = now()
+            """,
+            farmOwnerUuid,
+            phone,
+            phoneHashSource
         );
     }
 

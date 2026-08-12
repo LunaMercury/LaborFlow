@@ -660,6 +660,11 @@
   cursor: pointer;
 }
 
+.scheduleOwnerDropdown .scheduleOwnerCreateOption {
+  border-top: 1px solid #dbe4ec;
+  color: #176b5d;
+}
+
 .scheduleOwnerDropdown strong {
   font-size: 13px;
   font-weight: 900;
@@ -674,6 +679,19 @@
 
 .scheduleOwnerEmpty {
   padding: 12px 9px;
+}
+
+.scheduleOwnerHelp {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 800;
+  margin: -6px 0 0;
+}
+
+.scheduleCreateBody input.scheduleReadOnlyField {
+  background: #eef2f5;
+  color: #778493;
+  cursor: not-allowed;
 }
 
 .scheduleCreateWorkTypes > div {

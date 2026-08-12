@@ -90,6 +90,19 @@ function hasVisibleClientLabel(formState: ClientFormState) {
   ].some((value) => value.trim().length > 0);
 }
 
+function getClientRegistrationError(formState: ClientFormState) {
+  if (!formState.name.trim() && !formState.nickname.trim()) {
+    return "이름 또는 호칭 중 하나를 입력해주세요.";
+  }
+
+  const phoneDigits = formState.phone.replace(/\D/g, "");
+  if (![10, 11].includes(phoneDigits.length)) {
+    return "전화번호는 숫자 10~11자리로 입력해주세요.";
+  }
+
+  return "";
+}
+
 export function ClientsPage({ loginId }: ClientsPageProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedProfileUuid, setSelectedProfileUuid] = useState<string | null>(null);
@@ -248,8 +261,9 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
   };
 
   const submitClient = async () => {
-    if (!hasVisibleClientLabel(formState)) {
-      setFormError("이름, 호칭, 상호/농장명, 전화번호 중 하나는 입력해야 합니다.");
+    const registrationError = getClientRegistrationError(formState);
+    if (registrationError) {
+      setFormError(registrationError);
       return;
     }
 
@@ -666,7 +680,9 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
 
               <div className={styles.clientFormGrid}>
                 <div className={styles.clientFormField}>
-                  <label htmlFor="client-name">이름</label>
+                  <label htmlFor="client-name">
+                    이름 <span className={styles.requiredMark}>* 둘 중 하나</span>
+                  </label>
                   <input
                     id="client-name"
                     value={formState.name}
@@ -674,7 +690,9 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                   />
                 </div>
                 <div className={styles.clientFormField}>
-                  <label htmlFor="client-nickname">호칭</label>
+                  <label htmlFor="client-nickname">
+                    호칭 <span className={styles.requiredMark}>* 둘 중 하나</span>
+                  </label>
                   <input
                     id="client-nickname"
                     value={formState.nickname}
@@ -694,7 +712,9 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                   />
                 </div>
                 <div className={styles.clientFormField}>
-                  <label htmlFor="client-phone">전화번호</label>
+                  <label htmlFor="client-phone">
+                    전화번호 <span className={styles.requiredMark}>*</span>
+                  </label>
                   <input
                     id="client-phone"
                     inputMode="numeric"
@@ -726,8 +746,8 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                 </div>
               </div>
               <p className={styles.clientFormHelp}>
-                <span className={styles.requiredMark}>*</span> 이름, 호칭,
-                상호/농장명, 전화번호 중 하나는 필요합니다.
+                <span className={styles.requiredMark}>*</span> 이름과 호칭은 둘 중
+                하나만 입력해도 되며, 전화번호는 반드시 필요합니다.
               </p>
               {formError ? (
                 <p className={styles.clientModalError}>{formError}</p>
