@@ -91,6 +91,21 @@ function Resolve-TailscaleIp {
         return $env:TAILSCALE_IP
     }
 
+    $tailscaleAdapter = [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces() |
+        Where-Object {
+            $_.OperationalStatus -eq [System.Net.NetworkInformation.OperationalStatus]::Up -and
+            ($_.Name -like "*Tailscale*" -or $_.Description -like "*Tailscale*")
+        } |
+        Select-Object -First 1
+    if ($tailscaleAdapter) {
+        $address = $tailscaleAdapter.GetIPProperties().UnicastAddresses |
+            Where-Object { $_.Address.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork } |
+            Select-Object -First 1
+        if ($address) {
+            return $address.Address.IPAddressToString
+        }
+    }
+
     try {
         $ip = (& tailscale.exe ip -4 2>$null | Select-Object -First 1).Trim()
         if ($ip) {
@@ -463,7 +478,7 @@ try {
 
     $script:tailscaleIp = Resolve-TailscaleIp
     if (-not $script:tailscaleIp) {
-        throw "TAILSCALE_IP is not set and tailscale ip -4 did not return an address."
+        throw "Tailscale이 실행 중이 아니거나 연결되지 않았습니다. Tailscale을 실행한 뒤 다시 시도해주세요."
     }
 
     Write-Host "=========================================="
@@ -507,7 +522,8 @@ try {
     exit 0
 }
 catch {
-    Write-Error $_.Exception.Message
+    Write-Host ""
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
     if (-not $options.NoPause) { Read-Host "Press Enter to close" | Out-Null }
     exit 1
 }
