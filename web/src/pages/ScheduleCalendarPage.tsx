@@ -24,8 +24,18 @@ import calendarStyles from "./ScheduleCalendarPage.module.css";
 const styles = { ...appStyles, ...calendarStyles };
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 const DRAG_ACTIVATION_DISTANCE_PX = 8;
-const SCHEDULE_HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
-const SCHEDULE_MINUTE_OPTIONS = [0, 10, 20, 30, 40, 50];
+const SCHEDULE_TIME_OPTIONS = Array.from({ length: 24 * 6 }, (_, index) => {
+  const hour24 = Math.floor(index / 6);
+  const minute = (index % 6) * 10;
+  const period = hour24 < 12 ? "AM" : "PM";
+  const hour12 = hour24 % 12 || 12;
+
+  return {
+    label: `${period === "AM" ? "오전" : "오후"} ${String(hour12).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+    period,
+    value: `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+  };
+});
 const RESIZE_SNAP_THRESHOLD = 0.3;
 const OWNER_SEARCH_DEBOUNCE_MS = 300;
 
@@ -202,47 +212,102 @@ function toScheduleTimeValue(period: string, hour: number, minute: number) {
 
 function ScheduleTimeField({ label, onChange, value }: ScheduleTimeFieldProps) {
   const time = getScheduleTimeParts(value);
-  const updateTime = (nextValues: Partial<typeof time>) => {
-    const nextTime = { ...time, ...nextValues };
-    onChange(toScheduleTimeValue(nextTime.period, nextTime.hour, nextTime.minute));
-  };
+  const normalizedValue = toScheduleTimeValue(
+    time.period,
+    time.hour,
+    time.minute,
+  );
+  const selectedOption =
+    SCHEDULE_TIME_OPTIONS.find((option) => option.value === normalizedValue) ??
+    SCHEDULE_TIME_OPTIONS[0];
+  const [isOpen, setIsOpen] = useState(false);
+  const fieldRef = useRef<HTMLDivElement | null>(null);
+  const selectedOptionRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!fieldRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const frameId = window.requestAnimationFrame(() => {
+      selectedOptionRef.current?.scrollIntoView({ block: "center" });
+    });
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [isOpen]);
 
   return (
-    <label>
-      <span>{label}</span>
-      <div className={styles.scheduleTimeSelectGroup}>
-        <select
-          aria-label={`${label} 오전 오후`}
-          value={time.period}
-          onChange={(event) => updateTime({ period: event.target.value })}
+    <div className={styles.scheduleTimeField} ref={fieldRef}>
+      <span className={styles.scheduleTimeLabel}>{label}</span>
+      <button
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={`${label}: ${selectedOption.label}`}
+        className={styles.scheduleTimeTrigger}
+        type="button"
+        onClick={() => setIsOpen((currentValue) => !currentValue)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            setIsOpen(false);
+          }
+        }}
+      >
+        <span>{selectedOption.label}</span>
+        <span aria-hidden="true" className={styles.scheduleTimeChevron}>
+          ▾
+        </span>
+      </button>
+      {isOpen ? (
+        <div
+          aria-label={`${label} 선택`}
+          className={styles.scheduleTimeDropdown}
+          role="listbox"
         >
-          <option value="AM">오전</option>
-          <option value="PM">오후</option>
-        </select>
-        <select
-          aria-label={`${label} 시`}
-          value={time.hour}
-          onChange={(event) => updateTime({ hour: Number(event.target.value) })}
-        >
-          {SCHEDULE_HOUR_OPTIONS.map((hour) => (
-            <option key={hour} value={hour}>
-              {hour}시
-            </option>
+          {(["AM", "PM"] as const).map((period) => (
+            <div className={styles.scheduleTimePeriodGroup} key={period}>
+              <div className={styles.scheduleTimePeriodLabel}>
+                {period === "AM" ? "오전" : "오후"}
+              </div>
+              {SCHEDULE_TIME_OPTIONS.filter(
+                (option) => option.period === period,
+              ).map((option) => (
+                <button
+                  aria-selected={option.value === selectedOption.value}
+                  className={
+                    option.value === selectedOption.value
+                      ? styles.selectedScheduleTimeOption
+                      : styles.scheduleTimeOption
+                  }
+                  key={option.value}
+                  ref={
+                    option.value === selectedOption.value
+                      ? selectedOptionRef
+                      : undefined
+                  }
+                  role="option"
+                  type="button"
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           ))}
-        </select>
-        <select
-          aria-label={`${label} 분`}
-          value={time.minute}
-          onChange={(event) => updateTime({ minute: Number(event.target.value) })}
-        >
-          {SCHEDULE_MINUTE_OPTIONS.map((minute) => (
-            <option key={minute} value={minute}>
-              {String(minute).padStart(2, "0")}분
-            </option>
-          ))}
-        </select>
-      </div>
-    </label>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
