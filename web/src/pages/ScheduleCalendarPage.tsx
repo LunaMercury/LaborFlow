@@ -99,6 +99,7 @@ type CalendarAgendaDay = {
 
 type CalendarDragState = {
   eventId: string;
+  grabOffsetDays: number;
   mode: "move" | "resize-end" | "resize-start";
 };
 
@@ -989,14 +990,16 @@ export function ScheduleCalendarPage({
     event: CalendarEvent,
     targetDate: string,
     mode: CalendarDragState["mode"],
+    grabOffsetDays = 0,
   ) => {
     if (mode === "move") {
       const duration = diffDays(event.endDate, event.startDate);
+      const nextStartDate = addDays(targetDate, -grabOffsetDays);
 
       return {
         ...event,
-        endDate: addDays(targetDate, duration),
-        startDate: targetDate,
+        endDate: addDays(nextStartDate, duration),
+        startDate: nextStartDate,
       };
     }
 
@@ -1507,6 +1510,7 @@ export function ScheduleCalendarPage({
           currentEvent,
           targetDate,
           dragState.mode,
+          dragState.grabOffsetDays,
         );
 
         if (
@@ -1588,6 +1592,18 @@ export function ScheduleCalendarPage({
       pointerEvent.currentTarget.closest<HTMLElement>("article") ??
       pointerEvent.currentTarget;
     const sourceRect = sourceElement.getBoundingClientRect();
+    const grabbedDate =
+      mode === "move"
+        ? resolveDateFromPointer(
+            pointerEvent.clientX,
+            pointerEvent.clientY,
+            mode,
+            event,
+          )
+        : undefined;
+    const grabOffsetDays = grabbedDate
+      ? diffDays(grabbedDate, event.startDate)
+      : 0;
     dragActivatedRef.current = false;
     dragClickSuppressedRef.current = mode !== "move";
     const nextPreview = {
@@ -1603,7 +1619,7 @@ export function ScheduleCalendarPage({
       y: sourceRect.top,
     };
 
-    setDragState({ eventId: event.id, mode });
+    setDragState({ eventId: event.id, grabOffsetDays, mode });
     dragPreviewStateRef.current = nextPreview;
     setDragPreview(null);
   };
