@@ -588,6 +588,7 @@
 }
 
 .scheduleCreateBody input,
+.scheduleCreateBody select,
 .scheduleCreateBody textarea {
   background: #fbfcfe;
   border: 1px solid #c8d4e0;
@@ -602,10 +603,23 @@
 }
 
 .scheduleCreateBody input:focus,
+.scheduleCreateBody select:focus,
 .scheduleCreateBody textarea:focus {
   border-color: #176b5d;
   box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
   outline: 0;
+}
+
+.scheduleTimeSelectGroup {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: minmax(54px, 0.9fr) repeat(2, minmax(50px, 1fr));
+  min-width: 0;
+}
+
+.scheduleTimeSelectGroup select {
+  min-width: 0;
+  padding: 7px 5px;
 }
 
 .scheduleCreateDateRow,

@@ -24,6 +24,8 @@ import calendarStyles from "./ScheduleCalendarPage.module.css";
 const styles = { ...appStyles, ...calendarStyles };
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 const DRAG_ACTIVATION_DISTANCE_PX = 8;
+const SCHEDULE_HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => index + 1);
+const SCHEDULE_MINUTE_OPTIONS = [0, 10, 20, 30, 40, 50];
 const RESIZE_SNAP_THRESHOLD = 0.3;
 const OWNER_SEARCH_DEBOUNCE_MS = 300;
 
@@ -162,6 +164,86 @@ function formatClientPhoneInput(value: string) {
     return `${digits.slice(0, 3)}-${digits.slice(3)}`;
   }
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+type ScheduleTimeFieldProps = {
+  label: string;
+  onChange: (value: string) => void;
+  value: string;
+};
+
+function getScheduleTimeParts(value: string) {
+  const [rawHour = "0", rawMinute = "0"] = value.split(":");
+  const hour24 = Math.min(23, Math.max(0, Number(rawHour) || 0));
+  const minute = Math.min(
+    50,
+    Math.max(0, Math.round((Number(rawMinute) || 0) / 10) * 10),
+  );
+
+  return {
+    hour: hour24 % 12 || 12,
+    minute,
+    period: hour24 < 12 ? "AM" : "PM",
+  };
+}
+
+function toScheduleTimeValue(period: string, hour: number, minute: number) {
+  const hour24 =
+    period === "AM"
+      ? hour === 12
+        ? 0
+        : hour
+      : hour === 12
+        ? 12
+        : hour + 12;
+
+  return `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function ScheduleTimeField({ label, onChange, value }: ScheduleTimeFieldProps) {
+  const time = getScheduleTimeParts(value);
+  const updateTime = (nextValues: Partial<typeof time>) => {
+    const nextTime = { ...time, ...nextValues };
+    onChange(toScheduleTimeValue(nextTime.period, nextTime.hour, nextTime.minute));
+  };
+
+  return (
+    <label>
+      <span>{label}</span>
+      <div className={styles.scheduleTimeSelectGroup}>
+        <select
+          aria-label={`${label} 오전 오후`}
+          value={time.period}
+          onChange={(event) => updateTime({ period: event.target.value })}
+        >
+          <option value="AM">오전</option>
+          <option value="PM">오후</option>
+        </select>
+        <select
+          aria-label={`${label} 시`}
+          value={time.hour}
+          onChange={(event) => updateTime({ hour: Number(event.target.value) })}
+        >
+          {SCHEDULE_HOUR_OPTIONS.map((hour) => (
+            <option key={hour} value={hour}>
+              {hour}시
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label={`${label} 분`}
+          value={time.minute}
+          onChange={(event) => updateTime({ minute: Number(event.target.value) })}
+        >
+          {SCHEDULE_MINUTE_OPTIONS.map((minute) => (
+            <option key={minute} value={minute}>
+              {String(minute).padStart(2, "0")}분
+            </option>
+          ))}
+        </select>
+      </div>
+    </label>
+  );
 }
 
 function toInputDate(date: Date) {
@@ -1988,32 +2070,26 @@ export function ScheduleCalendarPage({
                       }
                     />
                   </label>
-                  <label>
-                    <span>시작시간</span>
-                    <input
-                      type="time"
-                      value={createDraft.startTime}
-                      onChange={(event) =>
-                        setCreateDraft((currentDraft) => ({
-                          ...currentDraft,
-                          startTime: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    <span>종료시간</span>
-                    <input
-                      type="time"
-                      value={createDraft.endTime}
-                      onChange={(event) =>
-                        setCreateDraft((currentDraft) => ({
-                          ...currentDraft,
-                          endTime: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
+                  <ScheduleTimeField
+                    label="시작시간"
+                    value={createDraft.startTime}
+                    onChange={(startTime) =>
+                      setCreateDraft((currentDraft) => ({
+                        ...currentDraft,
+                        startTime,
+                      }))
+                    }
+                  />
+                  <ScheduleTimeField
+                    label="종료시간"
+                    value={createDraft.endTime}
+                    onChange={(endTime) =>
+                      setCreateDraft((currentDraft) => ({
+                        ...currentDraft,
+                        endTime,
+                      }))
+                    }
+                  />
                 </div>
 
                 <FarmOwnerSearchField
@@ -2332,34 +2408,28 @@ export function ScheduleCalendarPage({
                       }
                     />
                   </label>
-                  <label>
-                    <span>시작시간</span>
-                    <input
-                      type="time"
-                      value={editDraft.startTime}
-                      onChange={(event) =>
-                        setEditDraft((currentDraft) =>
-                          currentDraft
-                            ? { ...currentDraft, startTime: event.target.value }
-                            : currentDraft,
-                        )
-                      }
-                    />
-                  </label>
-                  <label>
-                    <span>종료시간</span>
-                    <input
-                      type="time"
-                      value={editDraft.endTime}
-                      onChange={(event) =>
-                        setEditDraft((currentDraft) =>
-                          currentDraft
-                            ? { ...currentDraft, endTime: event.target.value }
-                            : currentDraft,
-                        )
-                      }
-                    />
-                  </label>
+                  <ScheduleTimeField
+                    label="시작시간"
+                    value={editDraft.startTime}
+                    onChange={(startTime) =>
+                      setEditDraft((currentDraft) =>
+                        currentDraft
+                          ? { ...currentDraft, startTime }
+                          : currentDraft,
+                      )
+                    }
+                  />
+                  <ScheduleTimeField
+                    label="종료시간"
+                    value={editDraft.endTime}
+                    onChange={(endTime) =>
+                      setEditDraft((currentDraft) =>
+                        currentDraft
+                          ? { ...currentDraft, endTime }
+                          : currentDraft,
+                      )
+                    }
+                  />
                 </div>
 
                 <FarmOwnerSearchField
