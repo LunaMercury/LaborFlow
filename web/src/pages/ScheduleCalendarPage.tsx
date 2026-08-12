@@ -1992,6 +1992,7 @@ export function ScheduleCalendarPage({
                     <span>시작시간</span>
                     <input
                       type="time"
+                      step={600}
                       value={createDraft.startTime}
                       onChange={(event) =>
                         setCreateDraft((currentDraft) => ({
@@ -2005,6 +2006,7 @@ export function ScheduleCalendarPage({
                     <span>종료시간</span>
                     <input
                       type="time"
+                      step={600}
                       value={createDraft.endTime}
                       onChange={(event) =>
                         setCreateDraft((currentDraft) => ({
@@ -2336,6 +2338,7 @@ export function ScheduleCalendarPage({
                     <span>시작시간</span>
                     <input
                       type="time"
+                      step={600}
                       value={editDraft.startTime}
                       onChange={(event) =>
                         setEditDraft((currentDraft) =>
@@ -2350,6 +2353,7 @@ export function ScheduleCalendarPage({
                     <span>종료시간</span>
                     <input
                       type="time"
+                      step={600}
                       value={editDraft.endTime}
                       onChange={(event) =>
                         setEditDraft((currentDraft) =>
