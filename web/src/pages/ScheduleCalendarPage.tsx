@@ -24,18 +24,6 @@ import calendarStyles from "./ScheduleCalendarPage.module.css";
 const styles = { ...appStyles, ...calendarStyles };
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 const DRAG_ACTIVATION_DISTANCE_PX = 8;
-const SCHEDULE_TIME_OPTIONS = Array.from({ length: 24 * 6 }, (_, index) => {
-  const hour24 = Math.floor(index / 6);
-  const minute = (index % 6) * 10;
-  const period = hour24 < 12 ? "AM" : "PM";
-  const hour12 = hour24 % 12 || 12;
-
-  return {
-    label: `${period === "AM" ? "오전" : "오후"} ${String(hour12).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
-    period,
-    value: `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
-  };
-});
 const RESIZE_SNAP_THRESHOLD = 0.3;
 const OWNER_SEARCH_DEBOUNCE_MS = 300;
 
@@ -174,141 +162,6 @@ function formatClientPhoneInput(value: string) {
     return `${digits.slice(0, 3)}-${digits.slice(3)}`;
   }
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
-}
-
-type ScheduleTimeFieldProps = {
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-};
-
-function getScheduleTimeParts(value: string) {
-  const [rawHour = "0", rawMinute = "0"] = value.split(":");
-  const hour24 = Math.min(23, Math.max(0, Number(rawHour) || 0));
-  const minute = Math.min(
-    50,
-    Math.max(0, Math.round((Number(rawMinute) || 0) / 10) * 10),
-  );
-
-  return {
-    hour: hour24 % 12 || 12,
-    minute,
-    period: hour24 < 12 ? "AM" : "PM",
-  };
-}
-
-function toScheduleTimeValue(period: string, hour: number, minute: number) {
-  const hour24 =
-    period === "AM"
-      ? hour === 12
-        ? 0
-        : hour
-      : hour === 12
-        ? 12
-        : hour + 12;
-
-  return `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
-
-function ScheduleTimeField({ label, onChange, value }: ScheduleTimeFieldProps) {
-  const time = getScheduleTimeParts(value);
-  const normalizedValue = toScheduleTimeValue(
-    time.period,
-    time.hour,
-    time.minute,
-  );
-  const selectedOption =
-    SCHEDULE_TIME_OPTIONS.find((option) => option.value === normalizedValue) ??
-    SCHEDULE_TIME_OPTIONS[0];
-  const [isOpen, setIsOpen] = useState(false);
-  const fieldRef = useRef<HTMLDivElement | null>(null);
-  const selectedOptionRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (!fieldRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    const frameId = window.requestAnimationFrame(() => {
-      selectedOptionRef.current?.scrollIntoView({ block: "center" });
-    });
-
-    document.addEventListener("pointerdown", closeOnOutsidePointer);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePointer);
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [isOpen]);
-
-  return (
-    <div className={styles.scheduleTimeField} ref={fieldRef}>
-      <span className={styles.scheduleTimeLabel}>{label}</span>
-      <button
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-label={`${label}: ${selectedOption.label}`}
-        className={styles.scheduleTimeTrigger}
-        type="button"
-        onClick={() => setIsOpen((currentValue) => !currentValue)}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            setIsOpen(false);
-          }
-        }}
-      >
-        <span>{selectedOption.label}</span>
-        <span aria-hidden="true" className={styles.scheduleTimeChevron}>
-          ▾
-        </span>
-      </button>
-      {isOpen ? (
-        <div
-          aria-label={`${label} 선택`}
-          className={styles.scheduleTimeDropdown}
-          role="listbox"
-        >
-          {(["AM", "PM"] as const).map((period) => (
-            <div className={styles.scheduleTimePeriodGroup} key={period}>
-              <div className={styles.scheduleTimePeriodLabel}>
-                {period === "AM" ? "오전" : "오후"}
-              </div>
-              {SCHEDULE_TIME_OPTIONS.filter(
-                (option) => option.period === period,
-              ).map((option) => (
-                <button
-                  aria-selected={option.value === selectedOption.value}
-                  className={
-                    option.value === selectedOption.value
-                      ? styles.selectedScheduleTimeOption
-                      : styles.scheduleTimeOption
-                  }
-                  key={option.value}
-                  ref={
-                    option.value === selectedOption.value
-                      ? selectedOptionRef
-                      : undefined
-                  }
-                  role="option"
-                  type="button"
-                  onClick={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
-                  }}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 function toInputDate(date: Date) {
@@ -2135,26 +1988,32 @@ export function ScheduleCalendarPage({
                       }
                     />
                   </label>
-                  <ScheduleTimeField
-                    label="시작시간"
-                    value={createDraft.startTime}
-                    onChange={(startTime) =>
-                      setCreateDraft((currentDraft) => ({
-                        ...currentDraft,
-                        startTime,
-                      }))
-                    }
-                  />
-                  <ScheduleTimeField
-                    label="종료시간"
-                    value={createDraft.endTime}
-                    onChange={(endTime) =>
-                      setCreateDraft((currentDraft) => ({
-                        ...currentDraft,
-                        endTime,
-                      }))
-                    }
-                  />
+                  <label>
+                    <span>시작시간</span>
+                    <input
+                      type="time"
+                      value={createDraft.startTime}
+                      onChange={(event) =>
+                        setCreateDraft((currentDraft) => ({
+                          ...currentDraft,
+                          startTime: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>종료시간</span>
+                    <input
+                      type="time"
+                      value={createDraft.endTime}
+                      onChange={(event) =>
+                        setCreateDraft((currentDraft) => ({
+                          ...currentDraft,
+                          endTime: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
                 </div>
 
                 <FarmOwnerSearchField
@@ -2473,28 +2332,34 @@ export function ScheduleCalendarPage({
                       }
                     />
                   </label>
-                  <ScheduleTimeField
-                    label="시작시간"
-                    value={editDraft.startTime}
-                    onChange={(startTime) =>
-                      setEditDraft((currentDraft) =>
-                        currentDraft
-                          ? { ...currentDraft, startTime }
-                          : currentDraft,
-                      )
-                    }
-                  />
-                  <ScheduleTimeField
-                    label="종료시간"
-                    value={editDraft.endTime}
-                    onChange={(endTime) =>
-                      setEditDraft((currentDraft) =>
-                        currentDraft
-                          ? { ...currentDraft, endTime }
-                          : currentDraft,
-                      )
-                    }
-                  />
+                  <label>
+                    <span>시작시간</span>
+                    <input
+                      type="time"
+                      value={editDraft.startTime}
+                      onChange={(event) =>
+                        setEditDraft((currentDraft) =>
+                          currentDraft
+                            ? { ...currentDraft, startTime: event.target.value }
+                            : currentDraft,
+                        )
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>종료시간</span>
+                    <input
+                      type="time"
+                      value={editDraft.endTime}
+                      onChange={(event) =>
+                        setEditDraft((currentDraft) =>
+                          currentDraft
+                            ? { ...currentDraft, endTime: event.target.value }
+                            : currentDraft,
+                        )
+                      }
+                    />
+                  </label>
                 </div>
 
                 <FarmOwnerSearchField
