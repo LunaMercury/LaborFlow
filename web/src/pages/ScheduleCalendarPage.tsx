@@ -138,6 +138,7 @@ type ScheduleCreateDraft = {
 type ScheduleEditDraft = {
   address: string;
   endDate: string;
+  endTime: string;
   memo: string;
   ownerName: string;
   ownerQuery: string;
@@ -145,6 +146,7 @@ type ScheduleEditDraft = {
   requiredMen: string;
   requiredWomen: string;
   startDate: string;
+  startTime: string;
   title: string;
   workTypeCodes: string[];
 };
@@ -193,6 +195,7 @@ function createEditScheduleDraft(event: CalendarEvent): ScheduleEditDraft {
   return {
     address: event.address,
     endDate: event.endDate,
+    endTime: event.endTime,
     memo: event.memo,
     ownerName: event.ownerName,
     ownerQuery: event.ownerName,
@@ -200,6 +203,7 @@ function createEditScheduleDraft(event: CalendarEvent): ScheduleEditDraft {
     requiredMen: String(event.requiredMen),
     requiredWomen: String(event.requiredWomen),
     startDate: event.startDate,
+    startTime: event.startTime,
     title: event.title,
     workTypeCodes: event.workTypeCodes,
   };
@@ -1294,6 +1298,15 @@ export function ScheduleCalendarPage({
       return;
     }
 
+    if (
+      editDraft.startTime &&
+      editDraft.endTime &&
+      editDraft.endTime <= editDraft.startTime
+    ) {
+      window.alert("종료시간은 시작시간보다 늦어야 합니다.");
+      return;
+    }
+
     setIsUpdatingSchedule(true);
     try {
       const savedTask = await updateScheduleTask(
@@ -1303,12 +1316,12 @@ export function ScheduleCalendarPage({
         {
           address,
           assignments: editingEvent.assignments,
-          endTime: editingEvent.endTime || null,
+          endTime: editDraft.endTime || null,
           memo,
           ownerUuid: editDraft.ownerUuid,
           requiredMen,
           requiredWomen,
-          startTime: editingEvent.startTime || null,
+          startTime: editDraft.startTime || null,
           title,
           workTypeCodes: editDraft.workTypeCodes,
         },
@@ -1332,12 +1345,15 @@ export function ScheduleCalendarPage({
                 ...calendarEvent,
                 address: savedTask.address,
                 endDate: editDraft.endDate,
+                endTime: savedTask.endTime,
                 memo: savedTask.memo,
                 requiredMen: savedTask.requiredMen,
                 requiredWomen: savedTask.requiredWomen,
                 ownerName: savedTask.ownerName,
                 ownerUuid: savedTask.ownerUuid,
                 startDate: editDraft.startDate,
+                startTime: savedTask.startTime,
+                timeRange: savedTask.timeRange,
                 title: savedTask.title,
                 workTypeCodes: savedTask.workTypeCodes,
               }
@@ -2277,6 +2293,34 @@ export function ScheduleCalendarPage({
                         setEditDraft((currentDraft) =>
                           currentDraft
                             ? { ...currentDraft, endDate: event.target.value }
+                            : currentDraft,
+                        )
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>시작시간</span>
+                    <input
+                      type="time"
+                      value={editDraft.startTime}
+                      onChange={(event) =>
+                        setEditDraft((currentDraft) =>
+                          currentDraft
+                            ? { ...currentDraft, startTime: event.target.value }
+                            : currentDraft,
+                        )
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>종료시간</span>
+                    <input
+                      type="time"
+                      value={editDraft.endTime}
+                      onChange={(event) =>
+                        setEditDraft((currentDraft) =>
+                          currentDraft
+                            ? { ...currentDraft, endTime: event.target.value }
                             : currentDraft,
                         )
                       }
