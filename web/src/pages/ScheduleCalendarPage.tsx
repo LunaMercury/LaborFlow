@@ -757,6 +757,7 @@ export function ScheduleCalendarPage({
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [editDraft, setEditDraft] = useState<ScheduleEditDraft | null>(null);
   const [isUpdatingSchedule, setIsUpdatingSchedule] = useState(false);
+  const isCalendarModalOpen = createModalDate !== null || editingEvent !== null;
   const [reloadToken, setReloadToken] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const todayDate = useMemo(() => toInputDate(new Date()), []);
@@ -1577,12 +1578,28 @@ export function ScheduleCalendarPage({
     };
   }, [dragState]);
 
+  useEffect(() => {
+    if (!isCalendarModalOpen) {
+      return;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
+    };
+  }, [isCalendarModalOpen]);
+
   const startEventDrag = (
     event: CalendarEvent,
     mode: CalendarDragState["mode"],
     pointerEvent: ReactPointerEvent<HTMLElement>,
   ) => {
-    if (pointerEvent.button !== 0) {
+    if (isCalendarModalOpen || pointerEvent.button !== 0) {
       return;
     }
 
@@ -1627,7 +1644,9 @@ export function ScheduleCalendarPage({
   return (
     <main className={styles.tableMainContent}>
       <section
-        className={styles.calendarPanel}
+        className={`${styles.calendarPanel} ${
+          isCalendarModalOpen ? styles.calendarPanelModalOpen : ""
+        }`}
         aria-labelledby="schedule-title"
       >
         <div className={styles.calendarHeader}>
@@ -2238,7 +2257,9 @@ export function ScheduleCalendarPage({
               onMouseDown={(event) => event.stopPropagation()}
               onPointerDown={(event) => event.stopPropagation()}
             >
-              <div className={styles.scheduleCreateHeader}>
+              <div
+                className={`${styles.scheduleCreateHeader} ${styles.scheduleEditHeader}`}
+              >
                 <h2 id="schedule-edit-title">작업내용 수정</h2>
                 <div className={styles.scheduleEditHeaderActions}>
                   <div className={styles.scheduleCreateActions}>
