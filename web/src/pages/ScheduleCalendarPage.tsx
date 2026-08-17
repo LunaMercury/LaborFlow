@@ -1934,7 +1934,9 @@ export function ScheduleCalendarPage({
               onMouseDown={(event) => event.stopPropagation()}
               onPointerDown={(event) => event.stopPropagation()}
             >
-              <div className={styles.scheduleCreateHeader}>
+              <div
+                className={`${styles.scheduleCreateHeader} ${styles.scheduleCreateHeaderInline}`}
+              >
                 <h2 id="schedule-create-title">일정 추가</h2>
                 <div className={styles.scheduleCreateActions}>
                   <button

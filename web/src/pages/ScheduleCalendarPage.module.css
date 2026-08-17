@@ -949,14 +949,24 @@
     flex-direction: column;
   }
 
-  .scheduleCreateHeader > .scheduleCreateActions {
+  .scheduleCreateHeaderInline {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .scheduleCreateHeaderInline h2 {
+    flex-shrink: 0;
+  }
+
+  .scheduleCreateHeaderInline > .scheduleCreateActions {
     box-sizing: border-box;
     flex-wrap: nowrap;
     justify-content: flex-end;
-    width: 100%;
+    margin-left: auto;
+    width: auto;
   }
 
-  .scheduleCreateHeader > .scheduleCreateActions button {
+  .scheduleCreateHeaderInline > .scheduleCreateActions button {
     flex-shrink: 0;
     white-space: nowrap;
   }
