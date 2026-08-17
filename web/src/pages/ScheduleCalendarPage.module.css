@@ -949,6 +949,18 @@
     flex-direction: column;
   }
 
+  .scheduleCreateHeader > .scheduleCreateActions {
+    box-sizing: border-box;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .scheduleCreateHeader > .scheduleCreateActions button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   .scheduleEditHeaderActions {
     align-items: stretch;
     gap: 12px;
