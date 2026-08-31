@@ -707,6 +707,7 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
         <WorkerProfileModal
           loginId={loginId}
           mode={workerModalState.mode}
+          workers={workers}
           sourceAssignmentUuid={
             workerModalState.mode === "create"
               ? workerModalState.record.assignmentUuid

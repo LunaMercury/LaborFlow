@@ -38,6 +38,8 @@ enterprise:
     - "Confirm PostgreSQL remains the source of truth for personal data, attendance, schedules, workflow history, and audit logs."
     - "Confirm high-traffic writes define idempotency, transaction boundary, audit behavior, and cache invalidation before implementation."
     - "Confirm schedule-created client profiles and their first schedule are committed in one PostgreSQL transaction."
+    - "Confirm worker separation rules are agency-scoped undirected pairs with database-enforced canonical ordering and ownership."
+    - "Confirm assignment saves serialize the same agency/date/work-site scope, revalidate separation rules server-side, and persist account-attributed override audits only after explicit acknowledgement."
 
 realtime:
   verifierChecks:

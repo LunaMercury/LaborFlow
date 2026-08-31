@@ -11,6 +11,7 @@ import com.laborflow.core.workforce.dto.UpdateWorkerGenderRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerWorkTypesRequest;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerListResponse;
+import com.laborflow.core.workforce.dto.WorkerSeparationRuleResponse;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -41,6 +42,13 @@ public class WorkforceController {
     @GetMapping("/work-types")
     public List<WorkTypeResponse> getWorkTypes() {
         return workforceService.getWorkTypes();
+    }
+
+    @GetMapping("/worker-separation-rules")
+    public List<WorkerSeparationRuleResponse> getWorkerSeparationRules(
+        @RequestParam(defaultValue = "test") String loginId
+    ) {
+        return workforceService.getWorkerSeparationRules(loginId);
     }
 
     @PostMapping("/workers")

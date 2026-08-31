@@ -20,6 +20,7 @@ public record UpdateWorkerProfileRequest(
     String accountHolderName,
     Boolean noShowRisk,
     List<String> workTypeCodes,
-    Map<String, Integer> workTypeRatings
+    Map<String, Integer> workTypeRatings,
+    List<WorkerSeparationRuleRequest> separationRules
 ) {
 }

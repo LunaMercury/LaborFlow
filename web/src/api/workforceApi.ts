@@ -46,6 +46,21 @@ export type UpdateWorkerProfilePayload = {
   pickupLocation: string;
   workTypeCodes: string[];
   workTypeRatings: Record<string, number>;
+  separationRules: WorkerSeparationRulePayload[];
+};
+
+export type WorkerSeparationRulePayload = {
+  otherWorkerProfileUuid: string;
+  reason: string;
+};
+
+export type WorkerSeparationRule = {
+  ruleUuid: string;
+  workerProfileUuidA: string;
+  workerNameA: string;
+  workerProfileUuidB: string;
+  workerNameB: string;
+  reason: string;
 };
 
 export type CreateWorkerTeamPayload = {
@@ -74,6 +89,21 @@ export async function fetchWorkTypes(): Promise<WorkTypeOption[]> {
   }
 
   return (await response.json()) as WorkTypeOption[];
+}
+
+export async function fetchWorkerSeparationRules(
+  loginId: string,
+): Promise<WorkerSeparationRule[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/worker-separation-rules?loginId=${encodeURIComponent(loginId)}`,
+    { cache: "no-store" },
+  );
+
+  if (!response.ok) {
+    throw new Error("동시 배치 주의 목록을 불러오지 못했습니다.");
+  }
+
+  return (await response.json()) as WorkerSeparationRule[];
 }
 
 export async function createWorkerTeam(

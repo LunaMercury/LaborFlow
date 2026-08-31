@@ -17,6 +17,7 @@ public record UpdateScheduleTaskRequest(
     int requiredWomen,
     String memo,
     List<String> workTypeCodes,
-    List<ScheduleAssignmentRequest> assignments
+    List<ScheduleAssignmentRequest> assignments,
+    List<UUID> acknowledgedSeparationRuleUuids
 ) {
 }

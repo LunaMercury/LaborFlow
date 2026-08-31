@@ -14,10 +14,14 @@ import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
 import com.laborflow.core.schedule.dto.ScheduleTaskListResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import com.laborflow.core.schedule.dto.UpdateScheduleTaskRequest;
+import com.laborflow.core.workforce.application.WorkerSeparationConflictException;
+import com.laborflow.core.workforce.application.WorkforceService;
+import com.laborflow.core.workforce.dto.WorkerSeparationRuleResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,10 +30,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class ScheduleService {
     private final ScheduleDao scheduleDao;
     private final ClientsService clientsService;
+    private final WorkforceService workforceService;
 
-    public ScheduleService(ScheduleDao scheduleDao, ClientsService clientsService) {
+    public ScheduleService(
+        ScheduleDao scheduleDao,
+        ClientsService clientsService,
+        WorkforceService workforceService
+    ) {
         this.scheduleDao = scheduleDao;
         this.clientsService = clientsService;
+        this.workforceService = workforceService;
     }
 
     public ScheduleTaskListResponse getTasks(String loginId, LocalDate workDate) {
@@ -142,6 +152,45 @@ public class ScheduleService {
             request.siteMemo()
         );
 
+        scheduleDao.lockAssignmentSeparationScope(
+            agencyOwnerUuid,
+            workDate,
+            ownerUuid,
+            clientWorkSite.uuid(),
+            clientWorkSite.farmAddress()
+        );
+
+        List<UUID> targetWorkerProfileUuids = assignments.stream()
+            .map(ScheduleAssignmentRequest::workerProfileUuid)
+            .toList();
+        List<UUID> nearbyWorkerProfileUuids = scheduleDao.findNearbyAssignedWorkerProfileUuids(
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            workDate,
+            ownerUuid,
+            clientWorkSite.uuid(),
+            clientWorkSite.farmAddress(),
+            request.startTime(),
+            request.endTime()
+        );
+        List<WorkerSeparationRuleResponse> separationConflicts =
+            workforceService.findAssignmentSeparationConflicts(
+                loginId,
+                targetWorkerProfileUuids,
+                nearbyWorkerProfileUuids
+            );
+        Set<UUID> acknowledgedRuleUuids = new LinkedHashSet<>(
+            request.acknowledgedSeparationRuleUuids() == null
+                ? List.of()
+                : request.acknowledgedSeparationRuleUuids()
+        );
+        List<WorkerSeparationRuleResponse> unacknowledgedConflicts = separationConflicts.stream()
+            .filter(conflict -> !acknowledgedRuleUuids.contains(conflict.ruleUuid()))
+            .toList();
+        if (!unacknowledgedConflicts.isEmpty()) {
+            throw new WorkerSeparationConflictException(unacknowledgedConflicts);
+        }
+
         scheduleDao.updateTask(
             agencyOwnerUuid,
             scheduleDayUuid,
@@ -158,6 +207,11 @@ public class ScheduleService {
         );
         scheduleDao.replaceTaskWorkTypes(agencyOwnerUuid, scheduleDayUuid, workTypeCodes);
         scheduleDao.replaceAssignments(agencyOwnerUuid, scheduleDayUuid, assignments);
+        workforceService.recordAssignmentSeparationOverrides(
+            loginId,
+            scheduleDayUuid,
+            separationConflicts.stream().map(WorkerSeparationRuleResponse::ruleUuid).toList()
+        );
 
         return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
             .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));

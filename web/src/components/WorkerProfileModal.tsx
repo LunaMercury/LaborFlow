@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   createWorker,
   createWorkerFromGuestAssignment,
   deleteWorkerProfile,
+  fetchWorkerSeparationRules,
   updateWorkerProfile,
+  type WorkerSeparationRule,
 } from "../api/workforceApi";
 import type { WorkTypeOption } from "../data/workTypeOptions";
 import type { WorkerRow } from "../data/workerRows";
@@ -17,6 +19,7 @@ type WorkerProfileModalProps = {
   loginId: string;
   mode: WorkerProfileModalMode;
   worker?: WorkerRow;
+  workers: WorkerRow[];
   workTypeOptions: WorkTypeOption[];
   onClose: () => void;
   onDeleted?: (workers: WorkerRow[]) => void;
@@ -25,6 +28,13 @@ type WorkerProfileModalProps = {
 };
 
 type GenderValue = "M" | "F" | "N";
+
+type SeparationRuleDraft = {
+  otherWorkerProfileUuid: string;
+  otherWorkerName: string;
+  reason: string;
+  ruleUuid?: string;
+};
 
 const EVERY_DAY_MASK = 127;
 const WEEKDAY_MASK = 31;
@@ -81,10 +91,27 @@ function toFormGender(gender?: string): GenderValue {
   return "N";
 }
 
+function toSeparationRuleDraft(
+  rule: WorkerSeparationRule,
+  workerProfileUuid: string,
+): SeparationRuleDraft {
+  const workerIsFirst = rule.workerProfileUuidA === workerProfileUuid;
+
+  return {
+    otherWorkerProfileUuid: workerIsFirst
+      ? rule.workerProfileUuidB
+      : rule.workerProfileUuidA,
+    otherWorkerName: workerIsFirst ? rule.workerNameB : rule.workerNameA,
+    reason: rule.reason ?? "",
+    ruleUuid: rule.ruleUuid,
+  };
+}
+
 export function WorkerProfileModal({
   loginId,
   mode,
   worker,
+  workers,
   workTypeOptions,
   onClose,
   onDeleted,
@@ -131,6 +158,73 @@ export function WorkerProfileModal({
     Record<string, number>
   >(worker?.workTypeRatings ?? {});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [separationRules, setSeparationRules] = useState<SeparationRuleDraft[]>([]);
+  const [separationSearch, setSeparationSearch] = useState("");
+  const [isLoadingSeparationRules, setIsLoadingSeparationRules] = useState(isEditMode);
+  const [separationRuleError, setSeparationRuleError] = useState("");
+  const [separationRuleReloadVersion, setSeparationRuleReloadVersion] = useState(0);
+
+  useEffect(() => {
+    if (!isEditMode || !worker?.profileUuid) {
+      setIsLoadingSeparationRules(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingSeparationRules(true);
+    fetchWorkerSeparationRules(loginId)
+      .then((rules) => {
+        if (!isMounted) {
+          return;
+        }
+        setSeparationRules(
+          rules
+            .filter(
+              (rule) =>
+                rule.workerProfileUuidA === worker.profileUuid ||
+                rule.workerProfileUuidB === worker.profileUuid,
+            )
+            .map((rule) => toSeparationRuleDraft(rule, worker.profileUuid as string)),
+        );
+        setSeparationRuleError("");
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSeparationRuleError("동시 배치 주의 목록을 불러오지 못했습니다.");
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingSeparationRules(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isEditMode, loginId, separationRuleReloadVersion, worker?.profileUuid]);
+
+  const separationCandidates = useMemo(() => {
+    const normalizedSearch = separationSearch.trim().toLocaleLowerCase("ko-KR");
+    const selectedWorkerUuids = new Set(
+      separationRules.map((rule) => rule.otherWorkerProfileUuid),
+    );
+
+    return workers
+      .filter((candidate) => Boolean(candidate.profileUuid))
+      .filter((candidate) => candidate.profileUuid !== worker?.profileUuid)
+      .filter((candidate) => !selectedWorkerUuids.has(candidate.profileUuid as string))
+      .filter((candidate) => {
+        if (!normalizedSearch) {
+          return false;
+        }
+        return [candidate.name, candidate.nickname ?? "", candidate.phone]
+          .join(" ")
+          .toLocaleLowerCase("ko-KR")
+          .includes(normalizedSearch);
+      })
+      .slice(0, 8);
+  }, [separationRules, separationSearch, worker?.profileUuid, workers]);
 
   const handleDelete = async () => {
     if (!isEditMode || !worker?.profileUuid) {
@@ -224,6 +318,10 @@ export function WorkerProfileModal({
               ...payload,
               name: normalizedName,
               nickname: normalizedNickname,
+              separationRules: separationRules.map((rule) => ({
+                otherWorkerProfileUuid: rule.otherWorkerProfileUuid,
+                reason: rule.reason.trim(),
+              })),
             })
           : sourceAssignmentUuid
             ? await createWorkerFromGuestAssignment(
@@ -300,7 +398,11 @@ export function WorkerProfileModal({
             ) : null}
             <button
               className={styles.primaryActionButton}
-              disabled={isSubmitting}
+                disabled={
+                  isSubmitting ||
+                  isLoadingSeparationRules ||
+                  Boolean(separationRuleError)
+                }
               form={formId}
               type="submit"
             >
@@ -592,6 +694,113 @@ export function WorkerProfileModal({
                 />
               </div>
             </div>
+
+            {isEditMode ? (
+              <section className={styles.separationSection}>
+                <div className={styles.separationHeader}>
+                  <div>
+                    <h3>동시 배치 주의</h3>
+                    <p>같은 현장에 함께 배치하기 전에 경고할 작업자를 등록합니다.</p>
+                  </div>
+                  <span>{separationRules.length}명</span>
+                </div>
+
+                {isLoadingSeparationRules ? (
+                  <p className={styles.separationStateText}>목록을 불러오는 중입니다.</p>
+                ) : separationRuleError ? (
+                  <div className={styles.separationErrorState}>
+                    <p className={styles.separationErrorText}>{separationRuleError}</p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSeparationRuleReloadVersion((currentVersion) => currentVersion + 1)
+                      }
+                    >
+                      다시 시도
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className={styles.separationRuleList}>
+                      {separationRules.map((rule) => (
+                        <div className={styles.separationRuleRow} key={rule.otherWorkerProfileUuid}>
+                          <strong>{rule.otherWorkerName}</strong>
+                          <input
+                            maxLength={500}
+                            placeholder="사유 입력 (선택)"
+                            value={rule.reason}
+                            onChange={(event) =>
+                              setSeparationRules((currentRules) =>
+                                currentRules.map((currentRule) =>
+                                  currentRule.otherWorkerProfileUuid === rule.otherWorkerProfileUuid
+                                    ? { ...currentRule, reason: event.target.value }
+                                    : currentRule,
+                                ),
+                              )
+                            }
+                          />
+                          <button
+                            aria-label={`${rule.otherWorkerName} 동시 배치 주의 해제`}
+                            type="button"
+                            onClick={() =>
+                              setSeparationRules((currentRules) =>
+                                currentRules.filter(
+                                  (currentRule) =>
+                                    currentRule.otherWorkerProfileUuid !== rule.otherWorkerProfileUuid,
+                                ),
+                              )
+                            }
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      {separationRules.length === 0 ? (
+                        <p className={styles.separationStateText}>등록된 작업자가 없습니다.</p>
+                      ) : null}
+                    </div>
+
+                    <div className={styles.separationSearchField}>
+                      <input
+                        autoComplete="off"
+                        placeholder="이름, 호칭 또는 전화번호 검색"
+                        type="search"
+                        value={separationSearch}
+                        onChange={(event) => setSeparationSearch(event.target.value)}
+                      />
+                      {separationCandidates.length > 0 ? (
+                        <div className={styles.separationSearchResults}>
+                          {separationCandidates.map((candidate) => {
+                            const candidateName =
+                              candidate.name.trim() || candidate.nickname?.trim() || "이름 없음";
+                            return (
+                              <button
+                                key={candidate.profileUuid}
+                                type="button"
+                                onClick={() => {
+                                  setSeparationRules((currentRules) => [
+                                    ...currentRules,
+                                    {
+                                      otherWorkerProfileUuid: candidate.profileUuid as string,
+                                      otherWorkerName: candidateName,
+                                      reason: "",
+                                    },
+                                  ]);
+                                  setSeparationSearch("");
+                                }}
+                              >
+                                <strong>{candidateName}</strong>
+                                <span>{candidate.phone}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  </>
+                )}
+              </section>
+            ) : null}
           </form>
         </div>
       </section>

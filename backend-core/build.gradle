@@ -13,6 +13,11 @@ java {
 	}
 }
 
+def laborflowBuildDir = providers.gradleProperty('laborflowBuildDir')
+if (laborflowBuildDir.isPresent()) {
+	layout.buildDirectory = file(laborflowBuildDir.get())
+}
+
 repositories {
 	mavenCentral()
 }

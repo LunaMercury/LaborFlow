@@ -119,6 +119,91 @@ public class JdbcScheduleDao implements ScheduleDao {
     }
 
     @Override
+    public void lockAssignmentSeparationScope(
+        UUID agencyOwnerUuid,
+        LocalDate workDate,
+        UUID ownerUuid,
+        UUID clientWorkSiteUuid,
+        String address
+    ) {
+        String workSiteKey = clientWorkSiteUuid != null
+            ? clientWorkSiteUuid.toString()
+            : ownerUuid + ":" + (address == null ? "" : address.trim().toLowerCase(java.util.Locale.ROOT));
+        String lockKey = "laborflow:assignment-separation:"
+            + agencyOwnerUuid + ":" + workDate + ":" + workSiteKey;
+
+        jdbcTemplate.queryForList(
+            "SELECT pg_advisory_xact_lock(hashtextextended(?, 0))",
+            lockKey
+        );
+    }
+
+    @Override
+    public List<UUID> findNearbyAssignedWorkerProfileUuids(
+        UUID agencyOwnerUuid,
+        UUID scheduleDayUuid,
+        LocalDate workDate,
+        UUID ownerUuid,
+        UUID clientWorkSiteUuid,
+        String address,
+        LocalTime startTime,
+        LocalTime endTime
+    ) {
+        return jdbcTemplate.query(
+            """
+            SELECT DISTINCT assignment.worker_profile_uuid
+            FROM public.work_schedule_assignment assignment
+            JOIN public.work_schedule_day schedule_day
+                ON schedule_day.uuid = assignment.schedule_day_uuid
+            JOIN public.farm_work_site work_site
+                ON work_site.uuid = schedule_day.work_site_uuid
+            WHERE assignment.agency_owner_uuid = ?
+                AND schedule_day.work_date = ?
+                AND schedule_day.uuid <> ?
+                AND assignment.participant_type = 'REGISTERED'
+                AND assignment.worker_profile_uuid IS NOT NULL
+                AND assignment.status <> 'REPLACED'
+                AND assignment.deleted_at IS NULL
+                AND schedule_day.status = 'ACTIVE'
+                AND schedule_day.deleted_at IS NULL
+                AND work_site.status = 'ACTIVE'
+                AND work_site.deleted_at IS NULL
+                AND (
+                    (? IS NOT NULL AND work_site.client_work_site_uuid = ?)
+                    OR (
+                        ? IS NULL
+                        AND work_site.owner_uuid = ?
+                        AND lower(btrim(work_site.farm_address)) = lower(btrim(?))
+                    )
+                )
+                AND (
+                    ? IS NULL
+                    OR ? IS NULL
+                    OR COALESCE(schedule_day.daily_start_time, work_site.daily_start_time) IS NULL
+                    OR COALESCE(schedule_day.daily_end_time, work_site.daily_end_time) IS NULL
+                    OR (
+                        COALESCE(schedule_day.daily_start_time, work_site.daily_start_time) < ?
+                        AND ? < COALESCE(schedule_day.daily_end_time, work_site.daily_end_time)
+                    )
+                )
+            """,
+            (resultSet, rowNumber) -> resultSet.getObject("worker_profile_uuid", UUID.class),
+            agencyOwnerUuid,
+            workDate,
+            scheduleDayUuid,
+            clientWorkSiteUuid,
+            clientWorkSiteUuid,
+            clientWorkSiteUuid,
+            ownerUuid,
+            address,
+            startTime,
+            endTime,
+            endTime,
+            startTime
+        );
+    }
+
+    @Override
     public List<FarmOwnerOptionResponse> findFarmOwners(UUID agencyOwnerUuid, String query) {
         String normalizedQuery = query == null ? "" : query.trim();
         String likeQuery = "%" + normalizedQuery + "%";

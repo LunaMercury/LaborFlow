@@ -20,6 +20,25 @@ public interface ScheduleDao {
 
     boolean farmOwnerBelongsToAgencyOwner(UUID agencyOwnerUuid, UUID farmOwnerUuid);
 
+    void lockAssignmentSeparationScope(
+        UUID agencyOwnerUuid,
+        LocalDate workDate,
+        UUID ownerUuid,
+        UUID clientWorkSiteUuid,
+        String address
+    );
+
+    List<UUID> findNearbyAssignedWorkerProfileUuids(
+        UUID agencyOwnerUuid,
+        UUID scheduleDayUuid,
+        LocalDate workDate,
+        UUID ownerUuid,
+        UUID clientWorkSiteUuid,
+        String address,
+        LocalTime startTime,
+        LocalTime endTime
+    );
+
     List<FarmOwnerOptionResponse> findFarmOwners(UUID agencyOwnerUuid, String query);
 
     List<ScheduleTaskResponse> findTasks(UUID agencyOwnerUuid, LocalDate workDate);

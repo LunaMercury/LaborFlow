@@ -6,6 +6,8 @@ import com.laborflow.core.workforce.dto.CreateWorkerRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerProfileRequest;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerListResponse;
+import com.laborflow.core.workforce.dto.WorkerSeparationRuleRequest;
+import com.laborflow.core.workforce.dto.WorkerSeparationRuleResponse;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,11 @@ public class WorkforceService {
 
     public List<WorkTypeResponse> getWorkTypes() {
         return workforceDao.findActiveWorkTypes();
+    }
+
+    public List<WorkerSeparationRuleResponse> getWorkerSeparationRules(String loginId) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        return workforceDao.findWorkerSeparationRules(agencyOwnerUuid);
     }
 
     @Transactional
@@ -213,6 +220,62 @@ public class WorkforceService {
             normalizeWorkTypeRatings(workTypeCodes, request.workTypeRatings())
         );
         workforceDao.setWorkerNoShowRisk(workerProfileUuid, Boolean.TRUE.equals(request.noShowRisk()));
+        if (request.separationRules() != null) {
+            UUID agencyOwnerUuid = findAgencyOwnerUuid(normalizedLoginId);
+            UUID accountUuid = workforceDao.findAccountUuidByLoginId(normalizedLoginId)
+                .orElseThrow(() -> new IllegalArgumentException("Account was not found."));
+            workforceDao.replaceWorkerSeparationRules(
+                agencyOwnerUuid,
+                accountUuid,
+                workerProfileUuid,
+                normalizeSeparationRules(normalizedLoginId, workerProfileUuid, request.separationRules())
+            );
+        }
+    }
+
+    public List<WorkerSeparationRuleResponse> findAssignmentSeparationConflicts(
+        String loginId,
+        List<UUID> targetWorkerProfileUuids,
+        List<UUID> nearbyWorkerProfileUuids
+    ) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        Set<UUID> targetWorkerUuids = new LinkedHashSet<>(targetWorkerProfileUuids);
+        Set<UUID> combinedWorkerUuids = new LinkedHashSet<>(targetWorkerUuids);
+        combinedWorkerUuids.addAll(nearbyWorkerProfileUuids);
+        if (combinedWorkerUuids.size() < 2) {
+            return List.of();
+        }
+
+        return workforceDao.findWorkerSeparationRules(
+            agencyOwnerUuid,
+            List.copyOf(combinedWorkerUuids)
+        ).stream()
+            .filter(rule -> combinedWorkerUuids.contains(rule.workerProfileUuidA()))
+            .filter(rule -> combinedWorkerUuids.contains(rule.workerProfileUuidB()))
+            .filter(rule -> targetWorkerUuids.contains(rule.workerProfileUuidA())
+                || targetWorkerUuids.contains(rule.workerProfileUuidB()))
+            .toList();
+    }
+
+    @Transactional
+    public void recordAssignmentSeparationOverrides(
+        String loginId,
+        UUID scheduleDayUuid,
+        List<UUID> separationRuleUuids
+    ) {
+        if (separationRuleUuids.isEmpty()) {
+            return;
+        }
+        String normalizedLoginId = normalizeLoginId(loginId);
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(normalizedLoginId);
+        UUID accountUuid = workforceDao.findAccountUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Account was not found."));
+        workforceDao.recordWorkerSeparationOverrides(
+            agencyOwnerUuid,
+            accountUuid,
+            scheduleDayUuid,
+            separationRuleUuids
+        );
     }
 
     @Transactional
@@ -305,6 +368,38 @@ public class WorkforceService {
             .toList();
     }
 
+    private List<WorkerSeparationRuleRequest> normalizeSeparationRules(
+        String loginId,
+        UUID workerProfileUuid,
+        List<WorkerSeparationRuleRequest> separationRules
+    ) {
+        if (separationRules.size() > 100) {
+            throw new IllegalArgumentException("Too many worker separation rules were provided.");
+        }
+
+        Set<UUID> seenWorkerProfileUuids = new LinkedHashSet<>();
+        return separationRules.stream()
+            .map(rule -> {
+                if (rule == null || rule.otherWorkerProfileUuid() == null) {
+                    throw new IllegalArgumentException("Worker separation rule is invalid.");
+                }
+                UUID otherWorkerProfileUuid = rule.otherWorkerProfileUuid();
+                if (workerProfileUuid.equals(otherWorkerProfileUuid)) {
+                    throw new IllegalArgumentException("A worker cannot be separated from themselves.");
+                }
+                if (!seenWorkerProfileUuids.add(otherWorkerProfileUuid)) {
+                    throw new IllegalArgumentException("Duplicate worker separation rules are not allowed.");
+                }
+                ensureWorkerProfileBelongsToLoginId(loginId, otherWorkerProfileUuid);
+                String reason = normalizeOptionalText(rule.reason());
+                if (reason != null && reason.length() > 500) {
+                    throw new IllegalArgumentException("Worker separation reason is too long.");
+                }
+                return new WorkerSeparationRuleRequest(otherWorkerProfileUuid, reason);
+            })
+            .toList();
+    }
+
     private TeamInput normalizeTeamInput(String loginId, CreateWorkerTeamRequest request) {
         String teamName = normalizeRequiredText(request.teamName());
         List<UUID> workerProfileUuids = normalizeWorkerProfileUuids(request.workerProfileUuids());
@@ -344,6 +439,11 @@ public class WorkforceService {
         if (!workforceDao.workerProfileBelongsToLoginId(loginId, workerProfileUuid)) {
             throw new IllegalArgumentException("Worker profile was not found.");
         }
+    }
+
+    private UUID findAgencyOwnerUuid(String loginId) {
+        return workforceDao.findAgencyOwnerUuidByLoginId(normalizeLoginId(loginId))
+            .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
     }
 
     private String normalizeRequiredText(String value) {

@@ -2,6 +2,8 @@ package com.laborflow.core.workforce.dao;
 
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerResponse;
+import com.laborflow.core.workforce.dto.WorkerSeparationRuleRequest;
+import com.laborflow.core.workforce.dto.WorkerSeparationRuleResponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -178,6 +180,19 @@ public class JdbcWorkforceDao implements WorkforceDao {
         );
 
         return ownerUuids.stream().findFirst();
+    }
+
+    @Override
+    public Optional<UUID> findAccountUuidByLoginId(String loginId) {
+        return jdbcTemplate.query(
+            """
+            SELECT uuid
+            FROM public.app_account
+            WHERE login_id = ? AND status = 'ACTIVE'
+            """,
+            (resultSet, rowNumber) -> resultSet.getObject("uuid", UUID.class),
+            loginId
+        ).stream().findFirst();
     }
 
     @Override
@@ -555,6 +570,153 @@ public class JdbcWorkforceDao implements WorkforceDao {
             """,
             workerProfileUuid
         );
+    }
+
+    @Override
+    public List<WorkerSeparationRuleResponse> findWorkerSeparationRules(UUID agencyOwnerUuid) {
+        return findWorkerSeparationRules(agencyOwnerUuid, List.of());
+    }
+
+    @Override
+    public List<WorkerSeparationRuleResponse> findWorkerSeparationRules(
+        UUID agencyOwnerUuid,
+        List<UUID> workerProfileUuids
+    ) {
+        List<Object> parameters = new ArrayList<>();
+        parameters.add(agencyOwnerUuid);
+        String workerFilter = "";
+        if (!workerProfileUuids.isEmpty()) {
+            String workerPlaceholders = placeholders(workerProfileUuids.size());
+            workerFilter = " AND (rule.worker_profile_uuid_a IN (%s) OR rule.worker_profile_uuid_b IN (%s))"
+                .formatted(workerPlaceholders, workerPlaceholders);
+            parameters.addAll(workerProfileUuids);
+            parameters.addAll(workerProfileUuids);
+        }
+
+        return jdbcTemplate.query(
+            """
+            SELECT
+                rule.uuid,
+                rule.worker_profile_uuid_a,
+                COALESCE(profile_a.local_name, profile_a.local_nickname, worker_a.canonical_name, '') AS worker_name_a,
+                rule.worker_profile_uuid_b,
+                COALESCE(profile_b.local_name, profile_b.local_nickname, worker_b.canonical_name, '') AS worker_name_b,
+                COALESCE(rule.reason, '') AS reason
+            FROM public.labor_agency_worker_separation_rule rule
+            JOIN public.labor_agency_worker_profile profile_a
+                ON profile_a.uuid = rule.worker_profile_uuid_a
+                AND profile_a.agency_owner_uuid = rule.agency_owner_uuid
+            JOIN public.worker worker_a ON worker_a.uuid = profile_a.worker_uuid
+            JOIN public.labor_agency_worker_profile profile_b
+                ON profile_b.uuid = rule.worker_profile_uuid_b
+                AND profile_b.agency_owner_uuid = rule.agency_owner_uuid
+            JOIN public.worker worker_b ON worker_b.uuid = profile_b.worker_uuid
+            WHERE rule.agency_owner_uuid = ?
+                AND rule.status = 'ACTIVE'
+                AND rule.deleted_at IS NULL
+                AND profile_a.status = 'ACTIVE'
+                AND profile_a.deleted_at IS NULL
+                AND profile_b.status = 'ACTIVE'
+                AND profile_b.deleted_at IS NULL
+            %s
+            ORDER BY worker_name_a, worker_name_b, rule.created_at
+            """.formatted(workerFilter),
+            (resultSet, rowNumber) -> new WorkerSeparationRuleResponse(
+                resultSet.getObject("uuid", UUID.class),
+                resultSet.getObject("worker_profile_uuid_a", UUID.class),
+                resultSet.getString("worker_name_a"),
+                resultSet.getObject("worker_profile_uuid_b", UUID.class),
+                resultSet.getString("worker_name_b"),
+                resultSet.getString("reason")
+            ),
+            parameters.toArray()
+        );
+    }
+
+    @Override
+    public void replaceWorkerSeparationRules(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        UUID workerProfileUuid,
+        List<WorkerSeparationRuleRequest> separationRules
+    ) {
+        jdbcTemplate.queryForList(
+            "SELECT pg_advisory_xact_lock(hashtextextended(?, 0))",
+            "laborflow:worker-separation:" + agencyOwnerUuid
+        );
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_worker_separation_rule
+            SET status = 'ARCHIVED',
+                deleted_at = COALESCE(deleted_at, now()),
+                updated_at = now()
+            WHERE agency_owner_uuid = ?
+                AND (worker_profile_uuid_a = ? OR worker_profile_uuid_b = ?)
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
+            """,
+            agencyOwnerUuid,
+            workerProfileUuid,
+            workerProfileUuid
+        );
+
+        for (WorkerSeparationRuleRequest rule : separationRules) {
+            UUID otherWorkerProfileUuid = rule.otherWorkerProfileUuid();
+            UUID firstWorkerProfileUuid = canonicalFirst(workerProfileUuid, otherWorkerProfileUuid);
+            UUID secondWorkerProfileUuid = firstWorkerProfileUuid.equals(workerProfileUuid)
+                ? otherWorkerProfileUuid
+                : workerProfileUuid;
+            jdbcTemplate.update(
+                """
+                INSERT INTO public.labor_agency_worker_separation_rule (
+                    agency_owner_uuid,
+                    worker_profile_uuid_a,
+                    worker_profile_uuid_b,
+                    reason,
+                    created_by_account_uuid
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                agencyOwnerUuid,
+                firstWorkerProfileUuid,
+                secondWorkerProfileUuid,
+                rule.reason(),
+                accountUuid
+            );
+        }
+    }
+
+    @Override
+    public void recordWorkerSeparationOverrides(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        UUID scheduleDayUuid,
+        List<UUID> separationRuleUuids
+    ) {
+        for (UUID separationRuleUuid : separationRuleUuids) {
+            jdbcTemplate.update(
+                """
+                INSERT INTO public.worker_separation_override_audit (
+                    agency_owner_uuid,
+                    separation_rule_uuid,
+                    schedule_day_uuid,
+                    acknowledged_by_account_uuid
+                )
+                SELECT ?, rule.uuid, ?, ?
+                FROM public.labor_agency_worker_separation_rule rule
+                WHERE rule.uuid = ?
+                    AND rule.agency_owner_uuid = ?
+                    AND rule.status = 'ACTIVE'
+                    AND rule.deleted_at IS NULL
+                """,
+                agencyOwnerUuid,
+                scheduleDayUuid,
+                accountUuid,
+                separationRuleUuid,
+                agencyOwnerUuid
+            );
+        }
     }
 
     @Override
@@ -1021,6 +1183,12 @@ public class JdbcWorkforceDao implements WorkforceDao {
 
     private String placeholders(int size) {
         return String.join(",", java.util.Collections.nCopies(size, "?"));
+    }
+
+    private UUID canonicalFirst(UUID leftWorkerProfileUuid, UUID rightWorkerProfileUuid) {
+        return leftWorkerProfileUuid.toString().compareTo(rightWorkerProfileUuid.toString()) < 0
+            ? leftWorkerProfileUuid
+            : rightWorkerProfileUuid;
     }
 
     private record WorkerProjection(

@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "./apiBaseUrl";
 import type { ClientWorkSite } from "./clientsApi";
+import type { WorkerSeparationRule } from "./workforceApi";
 
 const apiBaseUrl = getApiBaseUrl();
 
@@ -85,6 +86,7 @@ export type CreateScheduleTaskPayload = {
 };
 
 export type UpdateScheduleTaskPayload = {
+  acknowledgedSeparationRuleUuids?: string[];
   address: string;
   assignments: ScheduleAssignment[];
   clientWorkSiteUuid: string | null;
@@ -99,6 +101,16 @@ export type UpdateScheduleTaskPayload = {
   title: string;
   workTypeCodes: string[];
 };
+
+export class WorkerSeparationConflictError extends Error {
+  conflicts: WorkerSeparationRule[];
+
+  constructor(message: string, conflicts: WorkerSeparationRule[]) {
+    super(message);
+    this.name = "WorkerSeparationConflictError";
+    this.conflicts = conflicts;
+  }
+}
 
 export type RescheduleScheduleRangePayload = {
   endDate: string;
@@ -205,6 +217,20 @@ export async function updateScheduleTask(
   );
 
   if (!response.ok) {
+    if (response.status === 409) {
+      const body = (await response.json()) as {
+        code?: string;
+        conflicts?: WorkerSeparationRule[];
+        message?: string;
+      };
+      if (body.code === "WORKER_SEPARATION_CONFLICT") {
+        throw new WorkerSeparationConflictError(
+          body.message || "동시 배치 주의 작업자가 포함되어 있습니다.",
+          body.conflicts ?? [],
+        );
+      }
+      throw new Error(body.message || "작업 일정을 저장하지 못했습니다.");
+    }
     throw new Error(await parseErrorMessage(response, "작업 일정을 저장하지 못했습니다."));
   }
 

@@ -2,6 +2,8 @@ package com.laborflow.core.workforce.dao;
 
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerResponse;
+import com.laborflow.core.workforce.dto.WorkerSeparationRuleRequest;
+import com.laborflow.core.workforce.dto.WorkerSeparationRuleResponse;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -13,6 +15,8 @@ public interface WorkforceDao {
     List<WorkTypeResponse> findActiveWorkTypes();
 
     Optional<UUID> findAgencyOwnerUuidByLoginId(String loginId);
+
+    Optional<UUID> findAccountUuidByLoginId(String loginId);
 
     Optional<UUID> findWorkerUuidByPhoneHashSource(String phoneHashSource);
 
@@ -77,6 +81,27 @@ public interface WorkforceDao {
     void replaceWorkerWorkTypes(UUID workerProfileUuid, List<String> workTypeCodes, Map<String, Integer> workTypeRatings);
 
     void setWorkerNoShowRisk(UUID workerProfileUuid, boolean enabled);
+
+    List<WorkerSeparationRuleResponse> findWorkerSeparationRules(UUID agencyOwnerUuid);
+
+    List<WorkerSeparationRuleResponse> findWorkerSeparationRules(
+        UUID agencyOwnerUuid,
+        List<UUID> workerProfileUuids
+    );
+
+    void replaceWorkerSeparationRules(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        UUID workerProfileUuid,
+        List<WorkerSeparationRuleRequest> separationRules
+    );
+
+    void recordWorkerSeparationOverrides(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        UUID scheduleDayUuid,
+        List<UUID> separationRuleUuids
+    );
 
     void linkGuestAssignmentToWorkerProfile(UUID assignmentUuid, UUID workerProfileUuid);
 

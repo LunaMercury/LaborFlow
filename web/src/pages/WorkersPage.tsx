@@ -583,6 +583,7 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
         <WorkerProfileModal
           loginId={loginId}
           mode={profileModalState.mode}
+          workers={workers}
           worker={
             profileModalState.mode === "edit"
               ? profileModalState.worker

@@ -34,13 +34,29 @@ if (Test-Path ".\gradlew.bat") {
         $env:GRADLE_USER_HOME = $env:LABORFLOW_CORE_GRADLE_USER_HOME
     }
     elseif (-not $env:GRADLE_USER_HOME) {
-        $env:GRADLE_USER_HOME = Join-Path $repoRoot ".gradle-user-home\backend-core"
+        if ($env:LOCALAPPDATA) {
+            $env:GRADLE_USER_HOME = Join-Path $env:LOCALAPPDATA "LaborFlow\gradle\backend-core"
+        }
+        else {
+            $env:GRADLE_USER_HOME = Join-Path $repoRoot ".gradle-user-home\backend-core"
+        }
     }
     New-Item -ItemType Directory -Force -Path $env:GRADLE_USER_HOME | Out-Null
+    if ($env:LABORFLOW_CORE_BUILD_DIR) {
+        $coreBuildDir = $env:LABORFLOW_CORE_BUILD_DIR
+    }
+    elseif ($env:LOCALAPPDATA) {
+        $coreBuildDir = Join-Path $env:LOCALAPPDATA "LaborFlow\build\backend-core"
+    }
+    else {
+        $coreBuildDir = Join-Path $coreRoot "build"
+    }
+    New-Item -ItemType Directory -Force -Path $coreBuildDir | Out-Null
+    $buildDirArgument = "-PlaborflowBuildDir=$coreBuildDir"
     .\gradlew.bat --stop | Out-Host
     try {
-        .\gradlew.bat --no-daemon --console=plain classes
-        if ($LASTEXITCODE -ne 0) { throw "gradlew classes failed" }
+        .\gradlew.bat --no-daemon --console=plain $buildDirArgument test
+        if ($LASTEXITCODE -ne 0) { throw "gradlew test failed" }
     }
     finally {
         .\gradlew.bat --stop | Out-Host

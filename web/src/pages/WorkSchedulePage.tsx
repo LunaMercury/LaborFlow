@@ -16,6 +16,7 @@ import {
   replaceNoShow,
   updateScheduleTask,
   updateGuestParticipants,
+  WorkerSeparationConflictError,
   type ScheduleAssignment,
   type ScheduleTask,
 } from "../api/scheduleApi";
@@ -24,12 +25,14 @@ import {
   type ConfirmPlannedAttendancePayload,
 } from "../api/attendanceApi";
 import {
+  fetchWorkerSeparationRules,
   fetchWorkers,
   fetchWorkTypes,
   updateWorkerGender as saveWorkerGender,
   updateWorkerIdentity as saveWorkerIdentity,
   updateWorkerPickupLocation as saveWorkerPickupLocation,
   updateWorkerWorkTypes as saveWorkerWorkTypes,
+  type WorkerSeparationRule,
 } from "../api/workforceApi";
 import appStyles from "../App.module.css";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
@@ -93,6 +96,20 @@ type NoShowCancelDraft = {
   taskId: string;
   workerName: string;
 };
+
+type SeparationWarningDraft =
+  | {
+      conflicts: WorkerSeparationRule[];
+      kind: "drop";
+      targetArea: AssignmentArea;
+      taskId: string;
+      workerIds: string[];
+    }
+  | {
+      conflicts: WorkerSeparationRule[];
+      kind: "save";
+      taskId: string;
+    };
 
 type RequiredWorkerCount = {
   men: number;
@@ -382,6 +399,19 @@ function getWorkTypeNames(codes: string[], workTypes: WorkTypeOption[]) {
   return codes
     .map((code) => workTypes.find((workType) => workType.code === code)?.name)
     .filter((name): name is string => Boolean(name));
+}
+
+function findSeparationConflicts(
+  workerIds: Iterable<string>,
+  separationRules: WorkerSeparationRule[],
+) {
+  const workerIdSet = new Set(workerIds);
+
+  return separationRules.filter(
+    (rule) =>
+      workerIdSet.has(rule.workerProfileUuidA) &&
+      workerIdSet.has(rule.workerProfileUuidB),
+  );
 }
 
 function parseTimeToMinutes(value: string) {
@@ -782,6 +812,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     useState<NoShowReplacementDraft | null>(null);
   const [noShowCancelDraft, setNoShowCancelDraft] =
     useState<NoShowCancelDraft | null>(null);
+  const [separationRules, setSeparationRules] = useState<
+    WorkerSeparationRule[]
+  >([]);
+  const [separationWarningDraft, setSeparationWarningDraft] =
+    useState<SeparationWarningDraft | null>(null);
   const [isReplacingNoShow, setIsReplacingNoShow] = useState(false);
   const [editingTaskMemoId, setEditingTaskMemoId] = useState<string | null>(
     null,
@@ -970,8 +1005,11 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       fetchWorkers(loginId),
       fetchWorkTypes(),
       fetchScheduleTasks(loginId, selectedDate),
+      fetchWorkerSeparationRules(loginId)
+        .then((rules) => ({ failed: false, rules }))
+        .catch(() => ({ failed: true, rules: [] as WorkerSeparationRule[] })),
     ])
-      .then(([nextWorkers, nextWorkTypes, nextTasks]) => {
+      .then(([nextWorkers, nextWorkTypes, nextTasks, separationResult]) => {
         if (!isMounted) {
           return;
         }
@@ -980,6 +1018,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
 
         setWorkers(nextWorkers);
         setWorkTypes(nextWorkTypes);
+        setSeparationRules(separationResult.rules);
         setTasks(orderedTasks);
         setPersistedTasks(orderedTasks);
         setAssignedWorkerIdsByTaskId(createAssignmentDrafts(orderedTasks));
@@ -990,11 +1029,16 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         setEditingTaskMemoId(null);
         setEditingTaskId(null);
         setCollapsedTaskIds(new Set());
-        setStatusMessage("");
+        setStatusMessage(
+          separationResult.failed
+            ? "동시 배치 주의 목록을 불러오지 못했습니다. 저장 시 서버에서 다시 검증합니다."
+            : "",
+        );
       })
       .catch(() => {
         if (isMounted) {
           setWorkers([]);
+          setSeparationRules([]);
           setTasks([]);
           setPersistedTasks([]);
           setAssignedWorkerIdsByTaskId({});
@@ -1385,7 +1429,10 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     setEditingTaskMemoId(null);
   };
 
-  const applyTaskDraft = async (task: ScheduleTask) => {
+  const applyTaskDraft = async (
+    task: ScheduleTask,
+    acknowledgedSeparationRuleUuids: string[] = [],
+  ) => {
     const taskAssignments =
       assignedWorkerIdsByTaskId[task.id] ?? createEmptyTaskAssignments();
     const requiredCounts = getRequiredCounts(task);
@@ -1400,6 +1447,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         selectedDate,
         task.id,
         {
+          acknowledgedSeparationRuleUuids,
           address: detailDraft.address,
           assignments: toScheduleAssignments(taskAssignments),
           clientWorkSiteUuid: task.clientWorkSiteUuid,
@@ -1543,6 +1591,15 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       );
       setStatusMessage("일정을 삭제했습니다.");
     } catch (error) {
+      if (error instanceof WorkerSeparationConflictError) {
+        setSeparationWarningDraft({
+          conflicts: error.conflicts,
+          kind: "save",
+          taskId: task.id,
+        });
+        setStatusMessage("");
+        return;
+      }
       setStatusMessage(
         error instanceof Error ? error.message : "일정을 삭제하지 못했습니다.",
       );
@@ -2100,7 +2157,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     }
   };
 
-  const handleWorkerDrop = (
+  const applyWorkerDrop = (
     taskId: string,
     targetArea: AssignmentArea,
     workerIds: string[],
@@ -2213,6 +2270,68 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       value: String(currentValue),
       workerId,
     });
+  };
+
+  const handleWorkerDrop = (
+    taskId: string,
+    targetArea: AssignmentArea,
+    workerIds: string[],
+  ) => {
+    const currentTaskAssignments =
+      assignedWorkerIdsByTaskId[taskId] ?? createEmptyTaskAssignments();
+    const currentWorkerIds = [
+      ...currentTaskAssignments.men,
+      ...currentTaskAssignments.women,
+    ];
+    const nextWorkerIds = new Set([...currentWorkerIds, ...workerIds]);
+    const currentConflictIds = new Set(
+      findSeparationConflicts(currentWorkerIds, separationRules).map(
+        (rule) => rule.ruleUuid,
+      ),
+    );
+    const newConflicts = findSeparationConflicts(
+      nextWorkerIds,
+      separationRules,
+    ).filter((rule) => !currentConflictIds.has(rule.ruleUuid));
+
+    if (newConflicts.length > 0) {
+      setSeparationWarningDraft({
+        conflicts: newConflicts,
+        kind: "drop",
+        targetArea,
+        taskId,
+        workerIds,
+      });
+      return;
+    }
+
+    applyWorkerDrop(taskId, targetArea, workerIds);
+  };
+
+  const confirmSeparationWarning = () => {
+    if (!separationWarningDraft) {
+      return;
+    }
+
+    const currentWarning = separationWarningDraft;
+    setSeparationWarningDraft(null);
+
+    if (currentWarning.kind === "drop") {
+      applyWorkerDrop(
+        currentWarning.taskId,
+        currentWarning.targetArea,
+        currentWarning.workerIds,
+      );
+      return;
+    }
+
+    const targetTask = tasks.find((task) => task.id === currentWarning.taskId);
+    if (targetTask) {
+      void applyTaskDraft(
+        targetTask,
+        currentWarning.conflicts.map((rule) => rule.ruleUuid),
+      );
+    }
   };
 
   const confirmAssignmentCountEdit = () => {
@@ -2337,7 +2456,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       document.removeEventListener("pointerup", handlePointerEnd);
       document.removeEventListener("pointercancel", handlePointerEnd);
     };
-  }, [draggingWorker]);
+  }, [assignedWorkerIdsByTaskId, draggingWorker, separationRules]);
 
   const startWorkerDrag = (
     workerId: string,
@@ -3770,6 +3889,65 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
             <small>
               남 {draggingTask.requiredMen} / 여 {draggingTask.requiredWomen}
             </small>
+          </div>
+        ) : null}
+        {separationWarningDraft ? (
+          <div
+            className={styles.noShowModalBackdrop}
+            role="presentation"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <section
+              aria-labelledby="separation-warning-title"
+              aria-modal="true"
+              className={styles.noShowModal}
+              role="alertdialog"
+            >
+              <header className={styles.noShowModalHeader}>
+                <div>
+                  <h2 id="separation-warning-title">동시 배치 주의</h2>
+                  <p>
+                    아래 작업자들은 같은 현장에 함께 배치하기 전에 확인이
+                    필요합니다.
+                  </p>
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setSeparationWarningDraft(null)}
+                  >
+                    취소
+                  </button>
+                  <button
+                    className={styles.noShowConfirmButton}
+                    type="button"
+                    onClick={confirmSeparationWarning}
+                  >
+                    확인 후 계속
+                  </button>
+                </div>
+              </header>
+              <div className={styles.separationWarningList}>
+                {separationWarningDraft.conflicts.map((rule) => (
+                  <article key={rule.ruleUuid}>
+                    <strong>
+                      {rule.workerNameA} · {rule.workerNameB}
+                    </strong>
+                    {rule.reason ? <p>{rule.reason}</p> : null}
+                  </article>
+                ))}
+                {separationWarningDraft.kind === "drop" ? (
+                  <small>
+                    지금은 화면에만 배치됩니다. 작업 카드의 체크 버튼을 눌러야
+                    DB에 저장됩니다.
+                  </small>
+                ) : (
+                  <small>
+                    계속 저장하면 확인한 계정과 시각이 감사 기록에 남습니다.
+                  </small>
+                )}
+              </div>
+            </section>
           </div>
         ) : null}
         {noShowReplacementDraft && noShowTask ? (

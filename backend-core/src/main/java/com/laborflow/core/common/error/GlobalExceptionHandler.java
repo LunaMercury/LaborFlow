@@ -3,6 +3,7 @@ package com.laborflow.core.common.error;
 import com.laborflow.core.clients.application.DuplicateClientPhoneException;
 import com.laborflow.core.workforce.application.DuplicateWorkerPhoneException;
 import com.laborflow.core.workforce.application.InvalidWorkerPhoneException;
+import com.laborflow.core.workforce.application.WorkerSeparationConflictException;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,20 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(WorkerSeparationConflictException.class)
+    public ResponseEntity<WorkerSeparationConflictResponse> handleWorkerSeparationConflictException(
+        WorkerSeparationConflictException exception
+    ) {
+        WorkerSeparationConflictResponse response = new WorkerSeparationConflictResponse(
+            "WORKER_SEPARATION_CONFLICT",
+            "동시 배치 주의 작업자가 포함되어 있습니다.",
+            Instant.now(),
+            exception.getConflicts()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
     @ExceptionHandler(DuplicateWorkerPhoneException.class)
     public ResponseEntity<ApiErrorResponse> handleDuplicateWorkerPhoneException(
         DuplicateWorkerPhoneException exception
