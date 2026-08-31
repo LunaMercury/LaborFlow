@@ -5,6 +5,7 @@ import {
   fetchClients,
   updateClient,
   type Client,
+  type ClientWorkSitePayload,
 } from "../api/clientsApi";
 import appStyles from "../App.module.css";
 import clientsStyles from "./ClientsPage.module.css";
@@ -22,16 +23,41 @@ type ClientFormState = {
   name: string;
   nickname: string;
   phone: string;
+  workSites: ClientWorkSiteForm[];
 };
 
-const emptyClientForm: ClientFormState = {
-  bankAccount: "",
-  businessName: "",
-  memo: "",
-  name: "",
-  nickname: "",
-  phone: "",
+type ClientWorkSiteForm = ClientWorkSitePayload & {
+  collapsed: boolean;
+  draftId: string;
 };
+
+let nextWorkSiteDraftId = 0;
+
+function createWorkSiteForm(
+  workSite?: Partial<ClientWorkSitePayload>,
+): ClientWorkSiteForm {
+  nextWorkSiteDraftId += 1;
+  return {
+    collapsed: false,
+    draftId: workSite?.uuid || `new-work-site-${nextWorkSiteDraftId}`,
+    farmAddress: workSite?.farmAddress ?? "",
+    memo: workSite?.memo ?? "",
+    siteName: workSite?.siteName ?? "",
+    uuid: workSite?.uuid ?? null,
+  };
+}
+
+function createEmptyClientForm(): ClientFormState {
+  return {
+    bankAccount: "",
+    businessName: "",
+    memo: "",
+    name: "",
+    nickname: "",
+    phone: "",
+    workSites: [createWorkSiteForm()],
+  };
+}
 
 function getClientDisplayName(client: Client) {
   return (
@@ -44,16 +70,8 @@ function getClientDisplayName(client: Client) {
 }
 
 function getClientSubText(client: Client) {
-  const parts = [client.businessName, client.phone].filter(Boolean);
+  const parts = [client.workSites[0]?.siteName, client.phone].filter(Boolean);
   return parts.join(" · ");
-}
-
-function getWorkSiteTitle(siteName: string, workDescription: string) {
-  if (siteName && workDescription) {
-    return `${siteName} · ${workDescription}`;
-  }
-
-  return siteName || workDescription || "";
 }
 
 function toFormState(client: Client): ClientFormState {
@@ -64,6 +82,30 @@ function toFormState(client: Client): ClientFormState {
     name: client.name,
     nickname: client.nickname,
     phone: client.phone,
+    workSites: client.workSites.map((workSite) => createWorkSiteForm(workSite)),
+  };
+}
+
+function toClientPayload(formState: ClientFormState) {
+  return {
+    bankAccount: formState.bankAccount,
+    businessName: formState.businessName,
+    memo: formState.memo,
+    name: formState.name,
+    nickname: formState.nickname,
+    phone: formState.phone,
+    workSites: formState.workSites
+      .filter((workSite) =>
+        [workSite.siteName, workSite.farmAddress, workSite.memo].some(
+          (value) => value.trim().length > 0,
+        ),
+      )
+      .map((workSite) => ({
+        farmAddress: workSite.farmAddress,
+        memo: workSite.memo,
+        siteName: workSite.siteName,
+        uuid: workSite.uuid,
+      })),
   };
 }
 
@@ -100,15 +142,156 @@ function getClientRegistrationError(formState: ClientFormState) {
     return "전화번호는 숫자 10~11자리로 입력해주세요.";
   }
 
+  if (
+    formState.workSites.some(
+      (workSite) =>
+        !workSite.siteName.trim() &&
+        Boolean(workSite.farmAddress.trim() || workSite.memo.trim()),
+    )
+  ) {
+    return "현장주소나 메모를 입력한 현장에는 현장명이 필요합니다.";
+  }
+
   return "";
+}
+
+type ClientWorkSiteEditorProps = {
+  onChange: (workSites: ClientWorkSiteForm[]) => void;
+  workSites: ClientWorkSiteForm[];
+};
+
+function ClientWorkSiteEditor({
+  onChange,
+  workSites,
+}: ClientWorkSiteEditorProps) {
+  const addWorkSite = () => {
+    onChange([...workSites, createWorkSiteForm()]);
+  };
+
+  const updateWorkSite = (
+    draftId: string,
+    field: "farmAddress" | "memo" | "siteName",
+    value: string,
+  ) => {
+    onChange(
+      workSites.map((workSite) =>
+        workSite.draftId === draftId
+          ? { ...workSite, [field]: value }
+          : workSite,
+      ),
+    );
+  };
+
+  const toggleWorkSite = (draftId: string) => {
+    onChange(
+      workSites.map((workSite) =>
+        workSite.draftId === draftId
+          ? { ...workSite, collapsed: !workSite.collapsed }
+          : workSite,
+      ),
+    );
+  };
+
+  const removeWorkSite = (draftId: string) => {
+    const nextWorkSites = workSites.filter(
+      (workSite) => workSite.draftId !== draftId,
+    );
+    onChange(nextWorkSites.length > 0 ? nextWorkSites : [createWorkSiteForm()]);
+  };
+
+  return (
+    <section className={styles.clientWorkSiteEditor}>
+      <div className={styles.clientWorkSiteEditorTitleRow}>
+        <div>
+          <strong>현장</strong>
+          <span>거래처가 운영하는 현장을 여러 곳 등록할 수 있습니다.</span>
+        </div>
+        <button type="button" onClick={addWorkSite}>
+          현장 추가 +
+        </button>
+      </div>
+      <div className={styles.clientWorkSiteEditList}>
+        {workSites.map((workSite, index) => (
+          <article className={styles.clientWorkSiteEditCard} key={workSite.draftId}>
+            <div className={styles.clientWorkSiteEditHeader}>
+              <strong>{workSite.siteName.trim() || `현장 ${index + 1}`}</strong>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => toggleWorkSite(workSite.draftId)}
+                >
+                  {workSite.collapsed ? "펼치기" : "접기"}
+                </button>
+                <button
+                  className={styles.clientWorkSiteRemoveButton}
+                  type="button"
+                  onClick={() => removeWorkSite(workSite.draftId)}
+                >
+                  삭제
+                </button>
+              </div>
+            </div>
+            {!workSite.collapsed ? (
+              <div className={styles.clientWorkSiteEditBody}>
+                <label>
+                  <span>현장명</span>
+                  <input
+                    maxLength={150}
+                    placeholder="예: 동문 제1농장"
+                    value={workSite.siteName}
+                    onChange={(event) =>
+                      updateWorkSite(
+                        workSite.draftId,
+                        "siteName",
+                        event.target.value,
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  <span>현장주소</span>
+                  <input
+                    placeholder="현장 주소를 입력하세요"
+                    value={workSite.farmAddress}
+                    onChange={(event) =>
+                      updateWorkSite(
+                        workSite.draftId,
+                        "farmAddress",
+                        event.target.value,
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  <span>메모</span>
+                  <textarea
+                    placeholder="현장별 참고사항을 입력하세요"
+                    rows={3}
+                    value={workSite.memo}
+                    onChange={(event) =>
+                      updateWorkSite(
+                        workSite.draftId,
+                        "memo",
+                        event.target.value,
+                      )
+                    }
+                  />
+                </label>
+              </div>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export function ClientsPage({ loginId }: ClientsPageProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedProfileUuid, setSelectedProfileUuid] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [formState, setFormState] = useState<ClientFormState>(emptyClientForm);
-  const [editFormState, setEditFormState] = useState<ClientFormState>(emptyClientForm);
+  const [formState, setFormState] = useState<ClientFormState>(createEmptyClientForm);
+  const [editFormState, setEditFormState] = useState<ClientFormState>(createEmptyClientForm);
   const [editingProfileUuid, setEditingProfileUuid] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [formError, setFormError] = useState("");
@@ -194,7 +377,7 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
   }, [clients, selectedProfileUuid]);
 
   const openCreateModal = () => {
-    setFormState(emptyClientForm);
+    setFormState(createEmptyClientForm());
     setFormError("");
     setInlineError("");
     setCallImportMessage("");
@@ -271,7 +454,7 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
     setFormError("");
 
     try {
-      const nextClients = await createClient(loginId, formState);
+      const nextClients = await createClient(loginId, toClientPayload(formState));
       setClients(nextClients);
       setSelectedProfileUuid((currentProfileUuid) => {
         if (
@@ -296,7 +479,13 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
 
   const submitInlineClient = async (client: Client) => {
     if (!hasVisibleClientLabel(editFormState)) {
-      setInlineError("이름, 호칭, 상호/농장명, 전화번호 중 하나는 입력해야 합니다.");
+      setInlineError("이름, 호칭, 전화번호 중 하나는 입력해야 합니다.");
+      return;
+    }
+
+    const registrationError = getClientRegistrationError(editFormState);
+    if (registrationError) {
+      setInlineError(registrationError);
       return;
     }
 
@@ -304,13 +493,14 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
     setInlineError("");
 
     try {
-      const nextClients = await updateClient(loginId, client.profileUuid, editFormState);
+      const nextClients = await updateClient(
+        loginId,
+        client.profileUuid,
+        toClientPayload(editFormState),
+      );
       const updatedClient = nextClients.find(
         (nextClient) => nextClient.profileUuid === client.profileUuid,
-      ) ?? {
-        ...client,
-        ...editFormState,
-      };
+      ) ?? client;
       const nextVisibleClients = nextClients.some(
         (nextClient) => nextClient.profileUuid === client.profileUuid,
       )
@@ -324,7 +514,7 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
       setClients(nextVisibleClients);
       setSelectedProfileUuid(client.profileUuid);
       setEditingProfileUuid(null);
-      setEditFormState(emptyClientForm);
+      setEditFormState(createEmptyClientForm());
       setStatusMessage("적용되었습니다.");
     } catch (error) {
       const message =
@@ -492,15 +682,6 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                           />
                         </label>
                         <label className={styles.clientInfoEditItem}>
-                          <span>상호/농장명</span>
-                          <input
-                            value={editFormState.businessName}
-                            onChange={(event) =>
-                              updateEditValue("businessName", event.target.value)
-                            }
-                          />
-                        </label>
-                        <label className={styles.clientInfoEditItem}>
                           <span>전화번호</span>
                           <input
                             inputMode="numeric"
@@ -521,6 +702,16 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                           />
                         </label>
                       </div>
+
+                      <ClientWorkSiteEditor
+                        workSites={editFormState.workSites}
+                        onChange={(workSites) =>
+                          setEditFormState((currentFormState) => ({
+                            ...currentFormState,
+                            workSites,
+                          }))
+                        }
+                      />
 
                       <label className={styles.clientMemoEditBox}>
                         <span>메모</span>
@@ -547,10 +738,6 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                           <strong>{selectedClient.nickname}</strong>
                         </div>
                         <div className={styles.clientInfoItem}>
-                          <span>상호/농장명</span>
-                          <strong>{selectedClient.businessName}</strong>
-                        </div>
-                        <div className={styles.clientInfoItem}>
                           <span>전화번호</span>
                           <strong>{selectedClient.phone}</strong>
                         </div>
@@ -560,6 +747,36 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                         </div>
                       </div>
 
+                      <div className={styles.clientWorkSiteSection}>
+                        <h3>현장</h3>
+                        {selectedClient.workSites.length > 0 ? (
+                          <div className={styles.clientWorkSiteList}>
+                            {selectedClient.workSites.map((workSite) => (
+                              <details
+                                className={styles.clientWorkSiteCard}
+                                key={workSite.uuid}
+                                open
+                              >
+                                <summary>
+                                  <strong>{workSite.siteName}</strong>
+                                  <span>접기/펼치기</span>
+                                </summary>
+                                <div className={styles.clientWorkSiteViewBody}>
+                                  {workSite.farmAddress ? (
+                                    <p>{workSite.farmAddress}</p>
+                                  ) : null}
+                                  {workSite.memo ? <span>{workSite.memo}</span> : null}
+                                </div>
+                              </details>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className={styles.emptyClientWorkSite}>
+                            등록된 현장이 없습니다.
+                          </p>
+                        )}
+                      </div>
+
                       <div className={styles.clientMemoBox}>
                         <span>메모</span>
                         <p>{selectedClient.memo}</p>
@@ -567,34 +784,6 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                     </>
                   )}
 
-                  <div className={styles.clientWorkSiteSection}>
-                    <h3>작업장 이력</h3>
-                    {selectedClient.workSites.length > 0 ? (
-                      <div className={styles.clientWorkSiteList}>
-                        {selectedClient.workSites.map((workSite) => (
-                          <article
-                            className={styles.clientWorkSiteCard}
-                            key={workSite.uuid}
-                          >
-                            <strong>
-                              {getWorkSiteTitle(
-                                workSite.siteName,
-                                workSite.workDescription,
-                              )}
-                            </strong>
-                            <p>{workSite.farmAddress}</p>
-                            {workSite.workDateRange ? (
-                              <span>{workSite.workDateRange}</span>
-                            ) : null}
-                          </article>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className={styles.emptyClientDetail}>
-                        등록된 작업장이 없습니다.
-                      </p>
-                    )}
-                  </div>
                 </div>
               </>
             ) : (
@@ -702,16 +891,6 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                   />
                 </div>
                 <div className={styles.clientFormField}>
-                  <label htmlFor="client-business-name">상호/농장명</label>
-                  <input
-                    id="client-business-name"
-                    value={formState.businessName}
-                    onChange={(event) =>
-                      updateFormValue("businessName", event.target.value)
-                    }
-                  />
-                </div>
-                <div className={styles.clientFormField}>
                   <label htmlFor="client-phone">
                     전화번호 <span className={styles.requiredMark}>*</span>
                   </label>
@@ -736,14 +915,23 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                     은행명 선택/계좌 검증은 추후 외부 API 연동 시 분리합니다.
                   </p>
                 </div>
-                <div className={styles.clientFormWideField}>
-                  <label htmlFor="client-memo">메모</label>
-                  <textarea
-                    id="client-memo"
-                    value={formState.memo}
-                    onChange={(event) => updateFormValue("memo", event.target.value)}
-                  />
-                </div>
+              </div>
+              <ClientWorkSiteEditor
+                workSites={formState.workSites}
+                onChange={(workSites) =>
+                  setFormState((currentFormState) => ({
+                    ...currentFormState,
+                    workSites,
+                  }))
+                }
+              />
+              <div className={styles.clientFormWideField}>
+                <label htmlFor="client-memo">거래처 메모</label>
+                <textarea
+                  id="client-memo"
+                  value={formState.memo}
+                  onChange={(event) => updateFormValue("memo", event.target.value)}
+                />
               </div>
               <p className={styles.clientFormHelp}>
                 <span className={styles.requiredMark}>*</span> 이름과 호칭은 둘 중

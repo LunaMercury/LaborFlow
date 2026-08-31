@@ -1,6 +1,7 @@
 package com.laborflow.core.schedule.application;
 
 import com.laborflow.core.clients.application.ClientsService;
+import com.laborflow.core.clients.dto.ClientWorkSiteResponse;
 import com.laborflow.core.clients.dto.CreateClientRequest;
 import com.laborflow.core.schedule.dao.ScheduleDao;
 import com.laborflow.core.schedule.dto.AddGuestParticipantsRequest;
@@ -56,7 +57,6 @@ public class ScheduleService {
 
         validateTimeRange(request.startTime(), request.endTime());
         String title = normalizeRequiredText(request.title());
-        String address = normalizeRequiredText(request.address());
         UUID ownerUuid = request.ownerUuid();
         if (ownerUuid == null) {
             ownerUuid = clientsService.createClientAndReturnFarmOwnerUuid(
@@ -67,7 +67,8 @@ public class ScheduleService {
                     null,
                     request.ownerPhone(),
                     null,
-                    null
+                    null,
+                    List.of()
                 )
             );
         } else if (!scheduleDao.farmOwnerBelongsToAgencyOwner(agencyOwnerUuid, ownerUuid)) {
@@ -76,13 +77,24 @@ public class ScheduleService {
             clientsService.addPhoneIfMissing(loginId, ownerUuid, request.ownerPhone());
         }
 
+        ClientWorkSiteResponse clientWorkSite = clientsService.resolveWorkSite(
+            loginId,
+            ownerUuid,
+            request.clientWorkSiteUuid(),
+            request.siteName(),
+            request.address(),
+            request.siteMemo()
+        );
+        String address = normalizeRequiredText(clientWorkSite.farmAddress());
+
         UUID scheduleDayUuid = scheduleDao.createTask(
             agencyOwnerUuid,
             ownerUuid,
+            clientWorkSite.uuid(),
             startDate,
             endDate,
             title,
-            normalizeOptionalText(request.siteName()),
+            normalizeOptionalText(clientWorkSite.siteName()),
             address,
             normalizeRequiredCount(request.requiredMen()),
             normalizeRequiredCount(request.requiredWomen()),
@@ -117,16 +129,27 @@ public class ScheduleService {
             request.assignments()
         );
         UUID ownerUuid = request.ownerUuid();
-        if (ownerUuid != null && !scheduleDao.farmOwnerBelongsToAgencyOwner(agencyOwnerUuid, ownerUuid)) {
+        if (ownerUuid == null || !scheduleDao.farmOwnerBelongsToAgencyOwner(agencyOwnerUuid, ownerUuid)) {
             throw new IllegalArgumentException("Farm owner was not found.");
         }
+
+        ClientWorkSiteResponse clientWorkSite = clientsService.resolveWorkSite(
+            loginId,
+            ownerUuid,
+            request.clientWorkSiteUuid(),
+            request.siteName(),
+            request.address(),
+            request.siteMemo()
+        );
 
         scheduleDao.updateTask(
             agencyOwnerUuid,
             scheduleDayUuid,
             ownerUuid,
+            clientWorkSite.uuid(),
             normalizeRequiredText(request.title()),
-            normalizeRequiredText(request.address()),
+            normalizeOptionalText(clientWorkSite.siteName()),
+            normalizeRequiredText(clientWorkSite.farmAddress()),
             request.startTime(),
             request.endTime(),
             requiredMen,

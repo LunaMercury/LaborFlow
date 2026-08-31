@@ -1402,10 +1402,13 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
         {
           address: detailDraft.address,
           assignments: toScheduleAssignments(taskAssignments),
+          clientWorkSiteUuid: task.clientWorkSiteUuid,
           endTime: detailDraft.endTime || null,
           memo: memoByTaskId[task.id] ?? task.memo,
           requiredMen: requiredCounts.men,
           requiredWomen: requiredCounts.women,
+          siteMemo: task.siteMemo,
+          siteName: task.siteName,
           startTime: detailDraft.startTime || null,
           title: detailDraft.title,
           workTypeCodes: detailDraft.workTypeCodes,

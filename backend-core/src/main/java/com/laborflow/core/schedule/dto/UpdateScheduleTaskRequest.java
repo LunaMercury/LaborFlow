@@ -7,7 +7,10 @@ import java.util.UUID;
 public record UpdateScheduleTaskRequest(
     UUID ownerUuid,
     String title,
+    UUID clientWorkSiteUuid,
+    String siteName,
     String address,
+    String siteMemo,
     LocalTime startTime,
     LocalTime endTime,
     int requiredMen,

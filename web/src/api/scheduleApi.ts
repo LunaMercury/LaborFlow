@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "./apiBaseUrl";
+import type { ClientWorkSite } from "./clientsApi";
 
 const apiBaseUrl = getApiBaseUrl();
 
@@ -26,6 +27,7 @@ export type ScheduleAssignment = {
 export type ScheduleTask = {
   address: string;
   assignments: ScheduleAssignment[];
+  clientWorkSiteUuid: string | null;
   id: string;
   memo: string;
   ownerName: string;
@@ -33,6 +35,7 @@ export type ScheduleTask = {
   requiredMen: number;
   requiredWomen: number;
   siteName: string;
+  siteMemo: string;
   startTime: string;
   endTime: string;
   timeRange: string;
@@ -46,6 +49,7 @@ type ScheduleTaskListResponse = {
 };
 
 export type FarmOwnerOption = {
+  profileUuid: string;
   uuid: string;
   displayName: string;
   name: string;
@@ -57,10 +61,12 @@ export type FarmOwnerOption = {
   recentAddress: string;
   recentStartTime: string | null;
   recentEndTime: string | null;
+  workSites: ClientWorkSite[];
 };
 
 export type CreateScheduleTaskPayload = {
   address: string;
+  clientWorkSiteUuid: string | null;
   endDate: string;
   endTime: string | null;
   memo: string;
@@ -71,6 +77,7 @@ export type CreateScheduleTaskPayload = {
   requiredMen: number;
   requiredWomen: number;
   siteName: string;
+  siteMemo: string;
   startDate: string;
   startTime: string | null;
   title: string;
@@ -80,11 +87,14 @@ export type CreateScheduleTaskPayload = {
 export type UpdateScheduleTaskPayload = {
   address: string;
   assignments: ScheduleAssignment[];
+  clientWorkSiteUuid: string | null;
   endTime: string | null;
   memo: string;
   ownerUuid?: string | null;
   requiredMen: number;
   requiredWomen: number;
+  siteMemo: string;
+  siteName: string;
   startTime: string | null;
   title: string;
   workTypeCodes: string[];

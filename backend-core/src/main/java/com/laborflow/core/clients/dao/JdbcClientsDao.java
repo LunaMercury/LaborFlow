@@ -4,7 +4,6 @@ import com.laborflow.core.clients.dto.ClientResponse;
 import com.laborflow.core.clients.dto.ClientWorkSiteResponse;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,8 +55,8 @@ public class JdbcClientsDao implements ClientsDao {
             return List.of();
         }
 
-        Map<UUID, List<ClientWorkSiteResponse>> workSitesByOwnerUuid = findWorkSitesByOwnerUuid(
-            clients.stream().map(ClientProjection::farmOwnerUuid).toList()
+        Map<UUID, List<ClientWorkSiteResponse>> workSitesByProfileUuid = findWorkSitesByProfileUuid(
+            clients.stream().map(ClientProjection::profileUuid).toList()
         );
 
         return clients.stream()
@@ -70,7 +69,7 @@ public class JdbcClientsDao implements ClientsDao {
                 client.phone(),
                 client.bankAccount(),
                 client.memo(),
-                workSitesByOwnerUuid.getOrDefault(client.farmOwnerUuid(), List.of())
+                workSitesByProfileUuid.getOrDefault(client.profileUuid(), List.of())
             ))
             .toList();
     }
@@ -269,8 +268,8 @@ public class JdbcClientsDao implements ClientsDao {
     }
 
     @Override
-    public void insertClientProfile(UUID agencyOwnerUuid, UUID farmOwnerUuid, ClientCreateValues values) {
-        jdbcTemplate.update(
+    public UUID insertClientProfile(UUID agencyOwnerUuid, UUID farmOwnerUuid, ClientCreateValues values) {
+        return jdbcTemplate.queryForObject(
             """
             INSERT INTO public.labor_agency_farm_owner_profile (
                 agency_owner_uuid,
@@ -298,7 +297,9 @@ public class JdbcClientsDao implements ClientsDao {
                 ?,
                 'ACTIVE'
             )
+            RETURNING uuid
             """,
+            UUID.class,
             agencyOwnerUuid,
             farmOwnerUuid,
             values.name(),
@@ -396,6 +397,219 @@ public class JdbcClientsDao implements ClientsDao {
     }
 
     @Override
+    public void replaceClientWorkSites(
+        UUID agencyOwnerUuid,
+        UUID profileUuid,
+        List<ClientWorkSiteValues> workSites
+    ) {
+        Integer profileCount = jdbcTemplate.queryForObject(
+            """
+            SELECT count(*)
+            FROM public.labor_agency_farm_owner_profile
+            WHERE uuid = ?
+                AND agency_owner_uuid = ?
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
+            """,
+            Integer.class,
+            profileUuid,
+            agencyOwnerUuid
+        );
+        if (profileCount == null || profileCount == 0) {
+            throw new IllegalArgumentException("Client profile was not found.");
+        }
+
+        jdbcTemplate.update(
+            """
+            UPDATE public.labor_agency_farm_owner_site
+            SET status = 'ARCHIVED',
+                deleted_at = COALESCE(deleted_at, now())
+            WHERE farm_owner_profile_uuid = ?
+                AND deleted_at IS NULL
+            """,
+            profileUuid
+        );
+
+        for (ClientWorkSiteValues workSite : workSites) {
+            if (workSite.uuid() == null) {
+                jdbcTemplate.update(
+                    """
+                    INSERT INTO public.labor_agency_farm_owner_site (
+                        farm_owner_profile_uuid,
+                        site_name,
+                        farm_address,
+                        memo,
+                        display_order,
+                        status
+                    )
+                    VALUES (?, ?, ?, ?, ?, 'ACTIVE')
+                    """,
+                    profileUuid,
+                    workSite.siteName(),
+                    workSite.farmAddress(),
+                    workSite.memo(),
+                    workSite.displayOrder()
+                );
+                continue;
+            }
+
+            int updatedCount = jdbcTemplate.update(
+                """
+                UPDATE public.labor_agency_farm_owner_site
+                SET site_name = ?,
+                    farm_address = ?,
+                    memo = ?,
+                    display_order = ?,
+                    status = 'ACTIVE',
+                    deleted_at = NULL
+                WHERE uuid = ?
+                    AND farm_owner_profile_uuid = ?
+                """,
+                workSite.siteName(),
+                workSite.farmAddress(),
+                workSite.memo(),
+                workSite.displayOrder(),
+                workSite.uuid(),
+                profileUuid
+            );
+            if (updatedCount == 0) {
+                throw new IllegalArgumentException("Client work site was not found.");
+            }
+        }
+    }
+
+    @Override
+    public Optional<ClientWorkSiteResponse> findClientWorkSite(
+        UUID agencyOwnerUuid,
+        UUID farmOwnerUuid,
+        UUID workSiteUuid
+    ) {
+        return jdbcTemplate.query(
+            """
+            SELECT site.uuid, site.site_name, COALESCE(site.farm_address, '') AS farm_address,
+                COALESCE(site.memo, '') AS memo
+            FROM public.labor_agency_farm_owner_site site
+            JOIN public.labor_agency_farm_owner_profile profile
+                ON profile.uuid = site.farm_owner_profile_uuid
+            WHERE site.uuid = ?
+                AND profile.agency_owner_uuid = ?
+                AND profile.farm_owner_uuid = ?
+                AND profile.status = 'ACTIVE'
+                AND profile.deleted_at IS NULL
+                AND site.status = 'ACTIVE'
+                AND site.deleted_at IS NULL
+            """,
+            (resultSet, rowNumber) -> mapWorkSite(resultSet),
+            workSiteUuid,
+            agencyOwnerUuid,
+            farmOwnerUuid
+        ).stream().findFirst();
+    }
+
+    @Override
+    public ClientWorkSiteResponse saveClientWorkSite(
+        UUID agencyOwnerUuid,
+        UUID farmOwnerUuid,
+        ClientWorkSiteValues workSite
+    ) {
+        if (workSite.uuid() != null) {
+            int updatedCount = jdbcTemplate.update(
+                """
+                UPDATE public.labor_agency_farm_owner_site site
+                SET site_name = ?,
+                    farm_address = ?,
+                    memo = ?,
+                    status = 'ACTIVE',
+                    deleted_at = NULL
+                FROM public.labor_agency_farm_owner_profile profile
+                WHERE profile.uuid = site.farm_owner_profile_uuid
+                    AND site.uuid = ?
+                    AND profile.agency_owner_uuid = ?
+                    AND profile.farm_owner_uuid = ?
+                    AND profile.status = 'ACTIVE'
+                    AND profile.deleted_at IS NULL
+                """,
+                workSite.siteName(),
+                workSite.farmAddress(),
+                workSite.memo(),
+                workSite.uuid(),
+                agencyOwnerUuid,
+                farmOwnerUuid
+            );
+            if (updatedCount == 0) {
+                throw new IllegalArgumentException("Client work site was not found.");
+            }
+            return findClientWorkSite(agencyOwnerUuid, farmOwnerUuid, workSite.uuid())
+                .orElseThrow(() -> new IllegalArgumentException("Client work site was not found."));
+        }
+
+        List<UUID> existingUuids = jdbcTemplate.query(
+            """
+            SELECT site.uuid
+            FROM public.labor_agency_farm_owner_site site
+            JOIN public.labor_agency_farm_owner_profile profile
+                ON profile.uuid = site.farm_owner_profile_uuid
+            WHERE profile.agency_owner_uuid = ?
+                AND profile.farm_owner_uuid = ?
+                AND profile.status = 'ACTIVE'
+                AND profile.deleted_at IS NULL
+                AND site.status = 'ACTIVE'
+                AND site.deleted_at IS NULL
+                AND lower(site.site_name) = lower(?)
+                AND lower(COALESCE(site.farm_address, '')) = lower(COALESCE(?, ''))
+            LIMIT 1
+            """,
+            (resultSet, rowNumber) -> resultSet.getObject("uuid", UUID.class),
+            agencyOwnerUuid,
+            farmOwnerUuid,
+            workSite.siteName(),
+            workSite.farmAddress()
+        );
+        if (!existingUuids.isEmpty()) {
+            return saveClientWorkSite(
+                agencyOwnerUuid,
+                farmOwnerUuid,
+                new ClientWorkSiteValues(
+                    existingUuids.getFirst(),
+                    workSite.siteName(),
+                    workSite.farmAddress(),
+                    workSite.memo(),
+                    workSite.displayOrder()
+                )
+            );
+        }
+
+        UUID workSiteUuid = jdbcTemplate.queryForObject(
+            """
+            INSERT INTO public.labor_agency_farm_owner_site (
+                farm_owner_profile_uuid,
+                site_name,
+                farm_address,
+                memo,
+                display_order,
+                status
+            )
+            SELECT profile.uuid, ?, ?, ?, ?, 'ACTIVE'
+            FROM public.labor_agency_farm_owner_profile profile
+            WHERE profile.agency_owner_uuid = ?
+                AND profile.farm_owner_uuid = ?
+                AND profile.status = 'ACTIVE'
+                AND profile.deleted_at IS NULL
+            RETURNING uuid
+            """,
+            UUID.class,
+            workSite.siteName(),
+            workSite.farmAddress(),
+            workSite.memo(),
+            workSite.displayOrder(),
+            agencyOwnerUuid,
+            farmOwnerUuid
+        );
+        return findClientWorkSite(agencyOwnerUuid, farmOwnerUuid, workSiteUuid)
+            .orElseThrow(() -> new IllegalArgumentException("Client work site was not found."));
+    }
+
+    @Override
     public void softDeleteClientProfile(UUID agencyOwnerUuid, UUID profileUuid) {
         jdbcTemplate.update(
             """
@@ -411,38 +625,36 @@ public class JdbcClientsDao implements ClientsDao {
         );
     }
 
-    private Map<UUID, List<ClientWorkSiteResponse>> findWorkSitesByOwnerUuid(List<UUID> farmOwnerUuids) {
-        Map<UUID, List<ClientWorkSiteResponse>> workSitesByOwnerUuid = new LinkedHashMap<>();
-        for (UUID farmOwnerUuid : farmOwnerUuids) {
-            workSitesByOwnerUuid.put(farmOwnerUuid, new ArrayList<>());
+    private Map<UUID, List<ClientWorkSiteResponse>> findWorkSitesByProfileUuid(List<UUID> profileUuids) {
+        Map<UUID, List<ClientWorkSiteResponse>> workSitesByProfileUuid = new LinkedHashMap<>();
+        for (UUID profileUuid : profileUuids) {
+            workSitesByProfileUuid.put(profileUuid, new ArrayList<>());
         }
 
-        String placeholders = String.join(",", farmOwnerUuids.stream().map(ignored -> "?").toList());
+        String placeholders = String.join(",", profileUuids.stream().map(ignored -> "?").toList());
         jdbcTemplate.query(
             """
             SELECT
-                owner_uuid,
+                farm_owner_profile_uuid,
                 uuid,
-                COALESCE(site_name, '') AS site_name,
-                farm_address,
-                work_description,
-                work_start_date,
-                work_end_date
-            FROM public.farm_work_site
-            WHERE owner_uuid IN (%s)
+                site_name,
+                COALESCE(farm_address, '') AS farm_address,
+                COALESCE(memo, '') AS memo
+            FROM public.labor_agency_farm_owner_site
+            WHERE farm_owner_profile_uuid IN (%s)
                 AND status = 'ACTIVE'
                 AND deleted_at IS NULL
-            ORDER BY work_start_date DESC NULLS LAST, created_at DESC
+            ORDER BY farm_owner_profile_uuid, display_order, created_at
             """.formatted(placeholders),
             resultSet -> {
-                UUID ownerUuid = resultSet.getObject("owner_uuid", UUID.class);
-                workSitesByOwnerUuid.computeIfAbsent(ownerUuid, ignored -> new ArrayList<>())
+                UUID profileUuid = resultSet.getObject("farm_owner_profile_uuid", UUID.class);
+                workSitesByProfileUuid.computeIfAbsent(profileUuid, ignored -> new ArrayList<>())
                     .add(mapWorkSite(resultSet));
             },
-            farmOwnerUuids.toArray()
+            profileUuids.toArray()
         );
 
-        return workSitesByOwnerUuid;
+        return workSitesByProfileUuid;
     }
 
     private ClientProjection mapClientProjection(ResultSet resultSet) throws SQLException {
@@ -459,28 +671,12 @@ public class JdbcClientsDao implements ClientsDao {
     }
 
     private ClientWorkSiteResponse mapWorkSite(ResultSet resultSet) throws SQLException {
-        LocalDate startDate = resultSet.getObject("work_start_date", LocalDate.class);
-        LocalDate endDate = resultSet.getObject("work_end_date", LocalDate.class);
-
         return new ClientWorkSiteResponse(
             resultSet.getObject("uuid", UUID.class),
             resultSet.getString("site_name"),
             resultSet.getString("farm_address"),
-            resultSet.getString("work_description"),
-            formatDateRange(startDate, endDate)
+            resultSet.getString("memo")
         );
-    }
-
-    private String formatDateRange(LocalDate startDate, LocalDate endDate) {
-        if (startDate == null && endDate == null) {
-            return "";
-        }
-
-        if (endDate == null || startDate == null || startDate.equals(endDate)) {
-            return String.valueOf(startDate == null ? endDate : startDate);
-        }
-
-        return "%s - %s".formatted(startDate, endDate);
     }
 
     private record ClientProjection(

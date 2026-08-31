@@ -30,7 +30,9 @@ public interface ScheduleDao {
         UUID agencyOwnerUuid,
         UUID scheduleDayUuid,
         UUID ownerUuid,
+        UUID clientWorkSiteUuid,
         String title,
+        String siteName,
         String address,
         LocalTime startTime,
         LocalTime endTime,
@@ -106,6 +108,7 @@ public interface ScheduleDao {
     UUID createTask(
         UUID agencyOwnerUuid,
         UUID farmOwnerUuid,
+        UUID clientWorkSiteUuid,
         LocalDate startDate,
         LocalDate endDate,
         String title,

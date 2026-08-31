@@ -6,11 +6,13 @@ import java.util.UUID;
 public record ScheduleTaskResponse(
     UUID id,
     UUID workSiteId,
+    UUID clientWorkSiteUuid,
     UUID ownerUuid,
     String title,
     String ownerName,
     String siteName,
     String address,
+    String siteMemo,
     String timeRange,
     String startTime,
     String endTime,

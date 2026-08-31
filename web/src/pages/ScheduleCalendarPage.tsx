@@ -16,9 +16,7 @@ import {
   type FarmOwnerOption,
   type ScheduleTask,
 } from "../api/scheduleApi";
-import { fetchWorkTypes } from "../api/workforceApi";
 import appStyles from "../App.module.css";
-import { workTypeOptions as fallbackWorkTypeOptions } from "../data/workTypeOptions";
 import calendarStyles from "./ScheduleCalendarPage.module.css";
 
 const styles = { ...appStyles, ...calendarStyles };
@@ -40,6 +38,7 @@ type CalendarEvent = {
   assignments: ScheduleTask["assignments"];
   address: string;
   assignmentsCount: number;
+  clientWorkSiteUuid: string | null;
   endDate: string;
   endTime: string;
   id: string;
@@ -49,6 +48,7 @@ type CalendarEvent = {
   requiredMen: number;
   requiredWomen: number;
   siteName: string;
+  siteMemo: string;
   sourceDates: string[];
   startDate: string;
   startTime: string;
@@ -120,6 +120,7 @@ type CalendarDragPreview = {
 
 type ScheduleCreateDraft = {
   address: string;
+  clientWorkSiteUuid: string;
   endDate: string;
   endTime: string;
   memo: string;
@@ -131,14 +132,17 @@ type ScheduleCreateDraft = {
   requiredMen: string;
   requiredWomen: string;
   siteName: string;
+  siteMemo: string;
   startDate: string;
   startTime: string;
   title: string;
+  workSites: FarmOwnerOption["workSites"];
   workTypeCodes: string[];
 };
 
 type ScheduleEditDraft = {
   address: string;
+  clientWorkSiteUuid: string;
   endDate: string;
   endTime: string;
   memo: string;
@@ -147,9 +151,12 @@ type ScheduleEditDraft = {
   ownerUuid: string;
   requiredMen: string;
   requiredWomen: string;
+  siteName: string;
+  siteMemo: string;
   startDate: string;
   startTime: string;
   title: string;
+  workSites: FarmOwnerOption["workSites"];
   workTypeCodes: string[];
 };
 
@@ -175,6 +182,7 @@ function toInputDate(date: Date) {
 function createEmptyScheduleDraft(date: string): ScheduleCreateDraft {
   return {
     address: "",
+    clientWorkSiteUuid: "",
     endDate: date,
     endTime: "17:00",
     memo: "",
@@ -186,9 +194,11 @@ function createEmptyScheduleDraft(date: string): ScheduleCreateDraft {
     requiredMen: "0",
     requiredWomen: "0",
     siteName: "",
+    siteMemo: "",
     startDate: date,
     startTime: "07:00",
     title: "",
+    workSites: [],
     workTypeCodes: [],
   };
 }
@@ -196,6 +206,7 @@ function createEmptyScheduleDraft(date: string): ScheduleCreateDraft {
 function createEditScheduleDraft(event: CalendarEvent): ScheduleEditDraft {
   return {
     address: event.address,
+    clientWorkSiteUuid: event.clientWorkSiteUuid ?? "",
     endDate: event.endDate,
     endTime: event.endTime,
     memo: event.memo,
@@ -204,9 +215,12 @@ function createEditScheduleDraft(event: CalendarEvent): ScheduleEditDraft {
     ownerUuid: event.ownerUuid,
     requiredMen: String(event.requiredMen),
     requiredWomen: String(event.requiredWomen),
+    siteName: event.siteName,
+    siteMemo: event.siteMemo,
     startDate: event.startDate,
     startTime: event.startTime,
     title: event.title,
+    workSites: [],
     workTypeCodes: event.workTypeCodes,
   };
 }
@@ -327,8 +341,13 @@ function FarmOwnerSearchField({
                 onClick={() => selectOwner(farmOwner)}
               >
                 <strong>{farmOwner.displayName}</strong>
-                {farmOwner.businessName ? (
-                  <span>{farmOwner.businessName}</span>
+                {farmOwner.workSites.length > 0 ? (
+                  <span>
+                    {farmOwner.workSites
+                      .slice(0, 2)
+                      .map((workSite) => workSite.siteName)
+                      .join(" · ")}
+                  </span>
                 ) : null}
               </button>
             ))
@@ -348,6 +367,83 @@ function FarmOwnerSearchField({
               <span>신규 거래처로 등록</span>
             </button>
           ) : null}
+        </div>
+      ) : null}
+    </label>
+  );
+}
+
+type WorkSiteSearchFieldProps = {
+  onInput: (siteName: string) => void;
+  onSelect: (workSite: FarmOwnerOption["workSites"][number]) => void;
+  options: FarmOwnerOption["workSites"];
+  selectedWorkSiteUuid: string;
+  value: string;
+};
+
+function WorkSiteSearchField({
+  onInput,
+  onSelect,
+  options,
+  selectedWorkSiteUuid,
+  value,
+}: WorkSiteSearchFieldProps) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const normalizedValue = value.trim().toLocaleLowerCase();
+  const filteredOptions = useMemo(
+    () =>
+      options.filter((workSite) =>
+        [workSite.siteName, workSite.farmAddress].some((candidate) =>
+          candidate.toLocaleLowerCase().includes(normalizedValue),
+        ),
+      ),
+    [normalizedValue, options],
+  );
+
+  return (
+    <label className={styles.scheduleCreateOwnerField}>
+      <span>현장명</span>
+      <input
+        autoComplete="off"
+        maxLength={150}
+        placeholder="현장명 입력"
+        type="text"
+        value={value}
+        onBlur={() => window.setTimeout(() => setIsDropdownOpen(false), 120)}
+        onChange={(event) => {
+          onInput(event.target.value);
+          setIsDropdownOpen(true);
+        }}
+        onFocus={() => setIsDropdownOpen(true)}
+      />
+      {isDropdownOpen && options.length > 0 ? (
+        <div className={styles.scheduleOwnerDropdown}>
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((workSite) => (
+              <button
+                className={
+                  workSite.uuid === selectedWorkSiteUuid
+                    ? styles.scheduleWorkSiteSelectedOption
+                    : ""
+                }
+                key={workSite.uuid}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onSelect(workSite);
+                  setIsDropdownOpen(false);
+                }}
+              >
+                <strong>{workSite.siteName}</strong>
+                {workSite.farmAddress ? <span>{workSite.farmAddress}</span> : null}
+              </button>
+            ))
+          ) : (
+            <div className={styles.scheduleOwnerEmpty}>
+              일치하는 등록 현장이 없습니다. 입력한 이름으로 새 현장을 등록할 수
+              있습니다.
+            </div>
+          )}
         </div>
       ) : null}
     </label>
@@ -419,6 +515,7 @@ function taskToEvent(task: DatedScheduleTask): CalendarEvent {
       (total, assignment) => total + (assignment.workerCount || 1),
       0,
     ),
+    clientWorkSiteUuid: task.clientWorkSiteUuid,
     endDate: task.date,
     endTime: task.endTime,
     id: `${task.workSiteId}-${task.id}`,
@@ -428,6 +525,7 @@ function taskToEvent(task: DatedScheduleTask): CalendarEvent {
     requiredMen: task.requiredMen,
     requiredWomen: task.requiredWomen,
     siteName: task.siteName,
+    siteMemo: task.siteMemo,
     sourceDates: [task.date],
     startDate: task.date,
     startTime: task.startTime,
@@ -744,7 +842,6 @@ export function ScheduleCalendarPage({
   const [todayScrollRequest, setTodayScrollRequest] = useState(0);
   const [isCalendarLoading, setIsCalendarLoading] = useState(true);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
   const [dragState, setDragState] = useState<CalendarDragState | null>(null);
   const [dragPreview, setDragPreview] = useState<CalendarDragPreview | null>(
     null,
@@ -911,22 +1008,18 @@ export function ScheduleCalendarPage({
 
     setIsCalendarLoading(true);
     setStatusMessage("일정을 불러오는 중입니다.");
-    Promise.all([
-      fetchWorkTypes(),
-      Promise.all(
-        visibleDates.map((date) =>
-          fetchScheduleTasks(loginId, date).then((tasks) =>
-            tasks.map((task) => ({ ...task, date })),
-          ),
+    Promise.all(
+      visibleDates.map((date) =>
+        fetchScheduleTasks(loginId, date).then((tasks) =>
+          tasks.map((task) => ({ ...task, date })),
         ),
       ),
-    ])
-      .then(([nextWorkTypes, datedTaskGroups]) => {
+    )
+      .then((datedTaskGroups) => {
         if (!isMounted) {
           return;
         }
 
-        setWorkTypes(nextWorkTypes);
         setEvents(groupTasksIntoEvents(datedTaskGroups.flat()));
         setStatusMessage("");
         setIsCalendarLoading(false);
@@ -1126,16 +1219,19 @@ export function ScheduleCalendarPage({
   const selectFarmOwner = (farmOwner: FarmOwnerOption) => {
     setCreateDraft((currentDraft) => ({
       ...currentDraft,
-      address: farmOwner.recentAddress || "",
+      address: "",
+      clientWorkSiteUuid: "",
       endTime: farmOwner.recentEndTime?.slice(0, 5) || "17:00",
       ownerName: farmOwner.name,
       ownerNickname: farmOwner.nickname,
       ownerPhone: farmOwner.phone,
       ownerQuery: farmOwner.displayName,
       ownerUuid: farmOwner.uuid,
-      siteName: farmOwner.recentSiteName || "",
+      siteName: "",
+      siteMemo: "",
       startTime: farmOwner.recentStartTime?.slice(0, 5) || "07:00",
       title: farmOwner.recentTitle || "",
+      workSites: farmOwner.workSites,
     }));
   };
 
@@ -1147,6 +1243,7 @@ export function ScheduleCalendarPage({
       ownerPhone: "",
       ownerQuery: ownerName,
       ownerUuid: "",
+      workSites: [],
     }));
   };
 
@@ -1155,21 +1252,65 @@ export function ScheduleCalendarPage({
       currentDraft
         ? {
             ...currentDraft,
+            address: "",
+            clientWorkSiteUuid: "",
             ownerName: farmOwner.displayName,
             ownerQuery: farmOwner.displayName,
             ownerUuid: farmOwner.uuid,
+            siteName: "",
+            siteMemo: "",
+            workSites: farmOwner.workSites,
           }
         : currentDraft,
     );
   };
 
-  const toggleCreateWorkType = (workTypeCode: string) => {
+  const selectCreateWorkSite = (
+    workSite: FarmOwnerOption["workSites"][number],
+  ) => {
     setCreateDraft((currentDraft) => ({
       ...currentDraft,
-      workTypeCodes: currentDraft.workTypeCodes.includes(workTypeCode)
-        ? currentDraft.workTypeCodes.filter((code) => code !== workTypeCode)
-        : [...currentDraft.workTypeCodes, workTypeCode],
+      address: workSite.farmAddress,
+      clientWorkSiteUuid: workSite.uuid,
+      siteMemo: workSite.memo,
+      siteName: workSite.siteName,
     }));
+  };
+
+  const selectEditWorkSite = (
+    workSite: FarmOwnerOption["workSites"][number],
+  ) => {
+    setEditDraft((currentDraft) =>
+      currentDraft
+        ? {
+            ...currentDraft,
+            address: workSite.farmAddress,
+            clientWorkSiteUuid: workSite.uuid,
+            siteMemo: workSite.memo,
+            siteName: workSite.siteName,
+          }
+        : currentDraft,
+    );
+  };
+
+  const copyAddress = async (address: string) => {
+    if (!address.trim()) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(address);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = address;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+    setStatusMessage("농장주소를 클립보드에 복사했습니다.");
   };
 
   const submitCreateSchedule = async () => {
@@ -1214,6 +1355,7 @@ export function ScheduleCalendarPage({
     try {
       await createScheduleTask(loginId, {
         address: createDraft.address.trim(),
+        clientWorkSiteUuid: createDraft.clientWorkSiteUuid || null,
         endDate: createDraft.endDate,
         endTime: createDraft.endTime || null,
         memo: createDraft.memo.trim(),
@@ -1224,6 +1366,7 @@ export function ScheduleCalendarPage({
         requiredMen: Number(createDraft.requiredMen) || 0,
         requiredWomen: Number(createDraft.requiredWomen) || 0,
         siteName: createDraft.siteName.trim(),
+        siteMemo: createDraft.siteMemo.trim(),
         startDate: createDraft.startDate,
         startTime: createDraft.startTime || null,
         title: createDraft.title.trim(),
@@ -1244,6 +1387,21 @@ export function ScheduleCalendarPage({
   const openEditModal = (event: CalendarEvent) => {
     setEditingEvent(event);
     setEditDraft(createEditScheduleDraft(event));
+    fetchFarmOwners(loginId, event.ownerName)
+      .then((farmOwners) => {
+        const farmOwner = farmOwners.find(
+          (option) => option.uuid === event.ownerUuid,
+        );
+        if (!farmOwner) {
+          return;
+        }
+        setEditDraft((currentDraft) =>
+          currentDraft
+            ? { ...currentDraft, workSites: farmOwner.workSites }
+            : currentDraft,
+        );
+      })
+      .catch(() => undefined);
   };
 
   const closeEditModal = () => {
@@ -1255,21 +1413,6 @@ export function ScheduleCalendarPage({
     setEditDraft(null);
   };
 
-  const toggleEditWorkType = (workTypeCode: string) => {
-    setEditDraft((currentDraft) =>
-      currentDraft
-        ? {
-            ...currentDraft,
-            workTypeCodes: currentDraft.workTypeCodes.includes(workTypeCode)
-              ? currentDraft.workTypeCodes.filter(
-                  (code) => code !== workTypeCode,
-                )
-              : [...currentDraft.workTypeCodes, workTypeCode],
-          }
-        : currentDraft,
-    );
-  };
-
   const submitEditSchedule = async () => {
     if (!editingEvent || !editDraft) {
       return;
@@ -1279,7 +1422,7 @@ export function ScheduleCalendarPage({
       ? new FormData(editFormRef.current)
       : null;
     const title = String(formData?.get("title") ?? "").trim();
-    const address = String(formData?.get("address") ?? "").trim();
+    const address = editDraft.address.trim();
     const memo = String(formData?.get("memo") ?? "").trim();
     const requiredMen = Number(formData?.get("requiredMen")) || 0;
     const requiredWomen = Number(formData?.get("requiredWomen")) || 0;
@@ -1322,11 +1465,14 @@ export function ScheduleCalendarPage({
         {
           address,
           assignments: editingEvent.assignments,
+          clientWorkSiteUuid: editDraft.clientWorkSiteUuid || null,
           endTime: editDraft.endTime || null,
           memo,
           ownerUuid: editDraft.ownerUuid,
           requiredMen,
           requiredWomen,
+          siteMemo: editDraft.siteMemo.trim(),
+          siteName: editDraft.siteName.trim(),
           startTime: editDraft.startTime || null,
           title,
           workTypeCodes: editDraft.workTypeCodes,
@@ -1350,6 +1496,7 @@ export function ScheduleCalendarPage({
             ? {
                 ...calendarEvent,
                 address: savedTask.address,
+                clientWorkSiteUuid: savedTask.clientWorkSiteUuid,
                 endDate: editDraft.endDate,
                 endTime: savedTask.endTime,
                 memo: savedTask.memo,
@@ -1357,6 +1504,8 @@ export function ScheduleCalendarPage({
                 requiredWomen: savedTask.requiredWomen,
                 ownerName: savedTask.ownerName,
                 ownerUuid: savedTask.ownerUuid,
+                siteMemo: savedTask.siteMemo,
+                siteName: savedTask.siteName,
                 startDate: editDraft.startDate,
                 startTime: savedTask.startTime,
                 timeRange: savedTask.timeRange,
@@ -2053,10 +2202,13 @@ export function ScheduleCalendarPage({
                       ownerPhone: "",
                       ownerUuid: "",
                       address: "",
+                      clientWorkSiteUuid: "",
                       endTime: "17:00",
                       siteName: "",
+                      siteMemo: "",
                       startTime: "07:00",
                       title: "",
+                      workSites: [],
                     }))
                   }
                   onCommitQuery={(query) =>
@@ -2141,32 +2293,67 @@ export function ScheduleCalendarPage({
                       }
                     />
                   </label>
+                  <WorkSiteSearchField
+                    options={createDraft.workSites}
+                    selectedWorkSiteUuid={createDraft.clientWorkSiteUuid}
+                    value={createDraft.siteName}
+                    onInput={(siteName) =>
+                      setCreateDraft((currentDraft) => ({
+                        ...currentDraft,
+                        address: currentDraft.clientWorkSiteUuid
+                          ? ""
+                          : currentDraft.address,
+                        clientWorkSiteUuid: "",
+                        siteMemo: currentDraft.clientWorkSiteUuid
+                          ? ""
+                          : currentDraft.siteMemo,
+                        siteName,
+                      }))
+                    }
+                    onSelect={selectCreateWorkSite}
+                  />
+                </div>
+
+                <div className={styles.scheduleAddressFieldRow}>
                   <label>
-                    <span>현장명</span>
+                    <span>농장주소 *</span>
                     <input
-                      placeholder="예: 동문 제1농장"
+                      className={
+                        createDraft.clientWorkSiteUuid
+                          ? styles.scheduleReadOnlyField
+                          : ""
+                      }
+                      placeholder="작업 장소 주소를 입력하세요"
+                      readOnly={Boolean(createDraft.clientWorkSiteUuid)}
                       type="text"
-                      value={createDraft.siteName}
+                      value={createDraft.address}
                       onChange={(event) =>
                         setCreateDraft((currentDraft) => ({
                           ...currentDraft,
-                          siteName: event.target.value,
+                          address: event.target.value,
                         }))
                       }
                     />
                   </label>
+                  <button
+                    disabled={!createDraft.address.trim()}
+                    title="농장주소 복사"
+                    type="button"
+                    onClick={() => copyAddress(createDraft.address)}
+                  >
+                    복사
+                  </button>
                 </div>
 
                 <label>
-                  <span>농장주소 *</span>
-                  <input
-                    placeholder="작업 장소 주소를 입력하세요"
-                    type="text"
-                    value={createDraft.address}
+                  <span>현장 메모</span>
+                  <textarea
+                    rows={3}
+                    value={createDraft.siteMemo}
                     onChange={(event) =>
                       setCreateDraft((currentDraft) => ({
                         ...currentDraft,
-                        address: event.target.value,
+                        siteMemo: event.target.value,
                       }))
                     }
                   />
@@ -2201,26 +2388,6 @@ export function ScheduleCalendarPage({
                       }
                     />
                   </label>
-                </div>
-
-                <div className={styles.scheduleCreateWorkTypes}>
-                  <span>작업 종류</span>
-                  <div>
-                    {workTypes.map((workType) => (
-                      <button
-                        className={
-                          createDraft.workTypeCodes.includes(workType.code)
-                            ? styles.selectedWorkTypeButton
-                            : ""
-                        }
-                        key={workType.code}
-                        type="button"
-                        onClick={() => toggleCreateWorkType(workType.code)}
-                      >
-                        {workType.name}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 <label>
@@ -2399,8 +2566,13 @@ export function ScheduleCalendarPage({
                       currentDraft
                         ? {
                             ...currentDraft,
+                            address: "",
+                            clientWorkSiteUuid: "",
                             ownerName: "",
                             ownerUuid: "",
+                            siteMemo: "",
+                            siteName: "",
+                            workSites: [],
                           }
                         : currentDraft,
                     )
@@ -2408,21 +2580,83 @@ export function ScheduleCalendarPage({
                   onSelect={selectEditFarmOwner}
                 />
 
-                <label>
-                  <span>작업내용 *</span>
-                  <input
-                    name="title"
-                    type="text"
-                    defaultValue={editDraft.title}
+                <div className={styles.scheduleCreateTwoColumn}>
+                  <label>
+                    <span>작업내용 *</span>
+                    <input
+                      name="title"
+                      type="text"
+                      defaultValue={editDraft.title}
+                    />
+                  </label>
+                  <WorkSiteSearchField
+                    options={editDraft.workSites}
+                    selectedWorkSiteUuid={editDraft.clientWorkSiteUuid}
+                    value={editDraft.siteName}
+                    onInput={(siteName) =>
+                      setEditDraft((currentDraft) =>
+                        currentDraft
+                          ? {
+                              ...currentDraft,
+                              address: currentDraft.clientWorkSiteUuid
+                                ? ""
+                                : currentDraft.address,
+                              clientWorkSiteUuid: "",
+                              siteMemo: currentDraft.clientWorkSiteUuid
+                                ? ""
+                                : currentDraft.siteMemo,
+                              siteName,
+                            }
+                          : currentDraft,
+                      )
+                    }
+                    onSelect={selectEditWorkSite}
                   />
-                </label>
+                </div>
+
+                <div className={styles.scheduleAddressFieldRow}>
+                  <label>
+                    <span>농장주소 *</span>
+                    <input
+                      className={
+                        editDraft.clientWorkSiteUuid
+                          ? styles.scheduleReadOnlyField
+                          : ""
+                      }
+                      readOnly={Boolean(editDraft.clientWorkSiteUuid)}
+                      type="text"
+                      value={editDraft.address}
+                      onChange={(event) =>
+                        setEditDraft((currentDraft) =>
+                          currentDraft
+                            ? { ...currentDraft, address: event.target.value }
+                            : currentDraft,
+                        )
+                      }
+                    />
+                  </label>
+                  <button
+                    disabled={!editDraft.address.trim()}
+                    title="농장주소 복사"
+                    type="button"
+                    onClick={() => copyAddress(editDraft.address)}
+                  >
+                    복사
+                  </button>
+                </div>
 
                 <label>
-                  <span>농장주소 *</span>
-                  <input
-                    name="address"
-                    type="text"
-                    defaultValue={editDraft.address}
+                  <span>현장 메모</span>
+                  <textarea
+                    rows={3}
+                    value={editDraft.siteMemo}
+                    onChange={(event) =>
+                      setEditDraft((currentDraft) =>
+                        currentDraft
+                          ? { ...currentDraft, siteMemo: event.target.value }
+                          : currentDraft,
+                      )
+                    }
                   />
                 </label>
 
@@ -2445,26 +2679,6 @@ export function ScheduleCalendarPage({
                       defaultValue={editDraft.requiredWomen}
                     />
                   </label>
-                </div>
-
-                <div className={styles.scheduleCreateWorkTypes}>
-                  <span>작업 종류</span>
-                  <div>
-                    {workTypes.map((workType) => (
-                      <button
-                        className={
-                          editDraft.workTypeCodes.includes(workType.code)
-                            ? styles.selectedWorkTypeButton
-                            : ""
-                        }
-                        key={workType.code}
-                        type="button"
-                        onClick={() => toggleEditWorkType(workType.code)}
-                      >
-                        {workType.name}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 <label>

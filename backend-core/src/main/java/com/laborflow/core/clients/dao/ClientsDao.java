@@ -1,6 +1,7 @@
 package com.laborflow.core.clients.dao;
 
 import com.laborflow.core.clients.dto.ClientResponse;
+import com.laborflow.core.clients.dto.ClientWorkSiteResponse;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,13 +27,31 @@ public interface ClientsDao {
 
     void upsertFarmOwnerSensitiveProfile(UUID farmOwnerUuid, ClientCreateValues values);
 
-    void insertClientProfile(UUID agencyOwnerUuid, UUID farmOwnerUuid, ClientCreateValues values);
+    UUID insertClientProfile(UUID agencyOwnerUuid, UUID farmOwnerUuid, ClientCreateValues values);
 
     void addClientPhone(UUID agencyOwnerUuid, UUID farmOwnerUuid, String phone, String phoneHashSource);
 
     void addFarmOwnerPhone(UUID farmOwnerUuid, String phone, String phoneHashSource);
 
     void updateClientProfile(UUID agencyOwnerUuid, UUID profileUuid, ClientCreateValues values);
+
+    void replaceClientWorkSites(
+        UUID agencyOwnerUuid,
+        UUID profileUuid,
+        List<ClientWorkSiteValues> workSites
+    );
+
+    Optional<ClientWorkSiteResponse> findClientWorkSite(
+        UUID agencyOwnerUuid,
+        UUID farmOwnerUuid,
+        UUID workSiteUuid
+    );
+
+    ClientWorkSiteResponse saveClientWorkSite(
+        UUID agencyOwnerUuid,
+        UUID farmOwnerUuid,
+        ClientWorkSiteValues workSite
+    );
 
     void softDeleteClientProfile(UUID agencyOwnerUuid, UUID profileUuid);
 }

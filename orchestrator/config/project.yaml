@@ -22,6 +22,9 @@ contracts:
   - PostgreSQL schema changes must be added under database/migrations and applied by backend-core Flyway packaging.
   - PostgreSQL is the source of truth for personal data, attendance records, schedules, workflow history, and audit trails.
   - Creating a schedule for an unregistered farm owner requires a name or nickname plus a valid phone number; the client profile and schedule must be committed in one transaction.
+  - Reusable client work sites are owned by the labor-agency farm-owner profile; site name, address, memo, ordering, and soft-deletion state are stored in PostgreSQL and must be agency-scoped on every read and write.
+  - Schedule tasks may reference a reusable client work site, but retain site name and address snapshots so later master-data edits do not rewrite historical schedules.
+  - Selecting a registered work site uses its authoritative address; entering a new site from scheduling creates or reuses an agency-scoped site master in the same transaction.
   - Attendance records use Asia/Seoul as the business timezone; confirmed manual records must not be overwritten by bulk planned-attendance confirmation.
   - Attendance task notes are stored separately from planning memos and retain account-attributed revision history in PostgreSQL.
   - A no-show response records ABSENT attendance, preserves the original assignment as REPLACED, and stores the replacement link in PostgreSQL instead of deleting history.

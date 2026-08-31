@@ -1,9 +1,12 @@
 package com.laborflow.core.schedule.dto;
 
+import com.laborflow.core.clients.dto.ClientWorkSiteResponse;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
 public record FarmOwnerOptionResponse(
+    UUID profileUuid,
     UUID uuid,
     String displayName,
     String name,
@@ -14,6 +17,7 @@ public record FarmOwnerOptionResponse(
     String recentSiteName,
     String recentAddress,
     LocalTime recentStartTime,
-    LocalTime recentEndTime
+    LocalTime recentEndTime,
+    List<ClientWorkSiteResponse> workSites
 ) {
 }

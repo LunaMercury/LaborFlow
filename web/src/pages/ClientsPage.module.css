@@ -394,12 +394,21 @@
 }
 
 .clientWorkSiteCard {
-  align-items: flex-start;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  justify-content: center;
+  overflow: hidden;
   padding: 12px;
+}
+
+.clientWorkSiteCard summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.clientWorkSiteCard summary::-webkit-details-marker {
+  display: none;
 }
 
 .clientWorkSiteCard strong {
@@ -414,6 +423,180 @@
   font-weight: 800;
   line-height: 1.45;
   margin: 0;
+}
+
+.clientWorkSiteViewBody {
+  align-items: flex-start;
+  border-top: 1px solid #d9e2ec;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.clientWorkSiteViewBody span {
+  color: #405266;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.emptyClientWorkSite {
+  color: #8793a1;
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0;
+  padding: 10px 2px;
+}
+
+.clientWorkSiteEditor {
+  align-items: stretch;
+  background: #f4f8f7;
+  border: 1px solid #b9d3cc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+.clientWorkSiteEditorTitleRow {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.clientWorkSiteEditorTitleRow > div {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.clientWorkSiteEditorTitleRow strong {
+  color: #17202a;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.clientWorkSiteEditorTitleRow span {
+  color: #687789;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.clientWorkSiteEditor button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #9ebeb3;
+  border-radius: 7px;
+  color: #176b5d;
+  display: flex;
+  font-size: 12px;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.clientWorkSiteEditor button:hover {
+  background: #e6f1ee;
+  cursor: pointer;
+}
+
+.clientWorkSiteEditList {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clientWorkSiteEditCard {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.clientWorkSiteEditHeader {
+  align-items: center;
+  background: #eef5f3;
+  border-bottom: 1px solid #d4e2de;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 6px 10px;
+}
+
+.clientWorkSiteEditHeader > strong {
+  color: #17202a;
+  font-size: 13px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.clientWorkSiteEditHeader > div {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.clientWorkSiteEditor .clientWorkSiteRemoveButton {
+  border-color: #d4a16d;
+  color: #8a531f;
+}
+
+.clientWorkSiteEditBody {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 12px;
+}
+
+.clientWorkSiteEditBody label {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.clientWorkSiteEditBody label:last-child {
+  grid-column: 1 / -1;
+}
+
+.clientWorkSiteEditBody span {
+  color: #2f3f50;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.clientWorkSiteEditBody input,
+.clientWorkSiteEditBody textarea {
+  background: #ffffff;
+  border: 1px solid #c8d4e0;
+  border-radius: 7px;
+  color: #17202a;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 38px;
+  outline: none;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.clientWorkSiteEditBody textarea {
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.clientWorkSiteEditBody input:focus,
+.clientWorkSiteEditBody textarea:focus {
+  border-color: #176b5d;
+  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.12);
 }
 
 .emptyClientState,
@@ -704,6 +887,14 @@
   .clientInfoGrid,
   .clientFormGrid {
     grid-template-columns: 1fr;
+  }
+
+  .clientWorkSiteEditBody {
+    grid-template-columns: 1fr;
+  }
+
+  .clientWorkSiteEditBody label:last-child {
+    grid-column: auto;
   }
 
   .clientModalBackdrop {

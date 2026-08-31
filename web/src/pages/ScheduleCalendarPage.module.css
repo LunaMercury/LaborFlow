@@ -580,8 +580,7 @@
   user-select: none;
 }
 
-.scheduleCreateBody label,
-.scheduleCreateWorkTypes {
+.scheduleCreateBody label {
   align-items: stretch;
   display: flex;
   flex-direction: column;
@@ -590,8 +589,7 @@
   min-width: 0;
 }
 
-.scheduleCreateBody label > span,
-.scheduleCreateWorkTypes > span {
+.scheduleCreateBody label > span {
   color: #2f3f50;
   font-size: 13px;
   font-weight: 900;
@@ -675,6 +673,11 @@
   color: #176b5d;
 }
 
+.scheduleOwnerDropdown .scheduleWorkSiteSelectedOption {
+  background: #e6f1ee;
+  color: #176b5d;
+}
+
 .scheduleOwnerDropdown strong {
   font-size: 13px;
   font-weight: 900;
@@ -704,34 +707,40 @@
   cursor: not-allowed;
 }
 
-.scheduleCreateWorkTypes > div {
-  align-items: center;
+.scheduleAddressFieldRow {
+  align-items: flex-end;
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-  justify-content: flex-start;
 }
 
-.scheduleCreateWorkTypes button {
+.scheduleAddressFieldRow label {
+  flex: 1;
+  min-width: 0;
+}
+
+.scheduleAddressFieldRow > button {
+  align-items: center;
   background: #f4f8f7;
-  border: 1px solid #c8d4e0;
-  border-radius: 999px;
-  color: #2f3f50;
-  font-size: 12px;
+  border: 1px solid #9ebeb3;
+  border-radius: 8px;
+  color: #176b5d;
+  display: flex;
+  flex-shrink: 0;
+  font-size: 13px;
   font-weight: 900;
-  min-height: 30px;
-  padding: 0 11px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 13px;
 }
 
-.scheduleCreateWorkTypes button:hover {
-  border-color: #176b5d;
+.scheduleAddressFieldRow > button:hover:not(:disabled) {
+  background: #e6f1ee;
   cursor: pointer;
 }
 
-.scheduleCreateWorkTypes .selectedWorkTypeButton {
-  background: #176b5d;
-  border-color: #176b5d;
-  color: #ffffff;
+.scheduleAddressFieldRow > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .scheduleEditSummary {

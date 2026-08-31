@@ -4,10 +4,16 @@ const apiBaseUrl = getApiBaseUrl();
 
 export type ClientWorkSite = {
   farmAddress: string;
+  memo: string;
   siteName: string;
   uuid: string;
-  workDateRange: string;
-  workDescription: string;
+};
+
+export type ClientWorkSitePayload = {
+  farmAddress: string;
+  memo: string;
+  siteName: string;
+  uuid: string | null;
 };
 
 export type Client = {
@@ -29,6 +35,7 @@ export type CreateClientPayload = {
   name: string;
   nickname: string;
   phone: string;
+  workSites: ClientWorkSitePayload[];
 };
 
 type ClientListResponse = {

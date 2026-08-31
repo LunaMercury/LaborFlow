@@ -1,5 +1,6 @@
 package com.laborflow.core.schedule.dao;
 
+import com.laborflow.core.clients.dto.ClientWorkSiteResponse;
 import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
 import com.laborflow.core.schedule.dto.ScheduleAssignmentResponse;
 import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
@@ -122,11 +123,12 @@ public class JdbcScheduleDao implements ScheduleDao {
         String normalizedQuery = query == null ? "" : query.trim();
         String likeQuery = "%" + normalizedQuery + "%";
 
-        return jdbcTemplate.query(
+        List<FarmOwnerOptionResponse> owners = jdbcTemplate.query(
             """
             WITH matched_owner AS (
                 SELECT
                     fp.agency_owner_uuid,
+                    fp.uuid AS profile_uuid,
                     fo.uuid,
                     COALESCE(fp.local_name, fp.local_nickname, fp.local_business_name, fo.canonical_name, '') AS display_name,
                     COALESCE(fp.local_name, '') AS name,
@@ -152,6 +154,7 @@ public class JdbcScheduleDao implements ScheduleDao {
                 LIMIT 20
             )
             SELECT
+                matched_owner.profile_uuid,
                 matched_owner.uuid,
                 matched_owner.display_name,
                 matched_owner.name,
@@ -191,6 +194,7 @@ public class JdbcScheduleDao implements ScheduleDao {
             ORDER BY matched_owner.display_name, matched_owner.business_name
             """,
             (resultSet, rowNumber) -> new FarmOwnerOptionResponse(
+                resultSet.getObject("profile_uuid", UUID.class),
                 resultSet.getObject("uuid", UUID.class),
                 resultSet.getString("display_name"),
                 resultSet.getString("name"),
@@ -201,7 +205,8 @@ public class JdbcScheduleDao implements ScheduleDao {
                 resultSet.getObject("recent_site_name", String.class),
                 resultSet.getObject("recent_address", String.class),
                 resultSet.getObject("recent_start_time", LocalTime.class),
-                resultSet.getObject("recent_end_time", LocalTime.class)
+                resultSet.getObject("recent_end_time", LocalTime.class),
+                List.of()
             ),
             agencyOwnerUuid,
             normalizedQuery,
@@ -211,6 +216,29 @@ public class JdbcScheduleDao implements ScheduleDao {
             likeQuery,
             likeQuery
         );
+
+        if (owners.isEmpty()) {
+            return owners;
+        }
+        Map<UUID, List<ClientWorkSiteResponse>> workSitesByProfileUuid =
+            findClientWorkSitesByProfileUuid(owners.stream().map(FarmOwnerOptionResponse::profileUuid).toList());
+        return owners.stream()
+            .map(owner -> new FarmOwnerOptionResponse(
+                owner.profileUuid(),
+                owner.uuid(),
+                owner.displayName(),
+                owner.name(),
+                owner.nickname(),
+                owner.businessName(),
+                owner.phone(),
+                owner.recentTitle(),
+                owner.recentSiteName(),
+                owner.recentAddress(),
+                owner.recentStartTime(),
+                owner.recentEndTime(),
+                workSitesByProfileUuid.getOrDefault(owner.profileUuid(), List.of())
+            ))
+            .toList();
     }
 
     @Override
@@ -220,11 +248,13 @@ public class JdbcScheduleDao implements ScheduleDao {
             SELECT
                 d.uuid,
                 s.uuid AS work_site_uuid,
+                s.client_work_site_uuid,
                 s.owner_uuid,
                 s.work_description,
                 COALESCE(fp.local_name, fp.local_nickname, fp.local_business_name, fo.canonical_name, '') AS owner_name,
                 COALESCE(s.site_name, '') AS site_name,
                 s.farm_address,
+                COALESCE(client_site.memo, '') AS site_memo,
                 d.male_required_count,
                 d.female_required_count,
                 COALESCE(d.memo, '') AS memo,
@@ -233,6 +263,10 @@ public class JdbcScheduleDao implements ScheduleDao {
             FROM public.work_schedule_day d
             JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
             JOIN public.farm_owner fo ON fo.uuid = s.owner_uuid
+            LEFT JOIN public.labor_agency_farm_owner_site client_site
+                ON client_site.uuid = s.client_work_site_uuid
+                AND client_site.status = 'ACTIVE'
+                AND client_site.deleted_at IS NULL
             LEFT JOIN public.labor_agency_farm_owner_profile fp
                 ON fp.agency_owner_uuid = s.agency_owner_uuid
                 AND fp.farm_owner_uuid = s.owner_uuid
@@ -266,11 +300,13 @@ public class JdbcScheduleDao implements ScheduleDao {
             .map(task -> new ScheduleTaskResponse(
                 task.id(),
                 task.workSiteId(),
+                task.clientWorkSiteUuid(),
                 task.ownerUuid(),
                 task.title(),
                 task.ownerName(),
                 task.siteName(),
                 task.address(),
+                task.siteMemo(),
                 formatTimeRange(task.startTime(), task.endTime()),
                 formatOptionalTime(task.startTime()),
                 formatOptionalTime(task.endTime()),
@@ -295,7 +331,9 @@ public class JdbcScheduleDao implements ScheduleDao {
         UUID agencyOwnerUuid,
         UUID scheduleDayUuid,
         UUID ownerUuid,
+        UUID clientWorkSiteUuid,
         String title,
+        String siteName,
         String address,
         LocalTime startTime,
         LocalTime endTime,
@@ -307,7 +345,9 @@ public class JdbcScheduleDao implements ScheduleDao {
             """
             UPDATE public.farm_work_site
             SET work_description = ?,
+                site_name = ?,
                 farm_address = ?,
+                client_work_site_uuid = ?,
                 owner_uuid = COALESCE(?, owner_uuid)
             FROM public.work_schedule_day d
             WHERE d.work_site_uuid = public.farm_work_site.uuid
@@ -317,7 +357,9 @@ public class JdbcScheduleDao implements ScheduleDao {
                 AND d.deleted_at IS NULL
             """,
             title,
+            siteName,
             address,
+            clientWorkSiteUuid,
             ownerUuid,
             agencyOwnerUuid,
             scheduleDayUuid
@@ -1230,6 +1272,7 @@ public class JdbcScheduleDao implements ScheduleDao {
     public UUID createTask(
         UUID agencyOwnerUuid,
         UUID farmOwnerUuid,
+        UUID clientWorkSiteUuid,
         LocalDate startDate,
         LocalDate endDate,
         String title,
@@ -1248,6 +1291,7 @@ public class JdbcScheduleDao implements ScheduleDao {
             INSERT INTO public.farm_work_site (
                 uuid,
                 owner_uuid,
+                client_work_site_uuid,
                 site_name,
                 farm_address,
                 male_required_count,
@@ -1261,10 +1305,11 @@ public class JdbcScheduleDao implements ScheduleDao {
                 agency_owner_uuid,
                 status
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
             """,
             workSiteUuid,
             farmOwnerUuid,
+            clientWorkSiteUuid,
             siteName,
             address,
             requiredMen,
@@ -1699,17 +1744,54 @@ public class JdbcScheduleDao implements ScheduleDao {
         return new ScheduleTaskProjection(
             resultSet.getObject("uuid", UUID.class),
             resultSet.getObject("work_site_uuid", UUID.class),
+            resultSet.getObject("client_work_site_uuid", UUID.class),
             resultSet.getObject("owner_uuid", UUID.class),
             resultSet.getString("work_description"),
             resultSet.getString("owner_name"),
             resultSet.getString("site_name"),
             resultSet.getString("farm_address"),
+            resultSet.getString("site_memo"),
             resultSet.getInt("male_required_count"),
             resultSet.getInt("female_required_count"),
             resultSet.getString("memo"),
             resultSet.getObject("daily_start_time", LocalTime.class),
             resultSet.getObject("daily_end_time", LocalTime.class)
         );
+    }
+
+    private Map<UUID, List<ClientWorkSiteResponse>> findClientWorkSitesByProfileUuid(
+        List<UUID> profileUuids
+    ) {
+        Map<UUID, List<ClientWorkSiteResponse>> workSitesByProfileUuid = new LinkedHashMap<>();
+        for (UUID profileUuid : profileUuids) {
+            workSitesByProfileUuid.put(profileUuid, new ArrayList<>());
+        }
+
+        String placeholders = String.join(",", profileUuids.stream().map(ignored -> "?").toList());
+        jdbcTemplate.query(
+            """
+            SELECT farm_owner_profile_uuid, uuid, site_name,
+                COALESCE(farm_address, '') AS farm_address,
+                COALESCE(memo, '') AS memo
+            FROM public.labor_agency_farm_owner_site
+            WHERE farm_owner_profile_uuid IN (%s)
+                AND status = 'ACTIVE'
+                AND deleted_at IS NULL
+            ORDER BY farm_owner_profile_uuid, display_order, created_at
+            """.formatted(placeholders),
+            resultSet -> {
+                UUID profileUuid = resultSet.getObject("farm_owner_profile_uuid", UUID.class);
+                workSitesByProfileUuid.computeIfAbsent(profileUuid, ignored -> new ArrayList<>())
+                    .add(new ClientWorkSiteResponse(
+                        resultSet.getObject("uuid", UUID.class),
+                        resultSet.getString("site_name"),
+                        resultSet.getString("farm_address"),
+                        resultSet.getString("memo")
+                    ));
+            },
+            profileUuids.toArray()
+        );
+        return workSitesByProfileUuid;
     }
 
     private String formatTimeRange(LocalTime startTime, LocalTime endTime) {
@@ -1743,11 +1825,13 @@ public class JdbcScheduleDao implements ScheduleDao {
     private record ScheduleTaskProjection(
         UUID id,
         UUID workSiteId,
+        UUID clientWorkSiteUuid,
         UUID ownerUuid,
         String title,
         String ownerName,
         String siteName,
         String address,
+        String siteMemo,
         int requiredMen,
         int requiredWomen,
         String memo,
