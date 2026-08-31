@@ -1495,6 +1495,15 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       );
       setStatusMessage("작업자 배치가 저장되었습니다.");
     } catch (error) {
+      if (error instanceof WorkerSeparationConflictError) {
+        setSeparationWarningDraft({
+          conflicts: error.conflicts,
+          kind: "save",
+          taskId: task.id,
+        });
+        setStatusMessage("");
+        return;
+      }
       setStatusMessage(
         error instanceof Error
           ? error.message
@@ -1592,15 +1601,6 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
       );
       setStatusMessage("일정을 삭제했습니다.");
     } catch (error) {
-      if (error instanceof WorkerSeparationConflictError) {
-        setSeparationWarningDraft({
-          conflicts: error.conflicts,
-          kind: "save",
-          taskId: task.id,
-        });
-        setStatusMessage("");
-        return;
-      }
       setStatusMessage(
         error instanceof Error ? error.message : "일정을 삭제하지 못했습니다.",
       );
