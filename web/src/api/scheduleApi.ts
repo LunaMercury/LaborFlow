@@ -155,6 +155,7 @@ export async function fetchFarmOwners(
 ): Promise<FarmOwnerOption[]> {
   const response = await fetch(
     `${apiBaseUrl}/api/schedule/farm-owners?loginId=${encodeURIComponent(loginId)}&query=${encodeURIComponent(query)}`,
+    { cache: "no-store" },
   );
 
   if (!response.ok) {

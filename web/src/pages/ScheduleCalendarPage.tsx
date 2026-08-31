@@ -1216,6 +1216,11 @@ export function ScheduleCalendarPage({
     }
   };
 
+  const fetchLatestFarmOwnerOption = (farmOwner: FarmOwnerOption) =>
+    fetchFarmOwners(loginId, farmOwner.displayName).then((farmOwners) =>
+      farmOwners.find((option) => option.uuid === farmOwner.uuid),
+    );
+
   const selectFarmOwner = (farmOwner: FarmOwnerOption) => {
     setCreateDraft((currentDraft) => ({
       ...currentDraft,
@@ -1233,6 +1238,18 @@ export function ScheduleCalendarPage({
       title: farmOwner.recentTitle || "",
       workSites: farmOwner.workSites,
     }));
+    void fetchLatestFarmOwnerOption(farmOwner)
+      .then((latestFarmOwner) => {
+        if (!latestFarmOwner) {
+          return;
+        }
+        setCreateDraft((currentDraft) =>
+          currentDraft.ownerUuid === farmOwner.uuid
+            ? { ...currentDraft, workSites: latestFarmOwner.workSites }
+            : currentDraft,
+        );
+      })
+      .catch(() => undefined);
   };
 
   const useNewFarmOwner = (ownerName: string) => {
@@ -1263,6 +1280,18 @@ export function ScheduleCalendarPage({
           }
         : currentDraft,
     );
+    void fetchLatestFarmOwnerOption(farmOwner)
+      .then((latestFarmOwner) => {
+        if (!latestFarmOwner) {
+          return;
+        }
+        setEditDraft((currentDraft) =>
+          currentDraft && currentDraft.ownerUuid === farmOwner.uuid
+            ? { ...currentDraft, workSites: latestFarmOwner.workSites }
+            : currentDraft,
+        );
+      })
+      .catch(() => undefined);
   };
 
   const selectCreateWorkSite = (
