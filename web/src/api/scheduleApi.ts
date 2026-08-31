@@ -92,7 +92,7 @@ export type UpdateScheduleTaskPayload = {
   clientWorkSiteUuid: string | null;
   endTime: string | null;
   memo: string;
-  ownerUuid?: string | null;
+  ownerUuid: string;
   requiredMen: number;
   requiredWomen: number;
   siteMemo: string;

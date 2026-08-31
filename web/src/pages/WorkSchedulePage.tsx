@@ -1453,6 +1453,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
           clientWorkSiteUuid: task.clientWorkSiteUuid,
           endTime: detailDraft.endTime || null,
           memo: memoByTaskId[task.id] ?? task.memo,
+          ownerUuid: task.ownerUuid,
           requiredMen: requiredCounts.men,
           requiredWomen: requiredCounts.women,
           siteMemo: task.siteMemo,
