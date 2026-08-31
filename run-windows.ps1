@@ -261,7 +261,30 @@ function Start-Web {
 
 function Start-Core {
     Stop-TrackedService -Name "core" -DisplayName "Backend Core" -Port $ports.Core
-    Start-HiddenService -Name "core" -DisplayName "Backend Core" -WorkingDirectory (Join-Path $PSScriptRoot "backend-core") -FilePath (Join-Path $PSScriptRoot "backend-core\gradlew.bat") -ArgumentList @("bootRun") -Port $ports.Core
+    $previousGradleUserHome = $env:GRADLE_USER_HOME
+    try {
+        if ($env:LABORFLOW_CORE_GRADLE_USER_HOME) {
+            $env:GRADLE_USER_HOME = $env:LABORFLOW_CORE_GRADLE_USER_HOME
+        }
+        elseif ($env:LOCALAPPDATA) {
+            $env:GRADLE_USER_HOME = Join-Path $env:LOCALAPPDATA "LaborFlow\gradle\backend-core"
+        }
+        New-Item -ItemType Directory -Force -Path $env:GRADLE_USER_HOME | Out-Null
+        $coreBuildDir = if ($env:LABORFLOW_CORE_BUILD_DIR) {
+            $env:LABORFLOW_CORE_BUILD_DIR
+        }
+        elseif ($env:LOCALAPPDATA) {
+            Join-Path $env:LOCALAPPDATA "LaborFlow\build\backend-core"
+        }
+        else {
+            Join-Path $PSScriptRoot "backend-core\build"
+        }
+        New-Item -ItemType Directory -Force -Path $coreBuildDir | Out-Null
+        Start-HiddenService -Name "core" -DisplayName "Backend Core" -WorkingDirectory (Join-Path $PSScriptRoot "backend-core") -FilePath (Join-Path $PSScriptRoot "backend-core\gradlew.bat") -ArgumentList @("--no-daemon", "--console=plain", "-PlaborflowBuildDir=$coreBuildDir", "bootRun") -Port $ports.Core
+    }
+    finally {
+        $env:GRADLE_USER_HOME = $previousGradleUserHome
+    }
 }
 
 function Start-Fast {

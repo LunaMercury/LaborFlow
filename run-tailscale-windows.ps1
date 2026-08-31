@@ -328,7 +328,28 @@ function Start-LoggedProcess {
 function Get-CoreCommand {
     $dbPort = [int](Get-EnvOrDefault "DB_PORT" "55432")
     $redisPort = [int](Get-EnvOrDefault "REDIS_PORT" "56379")
+    $coreGradleUserHome = if ($env:LABORFLOW_CORE_GRADLE_USER_HOME) {
+        $env:LABORFLOW_CORE_GRADLE_USER_HOME
+    }
+    elseif ($env:LOCALAPPDATA) {
+        Join-Path $env:LOCALAPPDATA "LaborFlow\gradle\backend-core"
+    }
+    else {
+        Join-Path $root ".gradle-user-home\backend-core"
+    }
+    New-Item -ItemType Directory -Force -Path $coreGradleUserHome | Out-Null
+    $coreBuildDir = if ($env:LABORFLOW_CORE_BUILD_DIR) {
+        $env:LABORFLOW_CORE_BUILD_DIR
+    }
+    elseif ($env:LOCALAPPDATA) {
+        Join-Path $env:LOCALAPPDATA "LaborFlow\build\backend-core"
+    }
+    else {
+        Join-Path $root "backend-core\build"
+    }
+    New-Item -ItemType Directory -Force -Path $coreBuildDir | Out-Null
     return @(
+        "set `"GRADLE_USER_HOME=$coreGradleUserHome`"",
         "set SERVER_PORT=$script:corePort",
         "set SERVER_ADDRESS=$script:tailscaleIp",
         "set LABORFLOW_WEB_ALLOWED_ORIGINS=http://$script:tailscaleIp`:$script:webPort",
@@ -340,7 +361,7 @@ function Get-CoreCommand {
         "set SPRING_DATA_REDIS_PORT=$redisPort",
         "set SPRING_DATA_REDIS_PASSWORD=$($env:REDIS_PASSWORD)",
         "cd /d `"$root\backend-core`"",
-        "gradlew.bat bootRun"
+        "gradlew.bat --no-daemon --console=plain `"-PlaborflowBuildDir=$coreBuildDir`" bootRun"
     ) -join "&& "
 }
 
