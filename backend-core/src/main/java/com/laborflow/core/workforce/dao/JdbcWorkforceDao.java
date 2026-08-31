@@ -739,7 +739,18 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 account_holder_name,
                 verification_status
             )
-            VALUES (?, ?, ?, ?, CASE WHEN ? IS NULL THEN NULL ELSE encode(digest(?, 'sha256'), 'hex') END, ?, 'NOT_VERIFIED')
+            VALUES (
+                ?,
+                ?,
+                ?,
+                ?,
+                CASE
+                    WHEN CAST(? AS text) IS NULL THEN NULL
+                    ELSE encode(digest(CAST(? AS text), 'sha256'), 'hex')
+                END,
+                ?,
+                'NOT_VERIFIED'
+            )
             ON CONFLICT (worker_profile_uuid) DO UPDATE
             SET bank_code = EXCLUDED.bank_code,
                 bank_name = EXCLUDED.bank_name,

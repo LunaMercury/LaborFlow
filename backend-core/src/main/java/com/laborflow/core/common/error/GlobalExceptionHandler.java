@@ -5,6 +5,8 @@ import com.laborflow.core.workforce.application.DuplicateWorkerPhoneException;
 import com.laborflow.core.workforce.application.InvalidWorkerPhoneException;
 import com.laborflow.core.workforce.application.WorkerSeparationConflictException;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,6 +14,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(WorkerSeparationConflictException.class)
     public ResponseEntity<WorkerSeparationConflictResponse> handleWorkerSeparationConflictException(
         WorkerSeparationConflictException exception
@@ -67,6 +71,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgumentException(IllegalArgumentException exception) {
+        logger.warn("Request validation failed: {}", exception.getMessage());
         ApiErrorResponse response = new ApiErrorResponse(
             "BAD_REQUEST",
             "Request could not be processed.",
@@ -78,6 +83,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiErrorResponse> handleRuntimeException(RuntimeException exception) {
+        logger.error("Unhandled application exception", exception);
         ApiErrorResponse response = new ApiErrorResponse(
             "INTERNAL_SERVER_ERROR",
             "Request could not be processed.",
