@@ -46,7 +46,7 @@ if (Test-Path ".\gradlew.bat") {
         $coreBuildDir = $env:LABORFLOW_CORE_BUILD_DIR
     }
     elseif ($env:LOCALAPPDATA) {
-        $coreBuildDir = Join-Path $env:LOCALAPPDATA "LaborFlow\build\backend-core"
+        $coreBuildDir = Join-Path $env:LOCALAPPDATA "LaborFlow\build\backend-core-verify"
     }
     else {
         $coreBuildDir = Join-Path $coreRoot "build"

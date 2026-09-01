@@ -274,13 +274,40 @@ function Start-Core {
             $env:LABORFLOW_CORE_BUILD_DIR
         }
         elseif ($env:LOCALAPPDATA) {
-            Join-Path $env:LOCALAPPDATA "LaborFlow\build\backend-core"
+            Join-Path $env:LOCALAPPDATA "LaborFlow\build\backend-core-runtime"
         }
         else {
             Join-Path $PSScriptRoot "backend-core\build"
         }
         New-Item -ItemType Directory -Force -Path $coreBuildDir | Out-Null
-        Start-HiddenService -Name "core" -DisplayName "Backend Core" -WorkingDirectory (Join-Path $PSScriptRoot "backend-core") -FilePath (Join-Path $PSScriptRoot "backend-core\gradlew.bat") -ArgumentList @("--no-daemon", "--console=plain", "-PlaborflowBuildDir=$coreBuildDir", "bootRun") -Port $ports.Core
+        $coreWorkingDirectory = Join-Path $PSScriptRoot "backend-core"
+        $gradleWrapper = Join-Path $coreWorkingDirectory "gradlew.bat"
+        Push-Location $coreWorkingDirectory
+        try {
+            & $gradleWrapper --no-daemon --console=plain "-PlaborflowBuildDir=$coreBuildDir" bootJar
+        }
+        finally {
+            Pop-Location
+        }
+        if ($LASTEXITCODE -ne 0) {
+            throw "Backend Core build failed."
+        }
+
+        $coreJar = Get-ChildItem -LiteralPath (Join-Path $coreBuildDir "libs") -Filter "*.jar" |
+            Where-Object { $_.Name -notlike "*-plain.jar" } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+        if (-not $coreJar) {
+            throw "Backend Core executable jar was not found."
+        }
+
+        $javaExecutable = if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME "bin\java.exe"))) {
+            Join-Path $env:JAVA_HOME "bin\java.exe"
+        }
+        else {
+            (Get-Command "java.exe" -ErrorAction Stop).Source
+        }
+        Start-HiddenService -Name "core" -DisplayName "Backend Core" -WorkingDirectory $coreWorkingDirectory -FilePath $javaExecutable -ArgumentList @("-jar", $coreJar.FullName) -Port $ports.Core
     }
     finally {
         $env:GRADLE_USER_HOME = $previousGradleUserHome

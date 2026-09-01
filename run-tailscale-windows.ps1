@@ -342,14 +342,47 @@ function Get-CoreCommand {
         $env:LABORFLOW_CORE_BUILD_DIR
     }
     elseif ($env:LOCALAPPDATA) {
-        Join-Path $env:LOCALAPPDATA "LaborFlow\build\backend-core"
+        Join-Path $env:LOCALAPPDATA "LaborFlow\build\backend-core-runtime"
     }
     else {
         Join-Path $root "backend-core\build"
     }
     New-Item -ItemType Directory -Force -Path $coreBuildDir | Out-Null
+    $coreWorkingDirectory = Join-Path $root "backend-core"
+    $gradleWrapper = Join-Path $coreWorkingDirectory "gradlew.bat"
+    $previousGradleUserHome = $env:GRADLE_USER_HOME
+    try {
+        $env:GRADLE_USER_HOME = $coreGradleUserHome
+        Push-Location $coreWorkingDirectory
+        try {
+            & $gradleWrapper --no-daemon --console=plain "-PlaborflowBuildDir=$coreBuildDir" bootJar
+            $buildExitCode = $LASTEXITCODE
+        }
+        finally {
+            Pop-Location
+        }
+    }
+    finally {
+        $env:GRADLE_USER_HOME = $previousGradleUserHome
+    }
+    if ($buildExitCode -ne 0) {
+        throw "Backend Core build failed."
+    }
+
+    $coreJar = Get-ChildItem -LiteralPath (Join-Path $coreBuildDir "libs") -Filter "*.jar" |
+        Where-Object { $_.Name -notlike "*-plain.jar" } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+    if (-not $coreJar) {
+        throw "Backend Core executable jar was not found."
+    }
+    $javaExecutable = if ($env:JAVA_HOME -and (Test-Path -LiteralPath (Join-Path $env:JAVA_HOME "bin\java.exe"))) {
+        Join-Path $env:JAVA_HOME "bin\java.exe"
+    }
+    else {
+        (Get-Command "java.exe" -ErrorAction Stop).Source
+    }
     return @(
-        "set `"GRADLE_USER_HOME=$coreGradleUserHome`"",
         "set SERVER_PORT=$script:corePort",
         "set SERVER_ADDRESS=$script:tailscaleIp",
         "set LABORFLOW_WEB_ALLOWED_ORIGINS=http://$script:tailscaleIp`:$script:webPort",
@@ -361,7 +394,7 @@ function Get-CoreCommand {
         "set SPRING_DATA_REDIS_PORT=$redisPort",
         "set SPRING_DATA_REDIS_PASSWORD=$($env:REDIS_PASSWORD)",
         "cd /d `"$root\backend-core`"",
-        "gradlew.bat --no-daemon --console=plain `"-PlaborflowBuildDir=$coreBuildDir`" bootRun"
+        "`"$javaExecutable`" -jar `"$($coreJar.FullName)`""
     ) -join "&& "
 }
 

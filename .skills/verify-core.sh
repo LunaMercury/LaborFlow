@@ -14,7 +14,7 @@ chmod +x ./gradlew
 default_gradle_home="${XDG_CACHE_HOME:-${HOME}/.cache}/laborflow/gradle/backend-core"
 export GRADLE_USER_HOME="${LABORFLOW_CORE_GRADLE_USER_HOME:-${default_gradle_home}}"
 mkdir -p "$GRADLE_USER_HOME"
-default_build_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/laborflow/build/backend-core"
+default_build_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/laborflow/build/backend-core-verify"
 core_build_dir="${LABORFLOW_CORE_BUILD_DIR:-${default_build_dir}}"
 mkdir -p "$core_build_dir"
 
