@@ -12,7 +12,7 @@ import {
   fetchFarmOwners,
   fetchScheduleTasks,
   rescheduleScheduleRange,
-  updateScheduleTask,
+  updateScheduleTaskRange,
   type FarmOwnerOption,
   type ScheduleTask,
 } from "../api/scheduleApi";
@@ -1487,58 +1487,45 @@ export function ScheduleCalendarPage({
 
     setIsUpdatingSchedule(true);
     try {
-      const savedTask = await updateScheduleTask(
-        loginId,
-        editingEvent.sourceDates[0] ?? editingEvent.startDate,
-        editingEvent.taskIds[0],
-        {
-          address,
-          clientWorkSiteUuid: editDraft.clientWorkSiteUuid || null,
-          endTime: editDraft.endTime || null,
-          memo,
-          ownerUuid: editDraft.ownerUuid,
-          requiredMen,
-          requiredWomen,
-          siteMemo: editDraft.siteMemo.trim(),
-          siteName: editDraft.siteName.trim(),
-          startTime: editDraft.startTime || null,
-          title,
-          workTypeCodes: editDraft.workTypeCodes,
-        },
-      );
-
-      if (
-        editDraft.startDate !== editingEvent.startDate ||
-        editDraft.endDate !== editingEvent.endDate
-      ) {
-        await rescheduleScheduleRange(loginId, {
-          endDate: editDraft.endDate,
-          startDate: editDraft.startDate,
-          taskIds: editingEvent.taskIds,
-        });
-      }
+      await updateScheduleTaskRange(loginId, {
+        address,
+        clientWorkSiteUuid: editDraft.clientWorkSiteUuid || null,
+        endDate: editDraft.endDate,
+        endTime: editDraft.endTime || null,
+        memo,
+        ownerUuid: editDraft.ownerUuid,
+        requiredMen,
+        requiredWomen,
+        siteMemo: editDraft.siteMemo.trim(),
+        siteName: editDraft.siteName.trim(),
+        startDate: editDraft.startDate,
+        startTime: editDraft.startTime || null,
+        taskIds: editingEvent.taskIds,
+        title,
+        workTypeCodes: editDraft.workTypeCodes,
+      });
 
       setEvents((currentEvents) =>
         currentEvents.map((calendarEvent) =>
           calendarEvent.id === editingEvent.id
             ? {
                 ...calendarEvent,
-                address: savedTask.address,
-                clientWorkSiteUuid: savedTask.clientWorkSiteUuid,
+                address,
+                clientWorkSiteUuid: editDraft.clientWorkSiteUuid || null,
                 endDate: editDraft.endDate,
-                endTime: savedTask.endTime,
-                memo: savedTask.memo,
-                requiredMen: savedTask.requiredMen,
-                requiredWomen: savedTask.requiredWomen,
-                ownerName: savedTask.ownerName,
-                ownerUuid: savedTask.ownerUuid,
-                siteMemo: savedTask.siteMemo,
-                siteName: savedTask.siteName,
+                endTime: editDraft.endTime,
+                memo,
+                requiredMen,
+                requiredWomen,
+                ownerName: editDraft.ownerName,
+                ownerUuid: editDraft.ownerUuid,
+                siteMemo: editDraft.siteMemo.trim(),
+                siteName: editDraft.siteName.trim(),
                 startDate: editDraft.startDate,
-                startTime: savedTask.startTime,
-                timeRange: savedTask.timeRange,
-                title: savedTask.title,
-                workTypeCodes: savedTask.workTypeCodes,
+                startTime: editDraft.startTime,
+                timeRange: `${editDraft.startTime || "--:--"} - ${editDraft.endTime || "--:--"}`,
+                title,
+                workTypeCodes: editDraft.workTypeCodes,
               }
             : calendarEvent,
         ),

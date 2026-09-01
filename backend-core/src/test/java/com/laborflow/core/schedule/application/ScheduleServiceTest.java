@@ -15,6 +15,7 @@ import com.laborflow.core.schedule.dao.ScheduleDao;
 import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import com.laborflow.core.schedule.dto.UpdateScheduleTaskRequest;
+import com.laborflow.core.schedule.dto.UpdateScheduleTaskRangeRequest;
 import com.laborflow.core.workforce.application.WorkerSeparationConflictException;
 import com.laborflow.core.workforce.application.WorkforceService;
 import com.laborflow.core.workforce.dto.WorkerSeparationRuleResponse;
@@ -202,6 +203,84 @@ class ScheduleServiceTest {
         );
         verify(workforceService, never()).recordAssignmentSeparationOverrides(
             org.mockito.ArgumentMatchers.anyString(),
+            org.mockito.ArgumentMatchers.any(),
+            anyList()
+        );
+    }
+
+    @Test
+    void updatesEveryDayInGroupedScheduleBeforeReschedulingRange() {
+        UUID secondScheduleDayUuid = UUID.randomUUID();
+        when(scheduleDao.scheduleDayBelongsToAgencyOwner(agencyOwnerUuid, secondScheduleDayUuid))
+            .thenReturn(true);
+
+        service.updateTaskRange(
+            "test",
+            new UpdateScheduleTaskRangeRequest(
+                List.of(scheduleDayUuid, secondScheduleDayUuid),
+                LocalDate.of(2026, 9, 2),
+                LocalDate.of(2026, 9, 4),
+                ownerUuid,
+                "마늘 뽑기",
+                clientWorkSiteUuid,
+                "동문 농장",
+                "동문로 1",
+                "",
+                LocalTime.of(6, 30),
+                LocalTime.of(17, 30),
+                1,
+                1,
+                "",
+                List.of("GARLIC_HARVEST")
+            )
+        );
+
+        verify(scheduleDao).updateTask(
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            ownerUuid,
+            clientWorkSiteUuid,
+            "마늘 뽑기",
+            "동문 농장",
+            "동문로 1",
+            LocalTime.of(6, 30),
+            LocalTime.of(17, 30),
+            1,
+            1,
+            null
+        );
+        verify(scheduleDao).updateTask(
+            agencyOwnerUuid,
+            secondScheduleDayUuid,
+            ownerUuid,
+            clientWorkSiteUuid,
+            "마늘 뽑기",
+            "동문 농장",
+            "동문로 1",
+            LocalTime.of(6, 30),
+            LocalTime.of(17, 30),
+            1,
+            1,
+            null
+        );
+        verify(scheduleDao).replaceTaskWorkTypes(
+            agencyOwnerUuid,
+            scheduleDayUuid,
+            List.of("GARLIC_HARVEST")
+        );
+        verify(scheduleDao).replaceTaskWorkTypes(
+            agencyOwnerUuid,
+            secondScheduleDayUuid,
+            List.of("GARLIC_HARVEST")
+        );
+        verify(scheduleDao).rescheduleTaskRange(
+            agencyOwnerUuid,
+            List.of(scheduleDayUuid, secondScheduleDayUuid),
+            LocalDate.of(2026, 9, 2),
+            LocalDate.of(2026, 9, 4)
+        );
+        verify(scheduleDao, never()).replaceAssignments(
+            org.mockito.ArgumentMatchers.any(),
             org.mockito.ArgumentMatchers.any(),
             anyList()
         );

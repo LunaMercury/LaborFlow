@@ -118,6 +118,24 @@ export type RescheduleScheduleRangePayload = {
   taskIds: string[];
 };
 
+export type UpdateScheduleTaskRangePayload = {
+  address: string;
+  clientWorkSiteUuid: string | null;
+  endDate: string;
+  endTime: string | null;
+  memo: string;
+  ownerUuid: string;
+  requiredMen: number;
+  requiredWomen: number;
+  siteMemo: string;
+  siteName: string;
+  startDate: string;
+  startTime: string | null;
+  taskIds: string[];
+  title: string;
+  workTypeCodes: string[];
+};
+
 export type DeleteScheduleTaskRangePayload = {
   taskIds: string[];
 };
@@ -369,6 +387,24 @@ export async function rescheduleScheduleRange(
 
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response, "일정 기간을 저장하지 못했습니다."));
+  }
+}
+
+export async function updateScheduleTaskRange(
+  loginId: string,
+  payload: UpdateScheduleTaskRangePayload,
+): Promise<void> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/schedule/tasks/range/details?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+      method: "PUT",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "작업내용을 저장하지 못했습니다."));
   }
 }
 

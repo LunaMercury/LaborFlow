@@ -14,6 +14,7 @@ import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
 import com.laborflow.core.schedule.dto.ScheduleTaskListResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import com.laborflow.core.schedule.dto.UpdateScheduleTaskRequest;
+import com.laborflow.core.schedule.dto.UpdateScheduleTaskRangeRequest;
 import com.laborflow.core.workforce.application.WorkerSeparationConflictException;
 import com.laborflow.core.workforce.application.WorkforceService;
 import com.laborflow.core.workforce.dto.WorkerSeparationRuleResponse;
@@ -442,12 +443,60 @@ public class ScheduleService {
         LocalDate startDate = request.startDate();
         LocalDate endDate = request.endDate();
 
-        if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("Schedule range is invalid.");
+        validateScheduleRange(startDate, endDate);
+
+        scheduleDao.rescheduleTaskRange(agencyOwnerUuid, taskIds, startDate, endDate);
+    }
+
+    @Transactional
+    public void updateTaskRange(String loginId, UpdateScheduleTaskRangeRequest request) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        List<UUID> taskIds = normalizeTaskIds(request.taskIds());
+        LocalDate startDate = request.startDate();
+        LocalDate endDate = request.endDate();
+
+        validateScheduleRange(startDate, endDate);
+        int requiredMen = normalizeRequiredCount(request.requiredMen());
+        int requiredWomen = normalizeRequiredCount(request.requiredWomen());
+        validateTimeRange(request.startTime(), request.endTime());
+        List<String> workTypeCodes = normalizeWorkTypeCodes(request.workTypeCodes());
+
+        for (UUID taskId : taskIds) {
+            if (!scheduleDao.scheduleDayBelongsToAgencyOwner(agencyOwnerUuid, taskId)) {
+                throw new IllegalArgumentException("Schedule day was not found.");
+            }
         }
 
-        if (startDate.plusDays(369).isBefore(endDate)) {
-            throw new IllegalArgumentException("Schedule range is too long.");
+        UUID ownerUuid = request.ownerUuid();
+        if (ownerUuid == null || !scheduleDao.farmOwnerBelongsToAgencyOwner(agencyOwnerUuid, ownerUuid)) {
+            throw new IllegalArgumentException("Farm owner was not found.");
+        }
+
+        ClientWorkSiteResponse clientWorkSite = clientsService.resolveWorkSite(
+            loginId,
+            ownerUuid,
+            request.clientWorkSiteUuid(),
+            request.siteName(),
+            request.address(),
+            request.siteMemo()
+        );
+
+        for (UUID taskId : taskIds) {
+            scheduleDao.updateTask(
+                agencyOwnerUuid,
+                taskId,
+                ownerUuid,
+                clientWorkSite.uuid(),
+                normalizeRequiredText(request.title()),
+                normalizeOptionalText(clientWorkSite.siteName()),
+                normalizeRequiredText(clientWorkSite.farmAddress()),
+                request.startTime(),
+                request.endTime(),
+                requiredMen,
+                requiredWomen,
+                normalizeOptionalText(request.memo())
+            );
+            scheduleDao.replaceTaskWorkTypes(agencyOwnerUuid, taskId, workTypeCodes);
         }
 
         scheduleDao.rescheduleTaskRange(agencyOwnerUuid, taskIds, startDate, endDate);
@@ -532,6 +581,15 @@ public class ScheduleService {
         }
 
         return normalizedTaskIds;
+    }
+
+    private void validateScheduleRange(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("Schedule range is invalid.");
+        }
+        if (startDate.plusDays(369).isBefore(endDate)) {
+            throw new IllegalArgumentException("Schedule range is too long.");
+        }
     }
 
     private String normalizeRequiredText(String value) {

@@ -10,6 +10,7 @@ import com.laborflow.core.schedule.dto.ReplaceNoShowRequest;
 import com.laborflow.core.schedule.dto.ScheduleTaskListResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import com.laborflow.core.schedule.dto.UpdateScheduleTaskRequest;
+import com.laborflow.core.schedule.dto.UpdateScheduleTaskRangeRequest;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -149,6 +150,14 @@ public class ScheduleController {
         @RequestBody RescheduleTaskRangeRequest request
     ) {
         scheduleService.rescheduleTaskRange(loginId, request);
+    }
+
+    @PutMapping("/tasks/range/details")
+    public void updateTaskRange(
+        @RequestParam(defaultValue = "test") String loginId,
+        @RequestBody UpdateScheduleTaskRangeRequest request
+    ) {
+        scheduleService.updateTaskRange(loginId, request);
     }
 
     @DeleteMapping("/tasks/range")
