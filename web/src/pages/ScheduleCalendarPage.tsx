@@ -1493,7 +1493,6 @@ export function ScheduleCalendarPage({
         editingEvent.taskIds[0],
         {
           address,
-          assignments: editingEvent.assignments,
           clientWorkSiteUuid: editDraft.clientWorkSiteUuid || null,
           endTime: editDraft.endTime || null,
           memo,

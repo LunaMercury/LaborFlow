@@ -88,7 +88,7 @@ export type CreateScheduleTaskPayload = {
 export type UpdateScheduleTaskPayload = {
   acknowledgedSeparationRuleUuids?: string[];
   address: string;
-  assignments: ScheduleAssignment[];
+  assignments?: ScheduleAssignment[];
   clientWorkSiteUuid: string | null;
   endTime: string | null;
   memo: string;

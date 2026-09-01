@@ -159,6 +159,54 @@ class ScheduleServiceTest {
         );
     }
 
+    @Test
+    void updatesScheduleDetailsWithoutRevalidatingOrReplacingAssignments() {
+        ScheduleTaskResponse savedTask = savedTask();
+        when(scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate))
+            .thenReturn(Optional.of(savedTask));
+
+        ScheduleTaskResponse result = service.updateTask(
+            "test",
+            scheduleDayUuid,
+            workDate,
+            scheduleDetailsOnlyRequest()
+        );
+
+        assertThat(result).isSameAs(savedTask);
+        verify(scheduleDao, never()).lockAssignmentSeparationScope(
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.anyString()
+        );
+        verify(scheduleDao, never()).findNearbyAssignedWorkerProfileUuids(
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.anyString(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any()
+        );
+        verify(scheduleDao, never()).replaceAssignments(
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            anyList()
+        );
+        verify(workforceService, never()).findAssignmentSeparationConflicts(
+            org.mockito.ArgumentMatchers.anyString(),
+            anyList(),
+            anyList()
+        );
+        verify(workforceService, never()).recordAssignmentSeparationOverrides(
+            org.mockito.ArgumentMatchers.anyString(),
+            org.mockito.ArgumentMatchers.any(),
+            anyList()
+        );
+    }
+
     private UpdateScheduleTaskRequest request(List<UUID> acknowledgedRuleUuids) {
         return new UpdateScheduleTaskRequest(
             ownerUuid,
@@ -178,6 +226,25 @@ class ScheduleServiceTest {
                 new ScheduleAssignmentRequest(workerBUuid, "women", 1)
             ),
             acknowledgedRuleUuids
+        );
+    }
+
+    private UpdateScheduleTaskRequest scheduleDetailsOnlyRequest() {
+        return new UpdateScheduleTaskRequest(
+            ownerUuid,
+            "마늘 뽑기",
+            clientWorkSiteUuid,
+            "동문 농장",
+            "동문로 1",
+            "",
+            LocalTime.of(7, 0),
+            LocalTime.of(17, 0),
+            1,
+            1,
+            "",
+            List.of(),
+            null,
+            null
         );
     }
 

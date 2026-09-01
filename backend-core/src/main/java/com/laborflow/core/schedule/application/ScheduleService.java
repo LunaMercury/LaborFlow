@@ -134,10 +134,10 @@ public class ScheduleService {
         int requiredWomen = normalizeRequiredCount(request.requiredWomen());
         validateTimeRange(request.startTime(), request.endTime());
         List<String> workTypeCodes = normalizeWorkTypeCodes(request.workTypeCodes());
-        List<ScheduleAssignmentRequest> assignments = normalizeAssignments(
-            agencyOwnerUuid,
-            request.assignments()
-        );
+        boolean assignmentWriteRequested = request.assignments() != null;
+        List<ScheduleAssignmentRequest> assignments = assignmentWriteRequested
+            ? normalizeAssignments(agencyOwnerUuid, request.assignments())
+            : List.of();
         UUID ownerUuid = request.ownerUuid();
         if (ownerUuid == null || !scheduleDao.farmOwnerBelongsToAgencyOwner(agencyOwnerUuid, ownerUuid)) {
             throw new IllegalArgumentException("Farm owner was not found.");
@@ -152,43 +152,45 @@ public class ScheduleService {
             request.siteMemo()
         );
 
-        scheduleDao.lockAssignmentSeparationScope(
-            agencyOwnerUuid,
-            workDate,
-            ownerUuid,
-            clientWorkSite.uuid(),
-            clientWorkSite.farmAddress()
-        );
+        List<WorkerSeparationRuleResponse> separationConflicts = List.of();
+        if (assignmentWriteRequested) {
+            scheduleDao.lockAssignmentSeparationScope(
+                agencyOwnerUuid,
+                workDate,
+                ownerUuid,
+                clientWorkSite.uuid(),
+                clientWorkSite.farmAddress()
+            );
 
-        List<UUID> targetWorkerProfileUuids = assignments.stream()
-            .map(ScheduleAssignmentRequest::workerProfileUuid)
-            .toList();
-        List<UUID> nearbyWorkerProfileUuids = scheduleDao.findNearbyAssignedWorkerProfileUuids(
-            agencyOwnerUuid,
-            scheduleDayUuid,
-            workDate,
-            ownerUuid,
-            clientWorkSite.uuid(),
-            clientWorkSite.farmAddress(),
-            request.startTime(),
-            request.endTime()
-        );
-        List<WorkerSeparationRuleResponse> separationConflicts =
-            workforceService.findAssignmentSeparationConflicts(
+            List<UUID> targetWorkerProfileUuids = assignments.stream()
+                .map(ScheduleAssignmentRequest::workerProfileUuid)
+                .toList();
+            List<UUID> nearbyWorkerProfileUuids = scheduleDao.findNearbyAssignedWorkerProfileUuids(
+                agencyOwnerUuid,
+                scheduleDayUuid,
+                workDate,
+                ownerUuid,
+                clientWorkSite.uuid(),
+                clientWorkSite.farmAddress(),
+                request.startTime(),
+                request.endTime()
+            );
+            separationConflicts = workforceService.findAssignmentSeparationConflicts(
                 loginId,
                 targetWorkerProfileUuids,
                 nearbyWorkerProfileUuids
             );
-        Set<UUID> acknowledgedRuleUuids = new LinkedHashSet<>(
-            request.acknowledgedSeparationRuleUuids() == null
-                ? List.of()
-                : request.acknowledgedSeparationRuleUuids()
-        );
-        List<WorkerSeparationRuleResponse> unacknowledgedConflicts = separationConflicts.stream()
-            .filter(conflict -> !acknowledgedRuleUuids.contains(conflict.ruleUuid()))
-            .toList();
-        if (!unacknowledgedConflicts.isEmpty()) {
-            throw new WorkerSeparationConflictException(unacknowledgedConflicts);
+            Set<UUID> acknowledgedRuleUuids = new LinkedHashSet<>(
+                request.acknowledgedSeparationRuleUuids() == null
+                    ? List.of()
+                    : request.acknowledgedSeparationRuleUuids()
+            );
+            List<WorkerSeparationRuleResponse> unacknowledgedConflicts = separationConflicts.stream()
+                .filter(conflict -> !acknowledgedRuleUuids.contains(conflict.ruleUuid()))
+                .toList();
+            if (!unacknowledgedConflicts.isEmpty()) {
+                throw new WorkerSeparationConflictException(unacknowledgedConflicts);
+            }
         }
 
         scheduleDao.updateTask(
@@ -206,12 +208,14 @@ public class ScheduleService {
             normalizeOptionalText(request.memo())
         );
         scheduleDao.replaceTaskWorkTypes(agencyOwnerUuid, scheduleDayUuid, workTypeCodes);
-        scheduleDao.replaceAssignments(agencyOwnerUuid, scheduleDayUuid, assignments);
-        workforceService.recordAssignmentSeparationOverrides(
-            loginId,
-            scheduleDayUuid,
-            separationConflicts.stream().map(WorkerSeparationRuleResponse::ruleUuid).toList()
-        );
+        if (assignmentWriteRequested) {
+            scheduleDao.replaceAssignments(agencyOwnerUuid, scheduleDayUuid, assignments);
+            workforceService.recordAssignmentSeparationOverrides(
+                loginId,
+                scheduleDayUuid,
+                separationConflicts.stream().map(WorkerSeparationRuleResponse::ruleUuid).toList()
+            );
+        }
 
         return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
             .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
