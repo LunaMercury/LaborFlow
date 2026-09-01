@@ -169,21 +169,24 @@ public class JdbcScheduleDao implements ScheduleDao {
                 AND work_site.status = 'ACTIVE'
                 AND work_site.deleted_at IS NULL
                 AND (
-                    (? IS NOT NULL AND work_site.client_work_site_uuid = ?)
+                    (
+                        CAST(? AS uuid) IS NOT NULL
+                        AND work_site.client_work_site_uuid = CAST(? AS uuid)
+                    )
                     OR (
-                        ? IS NULL
+                        CAST(? AS uuid) IS NULL
                         AND work_site.owner_uuid = ?
                         AND lower(btrim(work_site.farm_address)) = lower(btrim(?))
                     )
                 )
                 AND (
-                    ? IS NULL
-                    OR ? IS NULL
+                    CAST(? AS time) IS NULL
+                    OR CAST(? AS time) IS NULL
                     OR COALESCE(schedule_day.daily_start_time, work_site.daily_start_time) IS NULL
                     OR COALESCE(schedule_day.daily_end_time, work_site.daily_end_time) IS NULL
                     OR (
-                        COALESCE(schedule_day.daily_start_time, work_site.daily_start_time) < ?
-                        AND ? < COALESCE(schedule_day.daily_end_time, work_site.daily_end_time)
+                        COALESCE(schedule_day.daily_start_time, work_site.daily_start_time) < CAST(? AS time)
+                        AND CAST(? AS time) < COALESCE(schedule_day.daily_end_time, work_site.daily_end_time)
                     )
                 )
             """,

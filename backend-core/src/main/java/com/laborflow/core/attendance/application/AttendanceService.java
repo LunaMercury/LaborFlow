@@ -83,6 +83,7 @@ public class AttendanceService {
             ? LocalDate.now(BUSINESS_TIME_ZONE)
             : workDate;
         return new AttendanceRecordListResponse(
+            attendanceDao.findScheduleDays(account.agencyOwnerUuid(), normalizedWorkDate),
             attendanceDao.findRecords(account.agencyOwnerUuid(), normalizedWorkDate)
         );
     }

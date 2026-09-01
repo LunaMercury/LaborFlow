@@ -41,8 +41,21 @@ export type AttendanceRecord = {
   workTitle: string;
 };
 
-type AttendanceRecordListResponse = {
+export type AttendanceTask = {
+  address: string;
+  ownerName: string;
+  plannedEndTime: string;
+  plannedStartTime: string;
+  scheduleDayUuid: string;
+  siteName: string;
+  taskNote: string;
+  workDate: string;
+  workTitle: string;
+};
+
+export type AttendanceRecordList = {
   records: AttendanceRecord[];
+  tasks: AttendanceTask[];
 };
 
 export type UpdateAttendanceRecordPayload = {
@@ -91,7 +104,7 @@ export async function confirmPlannedAttendance(
 export async function fetchAttendanceRecords(
   loginId: string,
   workDate: string,
-): Promise<AttendanceRecord[]> {
+): Promise<AttendanceRecordList> {
   const query = new URLSearchParams({ loginId, workDate });
   const response = await fetch(`${apiBaseUrl}/api/attendance/records?${query.toString()}`);
 
@@ -99,8 +112,7 @@ export async function fetchAttendanceRecords(
     throw new Error(await parseErrorMessage(response, "근태 기록을 불러오지 못했습니다."));
   }
 
-  const body = (await response.json()) as AttendanceRecordListResponse;
-  return body.records;
+  return (await response.json()) as AttendanceRecordList;
 }
 
 export async function updateAttendanceRecord(

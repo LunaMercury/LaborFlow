@@ -1,6 +1,7 @@
 package com.laborflow.core.attendance.dao;
 
 import com.laborflow.core.attendance.dto.AttendanceRecordResponse;
+import com.laborflow.core.attendance.dto.AttendanceScheduleDayResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -12,6 +13,8 @@ public interface AttendanceDao {
     Optional<AccountContext> findAccountContext(String loginId);
 
     Optional<AttendanceAssignmentContext> findAssignmentContext(UUID agencyOwnerUuid, UUID assignmentUuid);
+
+    List<AttendanceScheduleDayResponse> findScheduleDays(UUID agencyOwnerUuid, LocalDate workDate);
 
     List<AttendanceRecordResponse> findRecords(UUID agencyOwnerUuid, LocalDate workDate);
 

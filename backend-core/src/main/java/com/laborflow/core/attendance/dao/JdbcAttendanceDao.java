@@ -1,6 +1,7 @@
 package com.laborflow.core.attendance.dao;
 
 import com.laborflow.core.attendance.dto.AttendanceRecordResponse;
+import com.laborflow.core.attendance.dto.AttendanceScheduleDayResponse;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -77,6 +78,68 @@ public class JdbcAttendanceDao implements AttendanceDao {
             agencyOwnerUuid,
             assignmentUuid
         ).stream().findFirst();
+    }
+
+    @Override
+    public List<AttendanceScheduleDayResponse> findScheduleDays(UUID agencyOwnerUuid, LocalDate workDate) {
+        return jdbcTemplate.query(
+            """
+            SELECT
+                d.uuid AS schedule_day_uuid,
+                d.work_date,
+                COALESCE(
+                    NULLIF(fp.local_name, ''),
+                    NULLIF(fp.local_nickname, ''),
+                    NULLIF(fp.local_business_name, ''),
+                    NULLIF(fo.canonical_name, ''),
+                    NULLIF(fo.canonical_business_name, ''),
+                    ''
+                ) AS owner_name,
+                s.work_description AS work_title,
+                COALESCE(s.site_name, '') AS site_name,
+                s.farm_address,
+                COALESCE(att_summary.note, '') AS task_note,
+                COALESCE(d.daily_start_time, s.daily_start_time) AS planned_start_time,
+                COALESCE(d.daily_end_time, s.daily_end_time) AS planned_end_time
+            FROM public.work_schedule_day d
+            JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
+            JOIN public.farm_owner fo ON fo.uuid = s.owner_uuid
+            LEFT JOIN public.labor_agency_farm_owner_profile fp
+                ON fp.agency_owner_uuid = s.agency_owner_uuid
+                AND fp.farm_owner_uuid = s.owner_uuid
+                AND fp.status = 'ACTIVE'
+                AND fp.deleted_at IS NULL
+            LEFT JOIN public.work_schedule_day_attendance_summary att_summary
+                ON att_summary.schedule_day_uuid = d.uuid
+                AND att_summary.agency_owner_uuid = s.agency_owner_uuid
+                AND att_summary.deleted_at IS NULL
+            WHERE s.agency_owner_uuid = ?
+                AND d.work_date = ?
+                AND d.status = 'ACTIVE'
+                AND d.deleted_at IS NULL
+                AND s.status = 'ACTIVE'
+                AND s.deleted_at IS NULL
+                AND fo.status = 'ACTIVE'
+                AND fo.deleted_at IS NULL
+            ORDER BY
+                COALESCE(d.daily_start_time, s.daily_start_time) NULLS LAST,
+                s.work_description,
+                d.created_at
+            """,
+            (resultSet, rowNumber) -> new AttendanceScheduleDayResponse(
+                resultSet.getObject("schedule_day_uuid", UUID.class),
+                resultSet.getObject("work_date", LocalDate.class),
+                resultSet.getString("owner_name"),
+                resultSet.getString("work_title"),
+                resultSet.getString("site_name"),
+                resultSet.getString("farm_address"),
+                resultSet.getString("task_note"),
+                formatOptionalTime(resultSet.getObject("planned_start_time", LocalTime.class)),
+                formatOptionalTime(resultSet.getObject("planned_end_time", LocalTime.class))
+            ),
+            agencyOwnerUuid,
+            workDate
+        );
     }
 
     @Override

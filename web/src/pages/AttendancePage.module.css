@@ -293,6 +293,13 @@
   border-bottom: 0;
 }
 
+.attendanceTable .attendanceUnassignedCell {
+  color: #87939d;
+  font-size: 13px;
+  height: 58px;
+  text-align: center;
+}
+
 .attendanceTable input,
 .attendanceTable select {
   background: #ffffff;

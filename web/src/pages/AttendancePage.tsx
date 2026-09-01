@@ -6,6 +6,7 @@ import {
   updateAttendanceTaskNote,
   type AttendanceRecord,
   type AttendanceStatus,
+  type AttendanceTask,
   type AttendanceTimeEntryType,
 } from "../api/attendanceApi";
 import appStyles from "../App.module.css";
@@ -132,6 +133,7 @@ function isValidOptionalTime(value: string) {
 export function AttendancePage({ loginId }: AttendancePageProps) {
   const [selectedDate, setSelectedDate] = useState(todayValue);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [attendanceTasks, setAttendanceTasks] = useState<AttendanceTask[]>([]);
   const [drafts, setDrafts] = useState<Record<string, AttendanceDraft>>({});
   const [savedTaskNotes, setSavedTaskNotes] = useState<Record<string, string>>({});
   const [taskNoteDrafts, setTaskNoteDrafts] = useState<Record<string, string>>({});
@@ -151,7 +153,9 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
   const loadRecords = useCallback(async () => {
     setIsLoading(true);
     try {
-      const nextRecords = await fetchAttendanceRecords(loginId, selectedDate);
+      const response = await fetchAttendanceRecords(loginId, selectedDate);
+      const nextRecords = response.records;
+      setAttendanceTasks(response.tasks);
       setRecords(nextRecords);
       setDrafts(
         Object.fromEntries(
@@ -162,11 +166,12 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
         ),
       );
       const nextTaskNotes = Object.fromEntries(
-        nextRecords.map((record) => [record.scheduleDayUuid, record.taskNote || ""]),
+        response.tasks.map((task) => [task.scheduleDayUuid, task.taskNote || ""]),
       );
       setSavedTaskNotes(nextTaskNotes);
       setTaskNoteDrafts(nextTaskNotes);
     } catch (error) {
+      setAttendanceTasks([]);
       setRecords([]);
       setDrafts({});
       setSavedTaskNotes({});
@@ -219,14 +224,19 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
   );
 
   const groupedRecords = useMemo(() => {
-    const groups = new Map<string, AttendanceRecord[]>();
+    const recordsByScheduleDay = new Map<string, AttendanceRecord[]>();
     visibleRecords.forEach((record) => {
-      const group = groups.get(record.scheduleDayUuid) ?? [];
+      const group = recordsByScheduleDay.get(record.scheduleDayUuid) ?? [];
       group.push(record);
-      groups.set(record.scheduleDayUuid, group);
+      recordsByScheduleDay.set(record.scheduleDayUuid, group);
     });
-    return Array.from(groups.values());
-  }, [visibleRecords]);
+    return attendanceTasks
+      .map((task) => ({
+        records: recordsByScheduleDay.get(task.scheduleDayUuid) ?? [],
+        task,
+      }))
+      .filter((group) => statusFilter === "ALL" || group.records.length > 0);
+  }, [attendanceTasks, statusFilter, visibleRecords]);
 
   const summary = useMemo(
     () => ({
@@ -313,6 +323,11 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
       const response = await updateAttendanceTaskNote(loginId, scheduleDayUuid, note);
       setSavedTaskNotes((current) => ({ ...current, [scheduleDayUuid]: response.note }));
       setTaskNoteDrafts((current) => ({ ...current, [scheduleDayUuid]: response.note }));
+      setAttendanceTasks((current) => current.map((task) => (
+        task.scheduleDayUuid === scheduleDayUuid
+          ? { ...task, taskNote: response.note }
+          : task
+      )));
       setRecords((current) => current.map((record) => (
         record.scheduleDayUuid === scheduleDayUuid
           ? { ...record, taskNote: response.note }
@@ -458,14 +473,14 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
           </div>
         ) : groupedRecords.length === 0 ? (
           <div className={styles.attendanceEmpty}>
-            {records.length === 0
-              ? "선택한 날짜에 배정된 작업자가 없습니다."
+            {attendanceTasks.length === 0
+              ? "선택한 날짜에 등록된 일정이 없습니다."
               : "조건에 맞는 근태 기록이 없습니다."}
           </div>
         ) : (
           <div className={styles.attendanceTaskList}>
             {groupedRecords.map((group) => {
-              const task = group[0];
+              const { records: taskRecords, task } = group;
               return (
                 <section
                   className={styles.attendanceTaskSection}
@@ -482,7 +497,7 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                           .join(" · ")}
                       </p>
                     </div>
-                    <strong>{group.length}명</strong>
+                    <strong>{taskRecords.length}명</strong>
                   </header>
                   <div className={styles.attendanceTableFrame}>
                     <table className={styles.attendanceTable}>
@@ -501,7 +516,16 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                         </tr>
                       </thead>
                       <tbody>
-                        {group.map((record) => {
+                        {taskRecords.length === 0 ? (
+                          <tr>
+                            <td
+                              className={styles.attendanceUnassignedCell}
+                              colSpan={10}
+                            >
+                              배정된 작업자가 없습니다.
+                            </td>
+                          </tr>
+                        ) : taskRecords.map((record) => {
                           const draft =
                             drafts[record.assignmentUuid] ??
                             createDraft(record);
