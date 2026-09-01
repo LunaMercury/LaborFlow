@@ -2458,6 +2458,18 @@ export function ScheduleCalendarPage({
                       작업자 배치
                     </button>
                     <button
+                      className={styles.scheduleAssignmentButton}
+                      disabled={isUpdatingSchedule}
+                      type="button"
+                      onClick={() =>
+                        onNavigate(
+                          `/attendance?workDate=${encodeURIComponent(editingEvent.startDate)}`,
+                        )
+                      }
+                    >
+                      근태 관리
+                    </button>
+                    <button
                       className={styles.scheduleDeleteButton}
                       disabled={isUpdatingSchedule}
                       type="button"

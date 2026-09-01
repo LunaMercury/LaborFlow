@@ -69,6 +69,17 @@ function todayValue() {
   return toDateInputValue(new Date());
 }
 
+function initialAttendanceDate() {
+  const workDate = new URLSearchParams(window.location.search).get("workDate");
+  if (!workDate || !/^\d{4}-\d{2}-\d{2}$/.test(workDate)) {
+    return todayValue();
+  }
+
+  const [year, month, day] = workDate.split("-").map(Number);
+  const parsedDate = new Date(year, month - 1, day);
+  return toDateInputValue(parsedDate) === workDate ? workDate : todayValue();
+}
+
 function moveDate(dateValue: string, offset: number) {
   const [year, month, day] = dateValue.split("-").map(Number);
   return toDateInputValue(new Date(year, month - 1, day + offset));
@@ -131,7 +142,7 @@ function isValidOptionalTime(value: string) {
 }
 
 export function AttendancePage({ loginId }: AttendancePageProps) {
-  const [selectedDate, setSelectedDate] = useState(todayValue);
+  const [selectedDate, setSelectedDate] = useState(initialAttendanceDate);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceTasks, setAttendanceTasks] = useState<AttendanceTask[]>([]);
   const [drafts, setDrafts] = useState<Record<string, AttendanceDraft>>({});
