@@ -1,5 +1,5 @@
 .sectionLabel {
-  color: #176b5d;
+  color: var(--color-pages-schedule-calendar-page-section-label-text);
   font-size: 14px;
   font-weight: 700;
   margin: 0 0 12px;
@@ -17,10 +17,10 @@
 
 .calendarHeader {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-calendar-header-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-calendar-header-border);
   border-radius: 8px;
-  box-shadow: 0 12px 26px rgba(23, 32, 42, 0.06);
+  box-shadow: 0 12px 26px var(--color-pages-schedule-calendar-page-calendar-header-shadow-color);
   display: flex;
   gap: 16px;
   justify-content: space-between;
@@ -36,7 +36,7 @@
 }
 
 .calendarStatusMessage {
-  color: #687789;
+  color: var(--color-pages-schedule-calendar-page-calendar-status-message-text);
   font-size: 13px;
   font-weight: 800;
   margin: 7px 0 0;
@@ -53,10 +53,10 @@
 .calendarControls button {
   align-items: center;
   appearance: none;
-  background: #f4f8f7;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-calendar-controls-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-calendar-controls-border);
   border-radius: 8px;
-  color: #2f3f50;
+  color: var(--color-pages-schedule-calendar-page-calendar-controls-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -66,10 +66,10 @@
 }
 
 .calendarControls input {
-  background: #fbfcfe;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-calendar-controls-background-2);
+  border: 1px solid var(--color-pages-schedule-calendar-page-calendar-controls-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-pages-schedule-calendar-page-calendar-controls-text-2);
   font-size: 13px;
   font-weight: 800;
   min-height: 36px;
@@ -77,13 +77,13 @@
 }
 
 .calendarControls button:hover {
-  background: #edf6f3;
+  background: var(--color-pages-schedule-calendar-page-calendar-controls-hover-background);
   cursor: pointer;
 }
 
 .calendarControls input:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  border-color: var(--color-pages-schedule-calendar-page-calendar-controls-focus-border);
+  box-shadow: 0 0 0 3px var(--color-pages-schedule-calendar-page-calendar-controls-focus-shadow-color);
   outline: 0;
 }
 
@@ -97,8 +97,8 @@
 
 .calendarViewToggle {
   align-items: center;
-  background: #edf2f6;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-calendar-view-toggle-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-calendar-view-toggle-border);
   border-radius: 8px;
   display: flex;
   gap: 2px;
@@ -107,24 +107,24 @@
 }
 
 .calendarViewToggle button {
-  background: transparent;
+  background: var(--color-pages-schedule-calendar-page-calendar-view-toggle-background-2);
   border: 0;
-  color: #4f5d6b;
+  color: var(--color-pages-schedule-calendar-page-calendar-view-toggle-text);
   min-height: 30px;
   padding: 0 10px;
 }
 
 .calendarViewToggle button:hover {
-  background: #ffffff;
+  background: var(--color-pages-schedule-calendar-page-calendar-view-toggle-hover-background);
 }
 
 .calendarViewToggle .selectedCalendarViewButton {
-  background: #176b5d;
-  color: #ffffff;
+  background: var(--color-pages-schedule-calendar-page-calendar-view-toggle-selected-calendar-view-button-background);
+  color: var(--color-pages-schedule-calendar-page-calendar-view-toggle-selected-calendar-view-button-text);
 }
 
 .calendarViewToggle .selectedCalendarViewButton:hover {
-  background: #176b5d;
+  background: var(--color-pages-schedule-calendar-page-calendar-view-toggle-selected-calendar-view-button-hover-background);
 }
 
 .calendarMonthView {
@@ -138,8 +138,8 @@
 }
 
 .calendarWeekHeader {
-  background: #edf2f6;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-calendar-week-header-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-calendar-week-header-border);
   border-radius: 8px 8px 0 0;
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -148,8 +148,8 @@
 
 .calendarWeekHeader div {
   align-items: center;
-  border-right: 1px solid #d9e2ec;
-  color: #2f3f50;
+  border-right: 1px solid var(--color-pages-schedule-calendar-page-calendar-week-header-border-2);
+  color: var(--color-pages-schedule-calendar-page-calendar-week-header-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -162,8 +162,8 @@
 }
 
 .calendarGrid {
-  background: #c8d4e0;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-calendar-grid-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-calendar-grid-border);
   border-top: 0;
   display: flex;
   flex-direction: column;
@@ -173,7 +173,7 @@
 }
 
 .calendarWeekRow {
-  background: #ffffff;
+  background: var(--color-pages-schedule-calendar-page-calendar-week-row-background);
   display: flex;
   flex-direction: column;
   min-height: 142px;
@@ -181,7 +181,7 @@
 }
 
 .calendarWeekBackground {
-  border-bottom: 1px solid #e2e8ef;
+  border-bottom: 1px solid var(--color-pages-schedule-calendar-page-calendar-week-background-border);
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   min-height: 34px;
@@ -189,8 +189,8 @@
 
 .calendarDayCell {
   align-items: center;
-  background: #ffffff;
-  border-right: 1px solid #edf2f6;
+  background: var(--color-pages-schedule-calendar-page-calendar-day-cell-background);
+  border-right: 1px solid var(--color-pages-schedule-calendar-page-calendar-day-cell-border);
   display: flex;
   justify-content: flex-start;
   min-width: 0;
@@ -202,16 +202,16 @@
 }
 
 .outsideMonthDay {
-  background: #f8fafc;
+  background: var(--color-pages-schedule-calendar-page-outside-month-day-background);
 }
 
 .todayCalendarDay {
-  background: #d8e0e7;
+  background: var(--color-pages-schedule-calendar-page-today-calendar-day-background);
 }
 
 .calendarDayNumber {
   align-items: center;
-  color: #2f3f50;
+  color: var(--color-pages-schedule-calendar-page-calendar-day-number-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -220,23 +220,23 @@
 }
 
 .outsideMonthDay .calendarDayNumber {
-  color: #a8b3bf;
+  color: var(--color-pages-schedule-calendar-page-outside-month-day-calendar-day-number-text);
 }
 
 .todayCalendarDay .calendarDayNumber {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-today-calendar-day-calendar-day-number-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-today-calendar-day-calendar-day-number-border);
   border-radius: 999px;
-  color: #17202a;
+  color: var(--color-pages-schedule-calendar-page-today-calendar-day-calendar-day-number-text);
   min-width: 28px;
   padding: 0 8px;
 }
 
 .calendarOwnerGroupList {
   background:
-    linear-gradient(to right, rgba(200, 212, 224, 0.42) 1px, transparent 1px) 0
+    linear-gradient(to right, var(--color-pages-schedule-calendar-page-calendar-owner-group-list-background-1) 1px, var(--color-pages-schedule-calendar-page-calendar-owner-group-list-background-2) 1px) 0
       0 / calc(100% / 7) 100%,
-    #ffffff;
+    var(--color-pages-schedule-calendar-page-calendar-owner-group-list-background-3);
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -248,7 +248,7 @@
 }
 
 .calendarTodayColumn {
-  background: #d8e0e7;
+  background: var(--color-pages-schedule-calendar-page-calendar-today-column-background);
   bottom: 0;
   pointer-events: none;
   position: absolute;
@@ -279,10 +279,10 @@
 
 .calendarOwnerBar {
   align-items: center;
-  background: #e8f3ed;
-  border: 1px solid #a7cabd;
+  background: var(--color-pages-schedule-calendar-page-calendar-owner-bar-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-calendar-owner-bar-border);
   border-radius: 8px;
-  color: #176b5d;
+  color: var(--color-pages-schedule-calendar-page-calendar-owner-bar-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -296,10 +296,10 @@
 
 .calendarEventCard {
   align-items: stretch;
-  background: #fff7e7;
-  border: 1px solid #dfc48b;
+  background: var(--color-pages-schedule-calendar-page-calendar-event-card-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-calendar-event-card-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-pages-schedule-calendar-page-calendar-event-card-text);
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -319,8 +319,8 @@
 }
 
 .calendarEventCard:hover {
-  border-color: #8c6a25;
-  box-shadow: 0 8px 18px rgba(140, 106, 37, 0.14);
+  border-color: var(--color-pages-schedule-calendar-page-calendar-event-card-hover-border);
+  box-shadow: 0 8px 18px var(--color-pages-schedule-calendar-page-calendar-event-card-hover-shadow-color);
   cursor: grab;
 }
 
@@ -334,12 +334,12 @@
 }
 
 .calendarDragPreview {
-  background: rgba(255, 247, 231, 0.86);
-  border-color: #b78b34;
-  box-shadow: 0 14px 28px rgba(23, 32, 42, 0.18);
+  background: var(--color-pages-schedule-calendar-page-calendar-drag-preview-background);
+  border-color: var(--color-pages-schedule-calendar-page-calendar-drag-preview-border);
+  box-shadow: 0 14px 28px var(--color-pages-schedule-calendar-page-calendar-drag-preview-shadow-color);
   cursor: grabbing;
   left: 0;
-  outline: 2px solid rgba(23, 107, 93, 0.2);
+  outline: 2px solid var(--color-pages-schedule-calendar-page-calendar-drag-preview-focus-ring);
   pointer-events: none;
   position: fixed;
   top: 0;
@@ -361,7 +361,7 @@
 }
 
 .calendarEventTitle {
-  color: #17202a;
+  color: var(--color-pages-schedule-calendar-page-calendar-event-title-text);
   font-size: 13px;
   font-weight: 900;
   line-height: 1.25;
@@ -372,7 +372,7 @@
 
 .calendarEventMeta {
   align-items: flex-start;
-  color: #4f5d6b;
+  color: var(--color-pages-schedule-calendar-page-calendar-event-meta-text);
   display: flex;
   flex-direction: column;
   font-size: 11px;
@@ -390,7 +390,7 @@
 }
 
 .calendarEventMemo {
-  color: #687789;
+  color: var(--color-pages-schedule-calendar-page-calendar-event-memo-text);
   font-size: 11px;
   font-weight: 800;
   line-height: 1.25;
@@ -402,7 +402,7 @@
 .calendarResizeHandleStart,
 .calendarResizeHandleEnd {
   appearance: none;
-  background: transparent;
+  background: var(--color-pages-schedule-calendar-page-calendar-resize-handle-start-calendar-resize-handle-end-background);
   border: 0;
   border-radius: 0;
   bottom: 0;
@@ -429,7 +429,7 @@
 
 .calendarEmptyWeek {
   align-items: center;
-  color: #8b98a6;
+  color: var(--color-pages-schedule-calendar-page-calendar-empty-week-text);
   display: flex;
   font-size: 13px;
   font-weight: 800;
@@ -441,7 +441,7 @@
 
 .scheduleCreateOverlay {
   align-items: center;
-  background: rgba(23, 32, 42, 0.34);
+  background: var(--color-pages-schedule-calendar-page-schedule-create-overlay-background);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -452,10 +452,10 @@
 }
 
 .scheduleCreateModal {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-schedule-create-modal-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-schedule-create-modal-border);
   border-radius: 8px;
-  box-shadow: 0 24px 52px rgba(23, 32, 42, 0.22);
+  box-shadow: 0 24px 52px var(--color-pages-schedule-calendar-page-schedule-create-modal-shadow-color);
   display: flex;
   flex-direction: column;
   max-height: min(860px, calc(100vh - 56px));
@@ -467,7 +467,7 @@
 
 .scheduleCreateHeader {
   align-items: center;
-  border-bottom: 1px solid #e2e8ef;
+  border-bottom: 1px solid var(--color-pages-schedule-calendar-page-schedule-create-header-border);
   display: flex;
   flex-shrink: 0;
   gap: 12px;
@@ -477,7 +477,7 @@
 }
 
 .scheduleCreateHeader h2 {
-  color: #17202a;
+  color: var(--color-pages-schedule-calendar-page-schedule-create-header-text);
   font-size: 20px;
   line-height: 1.2;
   margin: 0;
@@ -519,34 +519,34 @@
 }
 
 .scheduleCreatePrimaryButton {
-  background: #176b5d;
-  border: 1px solid #176b5d;
-  color: #ffffff;
+  background: var(--color-pages-schedule-calendar-page-schedule-create-primary-button-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-schedule-create-primary-button-border);
+  color: var(--color-pages-schedule-calendar-page-schedule-create-primary-button-text);
 }
 
 .scheduleCreateSecondaryButton {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
-  color: #2f3f50;
+  background: var(--color-pages-schedule-calendar-page-schedule-create-secondary-button-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-schedule-create-secondary-button-border);
+  color: var(--color-pages-schedule-calendar-page-schedule-create-secondary-button-text);
 }
 
 .scheduleAssignmentButton {
-  background: #edf5f2;
-  border: 1px solid #9ebeb3;
-  color: #176b5d;
+  background: var(--color-pages-schedule-calendar-page-schedule-assignment-button-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-schedule-assignment-button-border);
+  color: var(--color-pages-schedule-calendar-page-schedule-assignment-button-text);
   margin-right: 12px;
 }
 
 .scheduleAssignmentButton:hover {
-  background: #e2efeb;
+  background: var(--color-pages-schedule-calendar-page-schedule-assignment-button-hover-background);
 }
 
 .scheduleDeleteButton {
   align-items: center;
-  background: #9a6427;
-  border: 1px solid #9a6427;
+  background: var(--color-pages-schedule-calendar-page-schedule-delete-button-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-schedule-delete-button-border);
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--color-pages-schedule-calendar-page-schedule-delete-button-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -556,7 +556,7 @@
 }
 
 .scheduleDeleteButton:hover {
-  background: #80511f;
+  background: var(--color-pages-schedule-calendar-page-schedule-delete-button-hover-background);
   cursor: pointer;
 }
 
@@ -590,17 +590,17 @@
 }
 
 .scheduleCreateBody label > span {
-  color: #2f3f50;
+  color: var(--color-pages-schedule-calendar-page-schedule-create-body-text);
   font-size: 13px;
   font-weight: 900;
 }
 
 .scheduleCreateBody input,
 .scheduleCreateBody textarea {
-  background: #fbfcfe;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-schedule-create-body-schedule-create-body-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-schedule-create-body-schedule-create-body-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-pages-schedule-calendar-page-schedule-create-body-schedule-create-body-text);
   font: inherit;
   font-size: 14px;
   font-weight: 700;
@@ -611,8 +611,8 @@
 
 .scheduleCreateBody input:focus,
 .scheduleCreateBody textarea:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  border-color: var(--color-pages-schedule-calendar-page-schedule-create-body-schedule-create-body-focus-focus-border);
+  box-shadow: 0 0 0 3px var(--color-pages-schedule-calendar-page-schedule-create-body-schedule-create-body-focus-focus-shadow-color);
   outline: 0;
 }
 
@@ -632,10 +632,10 @@
 }
 
 .scheduleOwnerDropdown {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-border);
   border-radius: 8px;
-  box-shadow: 0 16px 32px rgba(23, 32, 42, 0.14);
+  box-shadow: 0 16px 32px var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-shadow-color);
   display: flex;
   flex-direction: column;
   left: 0;
@@ -650,10 +650,10 @@
 
 .scheduleOwnerDropdown button {
   align-items: flex-start;
-  background: #ffffff;
+  background: var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-background);
   border: 0;
   border-radius: 7px;
-  color: #17202a;
+  color: var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-text);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -664,18 +664,18 @@
 }
 
 .scheduleOwnerDropdown button:hover {
-  background: #edf6f3;
+  background: var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-hover-background);
   cursor: pointer;
 }
 
 .scheduleOwnerDropdown .scheduleOwnerCreateOption {
-  border-top: 1px solid #dbe4ec;
-  color: #176b5d;
+  border-top: 1px solid var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-schedule-owner-create-option-border);
+  color: var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-schedule-owner-create-option-text);
 }
 
 .scheduleOwnerDropdown .scheduleWorkSiteSelectedOption {
-  background: #e6f1ee;
-  color: #176b5d;
+  background: var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-schedule-work-site-selected-option-background);
+  color: var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-schedule-work-site-selected-option-text);
 }
 
 .scheduleOwnerDropdown strong {
@@ -685,7 +685,7 @@
 
 .scheduleOwnerDropdown span,
 .scheduleOwnerEmpty {
-  color: #687789;
+  color: var(--color-pages-schedule-calendar-page-schedule-owner-dropdown-schedule-owner-empty-text);
   font-size: 12px;
   font-weight: 800;
 }
@@ -695,15 +695,15 @@
 }
 
 .scheduleOwnerHelp {
-  color: #687789;
+  color: var(--color-pages-schedule-calendar-page-schedule-owner-help-text);
   font-size: 12px;
   font-weight: 800;
   margin: -6px 0 0;
 }
 
 .scheduleCreateBody input.scheduleReadOnlyField {
-  background: #eef2f5;
-  color: #778493;
+  background: var(--color-pages-schedule-calendar-page-schedule-create-body-schedule-read-only-field-background);
+  color: var(--color-pages-schedule-calendar-page-schedule-create-body-schedule-read-only-field-text);
   cursor: not-allowed;
 }
 
@@ -720,10 +720,10 @@
 
 .scheduleAddressFieldRow > button {
   align-items: center;
-  background: #f4f8f7;
-  border: 1px solid #9ebeb3;
+  background: var(--color-pages-schedule-calendar-page-schedule-address-field-row-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-schedule-address-field-row-border);
   border-radius: 8px;
-  color: #176b5d;
+  color: var(--color-pages-schedule-calendar-page-schedule-address-field-row-text);
   display: flex;
   flex-shrink: 0;
   font-size: 13px;
@@ -734,7 +734,7 @@
 }
 
 .scheduleAddressFieldRow > button:hover:not(:disabled) {
-  background: #e6f1ee;
+  background: var(--color-pages-schedule-calendar-page-schedule-address-field-row-hover-disabled-not-background);
   cursor: pointer;
 }
 
@@ -745,10 +745,10 @@
 
 .scheduleEditSummary {
   align-items: center;
-  background: #f4f8f7;
-  border: 1px solid #d9e2ec;
+  background: var(--color-pages-schedule-calendar-page-schedule-edit-summary-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-schedule-edit-summary-border);
   border-radius: 8px;
-  color: #2f3f50;
+  color: var(--color-pages-schedule-calendar-page-schedule-edit-summary-text);
   display: flex;
   flex-wrap: wrap;
   font-size: 13px;
@@ -760,7 +760,7 @@
 }
 
 .scheduleEditSummary strong {
-  color: #176b5d;
+  color: var(--color-pages-schedule-calendar-page-schedule-edit-summary-text-2);
   font-weight: 900;
 }
 
@@ -776,8 +776,8 @@
 }
 
 .mobileAgendaDay {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-mobile-agenda-day-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-mobile-agenda-day-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -786,9 +786,9 @@
 }
 
 .todayAgendaDay {
-  background: #f4f7fa;
-  border-color: #aebdcb;
-  box-shadow: inset 0 0 0 1px rgba(174, 189, 203, 0.35);
+  background: var(--color-pages-schedule-calendar-page-today-agenda-day-background);
+  border-color: var(--color-pages-schedule-calendar-page-today-agenda-day-border);
+  box-shadow: inset 0 0 0 1px var(--color-pages-schedule-calendar-page-today-agenda-day-shadow-color);
 }
 
 .mobileAgendaDayHeader {
@@ -808,24 +808,24 @@
 }
 
 .mobileAgendaDayHeader strong {
-  color: #17202a;
+  color: var(--color-pages-schedule-calendar-page-mobile-agenda-day-header-text);
   font-size: 15px;
   font-weight: 900;
   line-height: 1.2;
 }
 
 .mobileAgendaDayHeader span {
-  color: #687789;
+  color: var(--color-pages-schedule-calendar-page-mobile-agenda-day-header-text-2);
   font-size: 12px;
   font-weight: 800;
 }
 
 .mobileAgendaDayHeader button {
   align-items: center;
-  background: #176b5d;
-  border: 1px solid #176b5d;
+  background: var(--color-pages-schedule-calendar-page-mobile-agenda-day-header-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-mobile-agenda-day-header-border);
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--color-pages-schedule-calendar-page-mobile-agenda-day-header-text-3);
   display: flex;
   flex: 0 0 auto;
   font-size: 18px;
@@ -847,10 +847,10 @@
 
 .mobileAgendaEventCard {
   align-items: stretch;
-  background: #fff7e7;
-  border: 1px solid #dfc48b;
+  background: var(--color-pages-schedule-calendar-page-mobile-agenda-event-card-background);
+  border: 1px solid var(--color-pages-schedule-calendar-page-mobile-agenda-event-card-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-pages-schedule-calendar-page-mobile-agenda-event-card-text);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -862,20 +862,20 @@
 }
 
 .mobileAgendaEventCard:hover {
-  border-color: #8c6a25;
-  box-shadow: 0 8px 18px rgba(140, 106, 37, 0.12);
+  border-color: var(--color-pages-schedule-calendar-page-mobile-agenda-event-card-hover-border);
+  box-shadow: 0 8px 18px var(--color-pages-schedule-calendar-page-mobile-agenda-event-card-hover-shadow-color);
   cursor: pointer;
 }
 
 .mobileAgendaOwner {
-  color: #176b5d;
+  color: var(--color-pages-schedule-calendar-page-mobile-agenda-owner-text);
   font-size: 12px;
   font-weight: 900;
   line-height: 1.2;
 }
 
 .mobileAgendaTitle {
-  color: #17202a;
+  color: var(--color-pages-schedule-calendar-page-mobile-agenda-title-text);
   font-size: 15px;
   font-weight: 900;
   line-height: 1.25;
@@ -884,21 +884,21 @@
 .mobileAgendaMeta,
 .mobileAgendaMemo,
 .mobileAgendaEmpty {
-  color: #4f5d6b;
+  color: var(--color-pages-schedule-calendar-page-mobile-agenda-memo-mobile-agenda-empty-text);
   font-size: 12px;
   font-weight: 800;
   line-height: 1.35;
 }
 
 .mobileAgendaMemo {
-  color: #687789;
+  color: var(--color-pages-schedule-calendar-page-mobile-agenda-memo-text);
   white-space: pre-wrap;
 }
 
 .mobileAgendaEmpty {
   align-items: center;
-  background: #f8fafc;
-  border: 1px dashed #c8d4e0;
+  background: var(--color-pages-schedule-calendar-page-mobile-agenda-empty-background);
+  border: 1px dashed var(--color-pages-schedule-calendar-page-mobile-agenda-empty-border);
   border-radius: 8px;
   display: flex;
   justify-content: center;

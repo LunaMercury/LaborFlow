@@ -23,14 +23,14 @@
 }
 
 .clientsHeading h1 {
-  color: #17202a;
+  color: var(--color-pages-clients-page-clients-heading-text);
   font-size: 32px;
   line-height: 1.22;
   margin: 0;
 }
 
 .clientsLead {
-  color: #687789;
+  color: var(--color-pages-clients-page-clients-lead-text);
   font-size: 13px;
   font-weight: 800;
   margin: 6px 0 0;
@@ -45,10 +45,10 @@
 
 .clientsSummary {
   align-items: center;
-  background: #e6f1ee;
-  border: 1px solid #c5ddd7;
+  background: var(--color-pages-clients-page-clients-summary-background);
+  border: 1px solid var(--color-pages-clients-page-clients-summary-border);
   border-radius: 999px;
-  color: #176b5d;
+  color: var(--color-pages-clients-page-clients-summary-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -61,10 +61,10 @@
 .addClientButton,
 .clientModalPrimaryButton {
   align-items: center;
-  background: #176b5d;
+  background: var(--color-pages-clients-page-add-client-button-client-modal-primary-button-background);
   border: 0;
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--color-pages-clients-page-add-client-button-client-modal-primary-button-text);
   display: flex;
   font-size: 14px;
   font-weight: 900;
@@ -91,8 +91,8 @@
 
 .clientListPanel,
 .clientDetailPanel {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-clients-page-client-list-panel-client-detail-panel-background);
+  border: 1px solid var(--color-pages-clients-page-client-list-panel-client-detail-panel-border);
   border-radius: 8px;
   min-width: 0;
 }
@@ -108,8 +108,8 @@
 .clientListHeader,
 .clientDetailHeader {
   align-items: center;
-  background: #f3f6f9;
-  border-bottom: 1px solid #d9e2ec;
+  background: var(--color-pages-clients-page-client-list-header-client-detail-header-background);
+  border-bottom: 1px solid var(--color-pages-clients-page-client-list-header-client-detail-header-border);
   border-radius: 7px 7px 0 0;
   display: flex;
   justify-content: space-between;
@@ -120,7 +120,7 @@
 .clientListHeader h2,
 .clientDetailHeader h2,
 .clientWorkSiteSection h3 {
-  color: #17202a;
+  color: var(--color-pages-clients-page-client-detail-header-client-work-site-section-text);
   font-size: 17px;
   line-height: 1.25;
   margin: 0;
@@ -137,7 +137,7 @@
 
 .clientListHeader span,
 .clientDetailHeader span {
-  color: #687789;
+  color: var(--color-pages-clients-page-client-list-header-client-detail-header-text);
   font-size: 13px;
   font-weight: 900;
 }
@@ -166,34 +166,34 @@
 }
 
 .editClientButton {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
-  color: #2f3f50;
+  background: var(--color-pages-clients-page-edit-client-button-background);
+  border: 1px solid var(--color-pages-clients-page-edit-client-button-border);
+  color: var(--color-pages-clients-page-edit-client-button-text);
 }
 
 .applyClientButton {
-  background: #fee2e2;
-  border: 1px solid #dc2626;
-  color: #991b1b;
+  background: var(--color-pages-clients-page-apply-client-button-background);
+  border: 1px solid var(--color-pages-clients-page-apply-client-button-border);
+  color: var(--color-pages-clients-page-apply-client-button-text);
 }
 
 .cancelClientButton {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
-  color: #2f3f50;
+  background: var(--color-pages-clients-page-cancel-client-button-background);
+  border: 1px solid var(--color-pages-clients-page-cancel-client-button-border);
+  color: var(--color-pages-clients-page-cancel-client-button-text);
 }
 
 .deleteClientButton {
-  background: #fff7ed;
-  border: 1px solid #d97706;
-  color: #92400e;
+  background: var(--color-pages-clients-page-delete-client-button-background);
+  border: 1px solid var(--color-pages-clients-page-delete-client-button-border);
+  color: var(--color-pages-clients-page-delete-client-button-text);
 }
 
 .editClientButton:hover,
 .applyClientButton:hover,
 .cancelClientButton:hover,
 .deleteClientButton:hover {
-  background: #f8fafc;
+  background: var(--color-pages-clients-page-cancel-client-button-delete-client-button-hover-hover-hover-hover-background);
   cursor: pointer;
 }
 
@@ -218,7 +218,7 @@
 .clientListItem {
   align-items: flex-start;
   appearance: none;
-  background: transparent;
+  background: var(--color-pages-clients-page-client-list-item-background);
   border: 0;
   border-radius: 7px;
   display: flex;
@@ -232,22 +232,22 @@
 }
 
 .clientListItem:hover {
-  background: #f3f8f7;
+  background: var(--color-pages-clients-page-client-list-item-hover-background);
   cursor: pointer;
 }
 
 .activeClientListItem {
-  background: #e6f1ee;
+  background: var(--color-pages-clients-page-active-client-list-item-background);
 }
 
 .clientListItem strong {
-  color: #17202a;
+  color: var(--color-pages-clients-page-client-list-item-text);
   font-size: 14px;
   font-weight: 900;
 }
 
 .clientListItem span {
-  color: #687789;
+  color: var(--color-pages-clients-page-client-list-item-text-2);
   font-size: 12px;
   font-weight: 800;
 }
@@ -279,8 +279,8 @@
 .clientMemoBox,
 .clientMemoEditBox,
 .clientWorkSiteCard {
-  background: #f8fafc;
-  border: 1px solid #e1e8ef;
+  background: var(--color-pages-clients-page-client-memo-edit-box-client-work-site-card-background);
+  border: 1px solid var(--color-pages-clients-page-client-memo-edit-box-client-work-site-card-border);
   border-radius: 8px;
 }
 
@@ -308,14 +308,14 @@
 .clientMemoBox span,
 .clientMemoEditBox span,
 .clientWorkSiteCard span {
-  color: #687789;
+  color: var(--color-pages-clients-page-client-memo-edit-box-client-work-site-card-text);
   font-size: 12px;
   font-weight: 900;
 }
 
 .clientInfoItem strong,
 .clientMemoBox p {
-  color: #17202a;
+  color: var(--color-pages-clients-page-client-info-item-client-memo-box-text);
   font-size: 14px;
   font-weight: 900;
   line-height: 1.45;
@@ -344,10 +344,10 @@
 
 .clientInfoEditItem input,
 .clientMemoEditBox textarea {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-clients-page-client-info-edit-item-client-memo-edit-box-background);
+  border: 1px solid var(--color-pages-clients-page-client-info-edit-item-client-memo-edit-box-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-pages-clients-page-client-info-edit-item-client-memo-edit-box-text);
   font-size: 14px;
   font-weight: 800;
   min-height: 38px;
@@ -365,12 +365,12 @@
 
 .clientInfoEditItem input:focus,
 .clientMemoEditBox textarea:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.12);
+  border-color: var(--color-pages-clients-page-client-info-edit-item-client-memo-edit-box-focus-focus-border);
+  box-shadow: 0 0 0 3px var(--color-pages-clients-page-client-info-edit-item-client-memo-edit-box-focus-focus-shadow-color);
 }
 
 .clientInlineError {
-  color: #b45309;
+  color: var(--color-pages-clients-page-client-inline-error-text);
   font-size: 12px;
   font-weight: 900;
   line-height: 1.45;
@@ -412,13 +412,13 @@
 }
 
 .clientWorkSiteCard strong {
-  color: #17202a;
+  color: var(--color-pages-clients-page-client-work-site-card-text);
   font-size: 14px;
   font-weight: 900;
 }
 
 .clientWorkSiteCard p {
-  color: #405266;
+  color: var(--color-pages-clients-page-client-work-site-card-text-2);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.45;
@@ -427,7 +427,7 @@
 
 .clientWorkSiteViewBody {
   align-items: flex-start;
-  border-top: 1px solid #d9e2ec;
+  border-top: 1px solid var(--color-pages-clients-page-client-work-site-view-body-border);
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -436,13 +436,13 @@
 }
 
 .clientWorkSiteViewBody span {
-  color: #405266;
+  color: var(--color-pages-clients-page-client-work-site-view-body-text);
   line-height: 1.5;
   white-space: pre-wrap;
 }
 
 .emptyClientWorkSite {
-  color: #8793a1;
+  color: var(--color-pages-clients-page-empty-client-work-site-text);
   font-size: 13px;
   font-weight: 800;
   margin: 0;
@@ -451,8 +451,8 @@
 
 .clientWorkSiteEditor {
   align-items: stretch;
-  background: #f4f8f7;
-  border: 1px solid #b9d3cc;
+  background: var(--color-pages-clients-page-client-work-site-editor-background);
+  border: 1px solid var(--color-pages-clients-page-client-work-site-editor-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -475,23 +475,23 @@
 }
 
 .clientWorkSiteEditorTitleRow strong {
-  color: #17202a;
+  color: var(--color-pages-clients-page-client-work-site-editor-title-row-text);
   font-size: 14px;
   font-weight: 900;
 }
 
 .clientWorkSiteEditorTitleRow span {
-  color: #687789;
+  color: var(--color-pages-clients-page-client-work-site-editor-title-row-text-2);
   font-size: 12px;
   font-weight: 800;
 }
 
 .clientWorkSiteEditor button {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #9ebeb3;
+  background: var(--color-pages-clients-page-client-work-site-editor-background-2);
+  border: 1px solid var(--color-pages-clients-page-client-work-site-editor-border-2);
   border-radius: 7px;
-  color: #176b5d;
+  color: var(--color-pages-clients-page-client-work-site-editor-text);
   display: flex;
   font-size: 12px;
   font-weight: 900;
@@ -502,7 +502,7 @@
 }
 
 .clientWorkSiteEditor button:hover {
-  background: #e6f1ee;
+  background: var(--color-pages-clients-page-client-work-site-editor-hover-background);
   cursor: pointer;
 }
 
@@ -514,16 +514,16 @@
 }
 
 .clientWorkSiteEditCard {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-clients-page-client-work-site-edit-card-background);
+  border: 1px solid var(--color-pages-clients-page-client-work-site-edit-card-border);
   border-radius: 8px;
   overflow: hidden;
 }
 
 .clientWorkSiteEditHeader {
   align-items: center;
-  background: #eef5f3;
-  border-bottom: 1px solid #d4e2de;
+  background: var(--color-pages-clients-page-client-work-site-edit-header-background);
+  border-bottom: 1px solid var(--color-pages-clients-page-client-work-site-edit-header-border);
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -532,7 +532,7 @@
 }
 
 .clientWorkSiteEditHeader > strong {
-  color: #17202a;
+  color: var(--color-pages-clients-page-client-work-site-edit-header-text);
   font-size: 13px;
   font-weight: 900;
   overflow-wrap: anywhere;
@@ -545,8 +545,8 @@
 }
 
 .clientWorkSiteEditor .clientWorkSiteRemoveButton {
-  border-color: #d4a16d;
-  color: #8a531f;
+  border-color: var(--color-pages-clients-page-client-work-site-editor-client-work-site-remove-button-border);
+  color: var(--color-pages-clients-page-client-work-site-editor-client-work-site-remove-button-text);
 }
 
 .clientWorkSiteEditBody {
@@ -568,17 +568,17 @@
 }
 
 .clientWorkSiteEditBody span {
-  color: #2f3f50;
+  color: var(--color-pages-clients-page-client-work-site-edit-body-text);
   font-size: 12px;
   font-weight: 900;
 }
 
 .clientWorkSiteEditBody input,
 .clientWorkSiteEditBody textarea {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-clients-page-client-work-site-edit-body-client-work-site-edit-body-background);
+  border: 1px solid var(--color-pages-clients-page-client-work-site-edit-body-client-work-site-edit-body-border);
   border-radius: 7px;
-  color: #17202a;
+  color: var(--color-pages-clients-page-client-work-site-edit-body-client-work-site-edit-body-text);
   font: inherit;
   font-size: 13px;
   font-weight: 800;
@@ -595,14 +595,14 @@
 
 .clientWorkSiteEditBody input:focus,
 .clientWorkSiteEditBody textarea:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.12);
+  border-color: var(--color-pages-clients-page-client-work-site-edit-body-client-work-site-edit-body-focus-focus-border);
+  box-shadow: 0 0 0 3px var(--color-pages-clients-page-client-work-site-edit-body-client-work-site-edit-body-focus-focus-shadow-color);
 }
 
 .emptyClientState,
 .emptyClientDetail {
   align-items: center;
-  color: #687789;
+  color: var(--color-pages-clients-page-empty-client-state-empty-client-detail-text);
   display: flex;
   font-size: 14px;
   font-weight: 800;
@@ -615,7 +615,7 @@
 
 .clientModalBackdrop {
   align-items: center;
-  background: rgba(15, 23, 42, 0.34);
+  background: var(--color-pages-clients-page-client-modal-backdrop-background);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -627,11 +627,11 @@
 .clientToast {
   align-items: center;
   animation: clientToastEnter 180ms ease-out;
-  background: #176b5d;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: var(--color-pages-clients-page-client-toast-background);
+  border: 1px solid var(--color-pages-clients-page-client-toast-border);
   border-radius: 8px;
-  box-shadow: 0 12px 30px rgba(23, 107, 93, 0.24);
-  color: #ffffff;
+  box-shadow: 0 12px 30px var(--color-pages-clients-page-client-toast-shadow-color);
+  color: var(--color-pages-clients-page-client-toast-text);
   display: flex;
   font-size: 14px;
   font-weight: 900;
@@ -657,9 +657,9 @@
 }
 
 .clientModalPanel {
-  background: #ffffff;
+  background: var(--color-pages-clients-page-client-modal-panel-background);
   border-radius: 8px;
-  box-shadow: 0 22px 70px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 22px 70px var(--color-pages-clients-page-client-modal-panel-shadow-color);
   display: flex;
   flex-direction: column;
   max-height: min(760px, calc(100vh - 48px));
@@ -670,8 +670,8 @@
 
 .clientModalHeader {
   align-items: center;
-  background: #ffffff;
-  border-bottom: 1px solid #e1e8ef;
+  background: var(--color-pages-clients-page-client-modal-header-background);
+  border-bottom: 1px solid var(--color-pages-clients-page-client-modal-header-border);
   display: flex;
   justify-content: space-between;
   min-height: 64px;
@@ -679,7 +679,7 @@
 }
 
 .clientModalHeader h2 {
-  color: #17202a;
+  color: var(--color-pages-clients-page-client-modal-header-text);
   font-size: 21px;
   line-height: 1.25;
   margin: 0;
@@ -695,10 +695,10 @@
 .clientModalSecondaryButton {
   align-items: center;
   appearance: none;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-clients-page-client-modal-secondary-button-background);
+  border: 1px solid var(--color-pages-clients-page-client-modal-secondary-button-border);
   border-radius: 8px;
-  color: #2f3f50;
+  color: var(--color-pages-clients-page-client-modal-secondary-button-text);
   display: flex;
   font-size: 14px;
   font-weight: 900;
@@ -709,7 +709,7 @@
 }
 
 .clientModalSecondaryButton:hover {
-  background: #f8fafc;
+  background: var(--color-pages-clients-page-client-modal-secondary-button-hover-background);
   cursor: pointer;
 }
 
@@ -730,8 +730,8 @@
 
 .callImportBox {
   align-items: flex-start;
-  background: #f8fafc;
-  border: 1px solid #d9e2ec;
+  background: var(--color-pages-clients-page-call-import-box-background);
+  border: 1px solid var(--color-pages-clients-page-call-import-box-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -749,7 +749,7 @@
 }
 
 .callImportTitle {
-  color: #17202a;
+  color: var(--color-pages-clients-page-call-import-title-text);
   font-size: 14px;
   font-weight: 900;
 }
@@ -757,10 +757,10 @@
 .callImportButton {
   align-items: center;
   appearance: none;
-  background: #ffffff;
-  border: 1px solid #176b5d;
+  background: var(--color-pages-clients-page-call-import-button-background);
+  border: 1px solid var(--color-pages-clients-page-call-import-button-border);
   border-radius: 8px;
-  color: #176b5d;
+  color: var(--color-pages-clients-page-call-import-button-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -771,18 +771,18 @@
 }
 
 .callImportButton:hover:not(:disabled) {
-  background: #e6f1ee;
+  background: var(--color-pages-clients-page-call-import-button-hover-disabled-not-background);
   cursor: pointer;
 }
 
 .callImportButton:disabled {
-  border-color: #c8d4e0;
-  color: #8b98a7;
+  border-color: var(--color-pages-clients-page-call-import-button-disabled-border);
+  color: var(--color-pages-clients-page-call-import-button-disabled-text);
   cursor: not-allowed;
 }
 
 .callImportDescription {
-  color: #687789;
+  color: var(--color-pages-clients-page-call-import-description-text);
   font-size: 12px;
   font-weight: 800;
   line-height: 1.45;
@@ -810,7 +810,7 @@
 
 .clientFormField label,
 .clientFormWideField label {
-  color: #2f3f50;
+  color: var(--color-pages-clients-page-client-form-field-client-form-wide-field-text);
   font-size: 13px;
   font-weight: 900;
 }
@@ -818,10 +818,10 @@
 .clientFormField input,
 .clientFormWideField input,
 .clientFormWideField textarea {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-clients-page-client-form-wide-field-client-form-wide-field-background);
+  border: 1px solid var(--color-pages-clients-page-client-form-wide-field-client-form-wide-field-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-pages-clients-page-client-form-wide-field-client-form-wide-field-text);
   font-size: 14px;
   font-weight: 800;
   min-height: 42px;
@@ -840,8 +840,8 @@
 .clientFormField input:focus,
 .clientFormWideField input:focus,
 .clientFormWideField textarea:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.12);
+  border-color: var(--color-pages-clients-page-client-form-wide-field-client-form-wide-field-focus-focus-focus-border);
+  box-shadow: 0 0 0 3px var(--color-pages-clients-page-client-form-wide-field-client-form-wide-field-focus-focus-focus-shadow-color);
 }
 
 .clientFormHelp,
@@ -853,15 +853,15 @@
 }
 
 .clientFormHelp {
-  color: #687789;
+  color: var(--color-pages-clients-page-client-form-help-text);
 }
 
 .clientModalError {
-  color: #b45309;
+  color: var(--color-pages-clients-page-client-modal-error-text);
 }
 
 .requiredMark {
-  color: #d0473e;
+  color: var(--color-pages-clients-page-required-mark-text);
 }
 
 @media (max-width: 860px) {

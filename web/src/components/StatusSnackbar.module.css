@@ -1,12 +1,12 @@
 .snackbar {
   align-items: center;
   animation: snackbarEnter 180ms ease-out;
-  background: #24343a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--color-components-status-snackbar-snackbar-background);
+  border: 1px solid var(--color-components-status-snackbar-snackbar-border);
   border-radius: 7px;
   bottom: max(20px, env(safe-area-inset-bottom));
-  box-shadow: 0 14px 32px rgba(23, 32, 42, 0.24);
-  color: #ffffff;
+  box-shadow: 0 14px 32px var(--color-components-status-snackbar-snackbar-shadow-color);
+  color: var(--color-components-status-snackbar-snackbar-text);
   display: flex;
   gap: 14px;
   justify-content: space-between;
@@ -29,9 +29,9 @@
 .snackbar button {
   align-items: center;
   appearance: none;
-  background: transparent;
+  background: var(--color-components-status-snackbar-snackbar-background-2);
   border: 0;
-  color: #dfe9e6;
+  color: var(--color-components-status-snackbar-snackbar-text-2);
   display: flex;
   flex: 0 0 28px;
   font-size: 20px;
@@ -42,7 +42,7 @@
 }
 
 .snackbar button:hover {
-  color: #ffffff;
+  color: var(--color-components-status-snackbar-snackbar-hover-text);
   cursor: pointer;
 }
 

@@ -1,5 +1,5 @@
 .sectionLabel {
-  color: #176b5d;
+  color: var(--color-pages-forms-page-section-label-text);
   font-size: 14px;
   font-weight: 700;
   margin: 0 0 12px;
@@ -23,14 +23,14 @@
 }
 
 .formsHeader h1 {
-  color: #17202a;
+  color: var(--color-pages-forms-page-forms-header-text);
   font-size: 32px;
   line-height: 1.22;
   margin: 0;
 }
 
 .formsDescription {
-  color: #4f5d6b;
+  color: var(--color-pages-forms-page-forms-description-text);
   font-size: 14px;
   font-weight: 800;
   line-height: 1.55;
@@ -40,8 +40,8 @@
 
 .formList {
   align-items: stretch;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-forms-page-form-list-background);
+  border: 1px solid var(--color-pages-forms-page-form-list-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -52,7 +52,7 @@
 
 .formItem {
   align-items: center;
-  border-bottom: 1px solid #e5ebf1;
+  border-bottom: 1px solid var(--color-pages-forms-page-form-item-border);
   display: flex;
   gap: 16px;
   justify-content: space-between;
@@ -73,7 +73,7 @@
 }
 
 .formTextGroup h2 {
-  color: #17202a;
+  color: var(--color-pages-forms-page-form-text-group-text);
   font-size: 17px;
   font-weight: 900;
   line-height: 1.25;
@@ -81,7 +81,7 @@
 }
 
 .formTextGroup p {
-  color: #687789;
+  color: var(--color-pages-forms-page-form-text-group-text-2);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.45;
@@ -91,10 +91,10 @@
 .formDownloadButton {
   align-items: center;
   appearance: none;
-  background: #176b5d;
+  background: var(--color-pages-forms-page-form-download-button-background);
   border: 0;
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--color-pages-forms-page-form-download-button-text);
   display: flex;
   flex: 0 0 auto;
   font-size: 14px;

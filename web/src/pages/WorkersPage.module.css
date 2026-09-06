@@ -1,5 +1,5 @@
 .sectionLabel {
-  color: #176b5d;
+  color: var(--color-pages-workers-page-section-label-text);
   font-size: 14px;
   font-weight: 700;
   margin: 0 0 12px;
@@ -47,13 +47,13 @@
 }
 
 .workersCountText {
-  color: #687789;
+  color: var(--color-pages-workers-page-workers-count-text-text);
   font-size: 13px;
   font-weight: 800;
 }
 
 .workersStatusMessage {
-  color: #687789;
+  color: var(--color-pages-workers-page-workers-status-message-text);
   font-size: 13px;
   font-weight: 800;
   margin: 6px 0 0;
@@ -68,8 +68,8 @@
 
 .workerSearchPanel {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-workers-page-worker-search-panel-background);
+  border: 1px solid var(--color-pages-workers-page-worker-search-panel-border);
   border-radius: 8px;
   display: flex;
   gap: 12px;
@@ -89,17 +89,17 @@
 }
 
 .workerSearchField span {
-  color: #2f3f50;
+  color: var(--color-pages-workers-page-worker-search-field-text);
   font-size: 13px;
   font-weight: 900;
   white-space: nowrap;
 }
 
 .workerSearchField input {
-  background: #fbfcfe;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-workers-page-worker-search-field-background);
+  border: 1px solid var(--color-pages-workers-page-worker-search-field-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-pages-workers-page-worker-search-field-text-2);
   font-size: 14px;
   min-height: 38px;
   min-width: 0;
@@ -108,13 +108,13 @@
 }
 
 .workerSearchField input:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  border-color: var(--color-pages-workers-page-worker-search-field-focus-border);
+  box-shadow: 0 0 0 3px var(--color-pages-workers-page-worker-search-field-focus-shadow-color);
   outline: 0;
 }
 
 .workerSearchCount {
-  color: #687789;
+  color: var(--color-pages-workers-page-worker-search-count-text);
   flex-shrink: 0;
   font-size: 13px;
   font-weight: 900;
@@ -123,8 +123,8 @@
 
 .workerListControls {
   align-items: center;
-  background: #fbfcfe;
-  border: 1px solid #d9e2ec;
+  background: var(--color-pages-workers-page-worker-list-controls-background);
+  border: 1px solid var(--color-pages-workers-page-worker-list-controls-border);
   border-radius: 8px;
   display: flex;
   flex-wrap: wrap;
@@ -144,7 +144,7 @@
 }
 
 .workerControlGroup > span {
-  color: #2f3f50;
+  color: var(--color-pages-workers-page-worker-control-group-text);
   font-size: 13px;
   font-weight: 900;
   white-space: nowrap;
@@ -174,16 +174,16 @@
 }
 
 .workerControlButton {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
-  color: #4f5d6b;
+  background: var(--color-pages-workers-page-worker-control-button-background);
+  border: 1px solid var(--color-pages-workers-page-worker-control-button-border);
+  color: var(--color-pages-workers-page-worker-control-button-text);
 }
 
 .activeWorkerControlButton,
 .workerDirectionButton {
-  background: #eef6f4;
-  border: 1px solid #176b5d;
-  color: #176b5d;
+  background: var(--color-pages-workers-page-active-worker-control-button-worker-direction-button-background);
+  border: 1px solid var(--color-pages-workers-page-active-worker-control-button-worker-direction-button-border);
+  color: var(--color-pages-workers-page-active-worker-control-button-worker-direction-button-text);
 }
 
 .workerControlButton:hover,
@@ -195,18 +195,18 @@
 
 .workerControlButton:disabled,
 .activeWorkerControlButton:disabled {
-  background: #edf2f6;
-  border-color: #d9e2ec;
-  color: #a8b3bf;
+  background: var(--color-pages-workers-page-worker-control-button-active-worker-control-button-disabled-disabled-background);
+  border-color: var(--color-pages-workers-page-worker-control-button-active-worker-control-button-disabled-disabled-border);
+  color: var(--color-pages-workers-page-worker-control-button-active-worker-control-button-disabled-disabled-text);
   cursor: default;
   filter: none;
 }
 
 .workerControlGroup select {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-workers-page-worker-control-group-background);
+  border: 1px solid var(--color-pages-workers-page-worker-control-group-border);
   border-radius: 8px;
-  color: #2f3f50;
+  color: var(--color-pages-workers-page-worker-control-group-text);
   font-size: 13px;
   font-weight: 800;
   min-height: 32px;
@@ -214,17 +214,17 @@
 }
 
 .workerControlGroup select:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  border-color: var(--color-pages-workers-page-worker-control-group-focus-border);
+  box-shadow: 0 0 0 3px var(--color-pages-workers-page-worker-control-group-focus-shadow-color);
   outline: 0;
 }
 
 .goToTeamsButton {
   align-items: center;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
+  background: var(--color-pages-workers-page-go-to-teams-button-background);
+  border: 1px solid var(--color-pages-workers-page-go-to-teams-button-border);
   border-radius: 8px;
-  color: #3446a3;
+  color: var(--color-pages-workers-page-go-to-teams-button-text);
   display: flex;
   font-size: 14px;
   font-weight: 900;
@@ -234,16 +234,16 @@
 }
 
 .goToTeamsButton:hover {
-  background: #e1e8ff;
+  background: var(--color-pages-workers-page-go-to-teams-button-hover-background);
   cursor: pointer;
 }
 
 .registerWorkerButton {
   align-items: center;
-  background: #176b5d;
+  background: var(--color-pages-workers-page-register-worker-button-background);
   border: 0;
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--color-pages-workers-page-register-worker-button-text);
   display: flex;
   font-size: 14px;
   font-weight: 900;
@@ -259,8 +259,8 @@
 
 .workerTableFrame {
   align-items: stretch;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-workers-page-worker-table-frame-background);
+  border: 1px solid var(--color-pages-workers-page-worker-table-frame-border);
   border-radius: 8px;
   display: flex;
   justify-content: flex-start;
@@ -270,7 +270,7 @@
 
 .workerPaginationBar {
   align-items: center;
-  color: #687789;
+  color: var(--color-pages-workers-page-worker-pagination-bar-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -289,10 +289,10 @@
 .workerPaginationActions button {
   align-items: center;
   appearance: none;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-workers-page-worker-pagination-actions-background);
+  border: 1px solid var(--color-pages-workers-page-worker-pagination-actions-border);
   border-radius: 8px;
-  color: #2f3f50;
+  color: var(--color-pages-workers-page-worker-pagination-actions-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -308,8 +308,8 @@
 }
 
 .workerPaginationActions button:disabled {
-  background: #edf2f6;
-  color: #a8b3bf;
+  background: var(--color-pages-workers-page-worker-pagination-actions-disabled-background);
+  color: var(--color-pages-workers-page-worker-pagination-actions-disabled-text);
   cursor: default;
   filter: none;
 }
@@ -324,7 +324,7 @@
 
 .workerTable th,
 .workerTable td {
-  border: 1px solid #d9e2ec;
+  border: 1px solid var(--color-pages-workers-page-worker-table-worker-table-border);
   font-size: 14px;
   height: 44px;
   padding: 0 14px;
@@ -333,8 +333,8 @@
 }
 
 .workerTable th {
-  background: #edf2f6;
-  color: #2f3f50;
+  background: var(--color-pages-workers-page-worker-table-background);
+  color: var(--color-pages-workers-page-worker-table-text);
   font-weight: 900;
   position: sticky;
   top: 0;
@@ -342,16 +342,16 @@
 }
 
 .workerTable td {
-  background: #ffffff;
-  color: #17202a;
+  background: var(--color-pages-workers-page-worker-table-background-2);
+  color: var(--color-pages-workers-page-worker-table-text-2);
 }
 
 .workerTable tbody tr:nth-child(even) td {
-  background: #f8fafc;
+  background: var(--color-pages-workers-page-worker-table-nth-child-background);
 }
 
 .workerTable tbody tr:hover td {
-  background: #eef6f4;
+  background: var(--color-pages-workers-page-worker-table-hover-background);
 }
 
 .workerTable th:nth-child(1),
@@ -380,7 +380,7 @@
 }
 
 .workerPhoneText {
-  color: #2f3f50;
+  color: var(--color-pages-workers-page-worker-phone-text-text);
   display: inline-flex;
   font-size: 14px;
   font-weight: 800;

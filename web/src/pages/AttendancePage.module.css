@@ -23,10 +23,10 @@
 }
 
 .confirmPlannedButton {
-  background: #176b5d;
-  border: 1px solid #176b5d;
+  background: var(--color-pages-attendance-page-confirm-planned-button-background);
+  border: 1px solid var(--color-pages-attendance-page-confirm-planned-button-border);
   border-radius: 6px;
-  color: #ffffff;
+  color: var(--color-pages-attendance-page-confirm-planned-button-text);
   font-size: 14px;
   font-weight: 800;
   min-height: 38px;
@@ -34,20 +34,20 @@
 }
 
 .confirmPlannedButton:hover:not(:disabled) {
-  background: #10594e;
+  background: var(--color-pages-attendance-page-confirm-planned-button-hover-disabled-not-background);
   cursor: pointer;
 }
 
 .confirmPlannedButton:disabled {
-  background: #c9d1d8;
-  border-color: #c9d1d8;
+  background: var(--color-pages-attendance-page-confirm-planned-button-disabled-background);
+  border-color: var(--color-pages-attendance-page-confirm-planned-button-disabled-border);
   cursor: not-allowed;
 }
 
 .attendanceDateBar {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #d7e0e8;
+  background: var(--color-pages-attendance-page-attendance-date-bar-background);
+  border: 1px solid var(--color-pages-attendance-page-attendance-date-bar-border);
   border-radius: 7px;
   display: flex;
   gap: 8px;
@@ -57,10 +57,10 @@
 }
 
 .attendanceDateBar button {
-  background: transparent;
-  border: 1px solid #cbd6df;
+  background: var(--color-pages-attendance-page-attendance-date-bar-background-2);
+  border: 1px solid var(--color-pages-attendance-page-attendance-date-bar-border-2);
   border-radius: 5px;
-  color: #344454;
+  color: var(--color-pages-attendance-page-attendance-date-bar-text);
   font-size: 13px;
   font-weight: 800;
   min-height: 34px;
@@ -68,13 +68,13 @@
 }
 
 .attendanceDateBar button:hover {
-  background: #edf2f6;
+  background: var(--color-pages-attendance-page-attendance-date-bar-hover-background);
   cursor: pointer;
 }
 
 .attendanceDateBar .todayButton {
-  border-color: #83a99f;
-  color: #176b5d;
+  border-color: var(--color-pages-attendance-page-attendance-date-bar-today-button-border);
+  color: var(--color-pages-attendance-page-attendance-date-bar-today-button-text);
 }
 
 .attendanceDateField {
@@ -85,16 +85,16 @@
 }
 
 .attendanceDateField span {
-  color: #1d2a35;
+  color: var(--color-pages-attendance-page-attendance-date-field-text);
   font-size: 15px;
   font-weight: 900;
   white-space: nowrap;
 }
 
 .attendanceDateField input {
-  border: 1px solid #becbd6;
+  border: 1px solid var(--color-pages-attendance-page-attendance-date-field-border);
   border-radius: 5px;
-  color: #263744;
+  color: var(--color-pages-attendance-page-attendance-date-field-text-2);
   font: inherit;
   min-height: 34px;
   padding: 0 8px;
@@ -102,9 +102,9 @@
 
 .attendanceSummary {
   align-items: center;
-  background: #eef3f5;
-  border-bottom: 1px solid #d7e0e8;
-  border-top: 1px solid #d7e0e8;
+  background: var(--color-pages-attendance-page-attendance-summary-background);
+  border-bottom: 1px solid var(--color-pages-attendance-page-attendance-summary-border);
+  border-top: 1px solid var(--color-pages-attendance-page-attendance-summary-border);
   display: grid;
   grid-template-columns: repeat(5, minmax(90px, 1fr));
   justify-content: center;
@@ -113,8 +113,8 @@
 
 .attendanceSummary span {
   align-items: baseline;
-  border-right: 1px solid #d7e0e8;
-  color: #586877;
+  border-right: 1px solid var(--color-pages-attendance-page-attendance-summary-border);
+  color: var(--color-pages-attendance-page-attendance-summary-text);
   display: flex;
   font-size: 13px;
   gap: 7px;
@@ -127,7 +127,7 @@
 }
 
 .attendanceSummary strong {
-  color: #17202a;
+  color: var(--color-pages-attendance-page-attendance-summary-text-2);
   font-size: 20px;
 }
 
@@ -140,17 +140,17 @@
 }
 
 .attendanceFilters > span {
-  color: #62717f;
+  color: var(--color-pages-attendance-page-attendance-filters-text);
   font-size: 13px;
   font-weight: 900;
   margin-right: 4px;
 }
 
 .attendanceFilters button {
-  background: #ffffff;
-  border: 1px solid #cfd9e1;
+  background: var(--color-pages-attendance-page-attendance-filters-background);
+  border: 1px solid var(--color-pages-attendance-page-attendance-filters-border);
   border-radius: 5px;
-  color: #4a5a68;
+  color: var(--color-pages-attendance-page-attendance-filters-text-2);
   font-size: 13px;
   font-weight: 800;
   min-height: 32px;
@@ -158,14 +158,14 @@
 }
 
 .attendanceFilters button:hover {
-  border-color: #83a99f;
+  border-color: var(--color-pages-attendance-page-attendance-filters-hover-border);
   cursor: pointer;
 }
 
 .attendanceFilters .activeFilterButton {
-  background: #dceae6;
-  border-color: #6e9d91;
-  color: #145c50;
+  background: var(--color-pages-attendance-page-attendance-filters-active-filter-button-background);
+  border-color: var(--color-pages-attendance-page-attendance-filters-active-filter-button-border);
+  color: var(--color-pages-attendance-page-attendance-filters-active-filter-button-text);
 }
 
 .attendanceTaskList {
@@ -177,16 +177,16 @@
 }
 
 .attendanceTaskSection {
-  background: #ffffff;
-  border: 1px solid #d7e0e8;
+  background: var(--color-pages-attendance-page-attendance-task-section-background);
+  border: 1px solid var(--color-pages-attendance-page-attendance-task-section-border);
   border-radius: 7px;
   overflow: hidden;
 }
 
 .attendanceTaskHeader {
   align-items: center;
-  background: #f2f5f7;
-  border-bottom: 1px solid #d7e0e8;
+  background: var(--color-pages-attendance-page-attendance-task-header-background);
+  border-bottom: 1px solid var(--color-pages-attendance-page-attendance-task-header-border);
   display: flex;
   gap: 20px;
   justify-content: space-between;
@@ -201,19 +201,19 @@
 }
 
 .attendanceTaskHeader h2 span {
-  color: #4d625e;
+  color: var(--color-pages-attendance-page-attendance-task-header-text);
   font-size: 14px;
 }
 
 .attendanceTaskHeader p {
-  color: #687887;
+  color: var(--color-pages-attendance-page-attendance-task-header-text-2);
   font-size: 13px;
   line-height: 1.45;
   margin: 3px 0 0;
 }
 
 .attendanceTaskHeader > strong {
-  color: #176b5d;
+  color: var(--color-pages-attendance-page-attendance-task-header-text-3);
   flex: 0 0 auto;
   font-size: 14px;
 }
@@ -231,9 +231,9 @@
 }
 
 .attendanceTable th {
-  background: #fafbfc;
-  border-bottom: 1px solid #e0e7ed;
-  color: #596978;
+  background: var(--color-pages-attendance-page-attendance-table-background);
+  border-bottom: 1px solid var(--color-pages-attendance-page-attendance-table-border);
+  color: var(--color-pages-attendance-page-attendance-table-text);
   font-size: 12px;
   font-weight: 900;
   height: 38px;
@@ -281,8 +281,8 @@
 }
 
 .attendanceTable td {
-  border-bottom: 1px solid #e5ebf0;
-  color: #344451;
+  border-bottom: 1px solid var(--color-pages-attendance-page-attendance-table-border-2);
+  color: var(--color-pages-attendance-page-attendance-table-text-2);
   font-size: 13px;
   height: 70px;
   padding: 8px;
@@ -294,7 +294,7 @@
 }
 
 .attendanceTable .attendanceUnassignedCell {
-  color: #87939d;
+  color: var(--color-pages-attendance-page-attendance-table-attendance-unassigned-cell-text);
   font-size: 13px;
   height: 58px;
   text-align: center;
@@ -302,10 +302,10 @@
 
 .attendanceTable input,
 .attendanceTable select {
-  background: #ffffff;
-  border: 1px solid #c8d3dc;
+  background: var(--color-pages-attendance-page-attendance-table-attendance-table-background);
+  border: 1px solid var(--color-pages-attendance-page-attendance-table-attendance-table-border);
   border-radius: 5px;
-  color: #273744;
+  color: var(--color-pages-attendance-page-attendance-table-attendance-table-text);
   font: inherit;
   height: 34px;
   max-width: 100%;
@@ -315,8 +315,8 @@
 
 .attendanceTable input:disabled,
 .attendanceTable select:disabled {
-  background: #edf1f4;
-  color: #8b98a3;
+  background: var(--color-pages-attendance-page-attendance-table-attendance-table-disabled-disabled-background);
+  color: var(--color-pages-attendance-page-attendance-table-attendance-table-disabled-disabled-text);
 }
 
 .attendanceWorkerIdentity {
@@ -329,19 +329,19 @@
 }
 
 .attendanceWorkerIdentity strong {
-  color: #1e2c37;
+  color: var(--color-pages-attendance-page-attendance-worker-identity-text);
   font-size: 14px;
 }
 
 .attendanceWorkerIdentity span {
-  color: #87939d;
+  color: var(--color-pages-attendance-page-attendance-worker-identity-text-2);
   font-size: 12px;
 }
 
 .attendanceWorkerIdentity em {
-  background: #edf0f4;
+  background: var(--color-pages-attendance-page-attendance-worker-identity-background);
   border-radius: 4px;
-  color: #6d7780;
+  color: var(--color-pages-attendance-page-attendance-worker-identity-text-3);
   font-size: 10px;
   font-style: normal;
   font-weight: 800;
@@ -349,16 +349,16 @@
 }
 
 .plannedTimeCell {
-  color: #5b6d78;
+  color: var(--color-pages-attendance-page-planned-time-cell-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .saveAttendanceButton {
-  background: #ffffff;
-  border: 1px solid #176b5d;
+  background: var(--color-pages-attendance-page-save-attendance-button-background);
+  border: 1px solid var(--color-pages-attendance-page-save-attendance-button-border);
   border-radius: 5px;
-  color: #176b5d;
+  color: var(--color-pages-attendance-page-save-attendance-button-text);
   font-size: 12px;
   font-weight: 900;
   min-height: 34px;
@@ -367,21 +367,21 @@
 }
 
 .saveAttendanceButton:hover:not(:disabled) {
-  background: #e5f0ed;
+  background: var(--color-pages-attendance-page-save-attendance-button-hover-disabled-not-background);
   cursor: pointer;
 }
 
 .saveAttendanceButton:disabled {
-  border-color: #d4dce3;
-  color: #a1abb4;
+  border-color: var(--color-pages-attendance-page-save-attendance-button-disabled-border);
+  color: var(--color-pages-attendance-page-save-attendance-button-disabled-text);
   cursor: not-allowed;
 }
 
 .editAttendanceWorkerButton {
-  background: #f4f8f7;
-  border: 1px solid #b8d2ca;
+  background: var(--color-pages-attendance-page-edit-attendance-worker-button-background);
+  border: 1px solid var(--color-pages-attendance-page-edit-attendance-worker-button-border);
   border-radius: 5px;
-  color: #176b5d;
+  color: var(--color-pages-attendance-page-edit-attendance-worker-button-text);
   font-size: 11px;
   font-weight: 900;
   min-height: 34px;
@@ -396,8 +396,8 @@
 
 .attendanceTaskNote {
   align-items: flex-end;
-  background: #fafbfc;
-  border-top: 1px solid #d7e0e8;
+  background: var(--color-pages-attendance-page-attendance-task-note-background);
+  border-top: 1px solid var(--color-pages-attendance-page-attendance-task-note-border);
   display: grid;
   gap: 8px 12px;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -406,16 +406,16 @@
 }
 
 .attendanceTaskNote label {
-  color: #4d5f6c;
+  color: var(--color-pages-attendance-page-attendance-task-note-text);
   font-size: 12px;
   font-weight: 900;
   grid-column: 1 / -1;
 }
 
 .attendanceTaskNote textarea {
-  border: 1px solid #c8d3dc;
+  border: 1px solid var(--color-pages-attendance-page-attendance-task-note-border-2);
   border-radius: 5px;
-  color: #273744;
+  color: var(--color-pages-attendance-page-attendance-task-note-text-2);
   font: inherit;
   line-height: 1.5;
   min-height: 58px;
@@ -425,15 +425,15 @@
 }
 
 .attendanceTaskNote textarea:focus {
-  border-color: #6e9d91;
-  outline: 2px solid rgba(23, 107, 93, 0.12);
+  border-color: var(--color-pages-attendance-page-attendance-task-note-focus-border);
+  outline: 2px solid var(--color-pages-attendance-page-attendance-task-note-focus-focus-ring);
 }
 
 .attendanceTaskNote button {
-  background: #ffffff;
-  border: 1px solid #176b5d;
+  background: var(--color-pages-attendance-page-attendance-task-note-background-2);
+  border: 1px solid var(--color-pages-attendance-page-attendance-task-note-border-3);
   border-radius: 5px;
-  color: #176b5d;
+  color: var(--color-pages-attendance-page-attendance-task-note-text-3);
   font-size: 12px;
   font-weight: 900;
   min-height: 36px;
@@ -442,22 +442,22 @@
 }
 
 .attendanceTaskNote button:hover:not(:disabled) {
-  background: #e5f0ed;
+  background: var(--color-pages-attendance-page-attendance-task-note-hover-disabled-not-background);
   cursor: pointer;
 }
 
 .attendanceTaskNote button:disabled {
-  border-color: #d4dce3;
-  color: #a1abb4;
+  border-color: var(--color-pages-attendance-page-attendance-task-note-disabled-border);
+  color: var(--color-pages-attendance-page-attendance-task-note-disabled-text);
   cursor: not-allowed;
 }
 
 .attendanceEmpty {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #d7e0e8;
+  background: var(--color-pages-attendance-page-attendance-empty-background);
+  border: 1px solid var(--color-pages-attendance-page-attendance-empty-border);
   border-radius: 7px;
-  color: #73818d;
+  color: var(--color-pages-attendance-page-attendance-empty-text);
   display: flex;
   font-size: 14px;
   justify-content: center;
@@ -544,8 +544,8 @@
   }
 
   .attendanceTable tr {
-    background: #ffffff;
-    border: 1px solid #d7e0e8;
+    background: var(--color-pages-attendance-page-attendance-table-background-2);
+    border: 1px solid var(--color-pages-attendance-page-attendance-table-border-3);
     border-radius: 7px;
     display: grid;
     gap: 8px 10px;
@@ -566,14 +566,14 @@
   }
 
   .attendanceTable td::before {
-    color: #687789;
+    color: var(--color-pages-attendance-page-attendance-table-before-text);
     content: attr(data-label);
     font-size: 10px;
     font-weight: 900;
   }
 
   .attendanceTable td:first-child {
-    border-bottom: 1px solid #e5ebf0;
+    border-bottom: 1px solid var(--color-pages-attendance-page-attendance-table-first-child-border);
     grid-column: 1 / -1;
     padding-bottom: 8px;
   }

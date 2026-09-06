@@ -9,7 +9,7 @@
 
 .workerNameCellButton {
   appearance: none;
-  background: transparent;
+  background: var(--color-components-worker-editable-cells-worker-name-cell-button-background);
   border: 0;
   border-radius: 6px;
   display: flex;
@@ -21,24 +21,24 @@
 }
 
 .workerNameCellButton:hover {
-  background: #f4f8f7;
+  background: var(--color-components-worker-editable-cells-worker-name-cell-button-hover-background);
   cursor: pointer;
 }
 
 .workerNameCellButton:focus-visible {
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  box-shadow: 0 0 0 3px var(--color-components-worker-editable-cells-worker-name-cell-button-focus-visible-shadow-color);
   outline: 0;
 }
 
 .workerLocalName {
-  color: #17202a;
+  color: var(--color-components-worker-editable-cells-worker-local-name-text);
   font-size: 14px;
   font-weight: 900;
   line-height: 1.25;
 }
 
 .workerNickname {
-  color: #687789;
+  color: var(--color-components-worker-editable-cells-worker-nickname-text);
   font-size: 12px;
   font-weight: 800;
   line-height: 1.2;
@@ -66,10 +66,10 @@
 .cellEditButton {
   align-items: center;
   appearance: none;
-  background: transparent;
+  background: var(--color-components-worker-editable-cells-cell-edit-button-background);
   border: 0;
   border-radius: 999px;
-  color: #a8b3bf;
+  color: var(--color-components-worker-editable-cells-cell-edit-button-text);
   display: flex;
   font-size: 15px;
   font-weight: 900;
@@ -80,17 +80,17 @@
 }
 
 .cellEditButton:hover {
-  background: #edf2f6;
-  color: #687789;
+  background: var(--color-components-worker-editable-cells-cell-edit-button-hover-background);
+  color: var(--color-components-worker-editable-cells-cell-edit-button-hover-text);
   cursor: pointer;
 }
 
 .cellEditPopover {
   align-items: flex-end;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-components-worker-editable-cells-cell-edit-popover-background);
+  border: 1px solid var(--color-components-worker-editable-cells-cell-edit-popover-border);
   border-radius: 8px;
-  box-shadow: 0 14px 30px rgba(23, 32, 42, 0.14);
+  box-shadow: 0 14px 30px var(--color-components-worker-editable-cells-cell-edit-popover-shadow-color);
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -112,7 +112,7 @@
 
 .nicknameEditRow {
   align-items: center;
-  color: #687789;
+  color: var(--color-components-worker-editable-cells-nickname-edit-row-text);
   display: grid;
   gap: 6px;
   grid-template-columns: auto minmax(0, 1fr);
@@ -120,18 +120,18 @@
 }
 
 .cellEditInput {
-  background: #fbfcfe;
-  border: 1px solid #c8d4e0;
+  background: var(--color-components-worker-editable-cells-cell-edit-input-background);
+  border: 1px solid var(--color-components-worker-editable-cells-cell-edit-input-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-components-worker-editable-cells-cell-edit-input-text);
   min-height: 36px;
   padding: 0 10px;
   width: 100%;
 }
 
 .cellEditInput:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  border-color: var(--color-components-worker-editable-cells-cell-edit-input-focus-border);
+  box-shadow: 0 0 0 3px var(--color-components-worker-editable-cells-cell-edit-input-focus-shadow-color);
   outline: 0;
 }
 
@@ -158,13 +158,13 @@
 }
 
 .cellEditConfirmButton {
-  background: #176b5d;
-  color: #ffffff;
+  background: var(--color-components-worker-editable-cells-cell-edit-confirm-button-background);
+  color: var(--color-components-worker-editable-cells-cell-edit-confirm-button-text);
 }
 
 .cellEditCancelButton {
-  background: #edf2f6;
-  color: #4f5d6b;
+  background: var(--color-components-worker-editable-cells-cell-edit-cancel-button-background);
+  color: var(--color-components-worker-editable-cells-cell-edit-cancel-button-text);
 }
 
 .cellEditConfirmButton:hover,

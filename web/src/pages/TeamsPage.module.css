@@ -29,7 +29,7 @@
 }
 
 .teamsStatusMessage {
-  color: #687789;
+  color: var(--color-pages-teams-page-teams-status-message-text);
   font-size: 13px;
   font-weight: 800;
   margin: 6px 0 0;
@@ -51,10 +51,10 @@
 
 .teamsSummary span {
   align-items: center;
-  background: #e6f1ee;
-  border: 1px solid #c5ddd7;
+  background: var(--color-pages-teams-page-teams-summary-background);
+  border: 1px solid var(--color-pages-teams-page-teams-summary-border);
   border-radius: 999px;
-  color: #176b5d;
+  color: var(--color-pages-teams-page-teams-summary-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -65,10 +65,10 @@
 
 .composeTeamButton {
   align-items: center;
-  background: #176b5d;
+  background: var(--color-pages-teams-page-compose-team-button-background);
   border: 0;
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--color-pages-teams-page-compose-team-button-text);
   display: flex;
   font-size: 14px;
   font-weight: 900;
@@ -102,8 +102,8 @@
 }
 
 .teamCard {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-teams-page-team-card-background);
+  border: 1px solid var(--color-pages-teams-page-team-card-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -113,8 +113,8 @@
 
 .teamCardHeader {
   align-items: center;
-  background: #edf2f6;
-  border-bottom: 1px solid #d9e2ec;
+  background: var(--color-pages-teams-page-team-card-header-background);
+  border-bottom: 1px solid var(--color-pages-teams-page-team-card-header-border);
   display: flex;
   justify-content: space-between;
   min-height: 48px;
@@ -134,7 +134,7 @@
 
 .teamCardHeader h2,
 .unassignedWorkerHeader h2 {
-  color: #17202a;
+  color: var(--color-pages-teams-page-team-card-header-unassigned-worker-header-text);
   font-size: 17px;
   line-height: 1.25;
   margin: 0;
@@ -142,7 +142,7 @@
 
 .teamCardHeader span,
 .unassignedWorkerHeader span {
-  color: #687789;
+  color: var(--color-pages-teams-page-team-card-header-unassigned-worker-header-text-2);
   font-size: 13px;
   font-weight: 900;
 }
@@ -150,10 +150,10 @@
 .collapseTeamButton {
   align-items: center;
   appearance: none;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-teams-page-collapse-team-button-background);
+  border: 1px solid var(--color-pages-teams-page-collapse-team-button-border);
   border-radius: 6px;
-  color: #2f3f50;
+  color: var(--color-pages-teams-page-collapse-team-button-text);
   display: flex;
   font-size: 18px;
   font-weight: 900;
@@ -167,10 +167,10 @@
 .editTeamButton {
   align-items: center;
   appearance: none;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-teams-page-edit-team-button-background);
+  border: 1px solid var(--color-pages-teams-page-edit-team-button-border);
   border-radius: 6px;
-  color: #2f3f50;
+  color: var(--color-pages-teams-page-edit-team-button-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -182,10 +182,10 @@
 .deleteTeamButton {
   align-items: center;
   appearance: none;
-  background: #fff7ed;
-  border: 1px solid #d97706;
+  background: var(--color-pages-teams-page-delete-team-button-background);
+  border: 1px solid var(--color-pages-teams-page-delete-team-button-border);
   border-radius: 6px;
-  color: #92400e;
+  color: var(--color-pages-teams-page-delete-team-button-text);
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -195,13 +195,13 @@
 }
 
 .collapseTeamButton:hover {
-  background: #f8fafc;
+  background: var(--color-pages-teams-page-collapse-team-button-hover-background);
   cursor: pointer;
 }
 
 .editTeamButton:hover,
 .deleteTeamButton:hover {
-  background: #f8fafc;
+  background: var(--color-pages-teams-page-edit-team-button-delete-team-button-hover-hover-background);
   cursor: pointer;
 }
 
@@ -214,7 +214,7 @@
 
 .teamMemberRow {
   align-items: center;
-  border-bottom: 1px solid #e5ebf1;
+  border-bottom: 1px solid var(--color-pages-teams-page-team-member-row-border);
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -236,20 +236,20 @@
 
 .teamMemberNameGroup strong,
 .unassignedWorkerItem strong {
-  color: #17202a;
+  color: var(--color-pages-teams-page-team-member-name-group-unassigned-worker-item-text);
   font-size: 14px;
   font-weight: 900;
 }
 
 .teamMemberNameGroup span {
-  color: #687789;
+  color: var(--color-pages-teams-page-team-member-name-group-text);
   font-size: 12px;
   font-weight: 800;
 }
 
 .teamMemberMeta,
 .unassignedWorkerItem span {
-  color: #687789;
+  color: var(--color-pages-teams-page-team-member-meta-unassigned-worker-item-text);
   font-size: 13px;
   font-weight: 800;
   text-align: right;
@@ -257,8 +257,8 @@
 
 .unassignedWorkerPanel,
 .emptyTeamPanel {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-teams-page-unassigned-worker-panel-empty-team-panel-background);
+  border: 1px solid var(--color-pages-teams-page-unassigned-worker-panel-empty-team-panel-border);
   border-radius: 8px;
 }
 
@@ -272,8 +272,8 @@
 
 .unassignedWorkerHeader {
   align-items: center;
-  background: #f3f6f9;
-  border-bottom: 1px solid #d9e2ec;
+  background: var(--color-pages-teams-page-unassigned-worker-header-background);
+  border-bottom: 1px solid var(--color-pages-teams-page-unassigned-worker-header-border);
   display: flex;
   justify-content: space-between;
   min-height: 48px;
@@ -299,12 +299,12 @@
 }
 
 .unassignedWorkerItem:hover {
-  background: #f3f8f7;
+  background: var(--color-pages-teams-page-unassigned-worker-item-hover-background);
 }
 
 .unassignedWorkerList p,
 .emptyTeamPanel {
-  color: #687789;
+  color: var(--color-pages-teams-page-unassigned-worker-list-empty-team-panel-text);
   font-size: 14px;
   font-weight: 800;
   margin: 0;

@@ -1,5 +1,5 @@
 .sectionLabel {
-  color: #176b5d;
+  color: var(--color-components-team-composition-modal-section-label-text);
   font-size: 14px;
   font-weight: 700;
   margin: 0 0 12px;
@@ -7,7 +7,7 @@
 
 .modalBackdrop {
   align-items: center;
-  background: rgba(23, 32, 42, 0.42);
+  background: var(--color-components-team-composition-modal-modal-backdrop-background);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -18,10 +18,10 @@
 
 .teamCompositionDialog {
   align-items: stretch;
-  background: #ffffff;
-  border: 1px solid #d9e2ec;
+  background: var(--color-components-team-composition-modal-team-composition-dialog-background);
+  border: 1px solid var(--color-components-team-composition-modal-team-composition-dialog-border);
   border-radius: 8px;
-  box-shadow: 0 24px 60px rgba(23, 32, 42, 0.24);
+  box-shadow: 0 24px 60px var(--color-components-team-composition-modal-team-composition-dialog-shadow-color);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -68,15 +68,15 @@
 }
 
 .primaryActionButton {
-  background: #176b5d;
+  background: var(--color-components-team-composition-modal-primary-action-button-background);
   border: 0;
-  color: #ffffff;
+  color: var(--color-components-team-composition-modal-primary-action-button-text);
 }
 
 .secondaryActionButton {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
-  color: #2f3f50;
+  background: var(--color-components-team-composition-modal-secondary-action-button-background);
+  border: 1px solid var(--color-components-team-composition-modal-secondary-action-button-border);
+  color: var(--color-components-team-composition-modal-secondary-action-button-text);
 }
 
 .primaryActionButton:hover,
@@ -109,17 +109,17 @@
 
 .formField span,
 .teamMemberLabel {
-  color: #2f3f50;
+  color: var(--color-components-team-composition-modal-form-field-team-member-label-text);
   font-size: 13px;
   font-weight: 900;
 }
 
 .formField input,
 .workerSearchInput {
-  background: #fbfcfe;
-  border: 1px solid #c8d4e0;
+  background: var(--color-components-team-composition-modal-form-field-worker-search-input-background);
+  border: 1px solid var(--color-components-team-composition-modal-form-field-worker-search-input-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-components-team-composition-modal-form-field-worker-search-input-text);
   font-size: 14px;
   min-height: 40px;
   padding: 0 12px;
@@ -128,13 +128,13 @@
 
 .formField input:focus,
 .workerSearchInput:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  border-color: var(--color-components-team-composition-modal-form-field-worker-search-input-focus-focus-border);
+  box-shadow: 0 0 0 3px var(--color-components-team-composition-modal-form-field-worker-search-input-focus-focus-shadow-color);
   outline: 0;
 }
 
 .requiredMark {
-  color: #d0445f;
+  color: var(--color-components-team-composition-modal-required-mark-text);
 }
 
 .teamMemberSection {
@@ -147,8 +147,8 @@
 
 .selectedWorkerList {
   align-items: stretch;
-  background: #fbfcfe;
-  border: 1px solid #d9e2ec;
+  background: var(--color-components-team-composition-modal-selected-worker-list-background);
+  border: 1px solid var(--color-components-team-composition-modal-selected-worker-list-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -167,7 +167,7 @@
 }
 
 .selectedWorkerRow:hover {
-  background: #eef6f4;
+  background: var(--color-components-team-composition-modal-selected-worker-row-hover-background);
 }
 
 .selectedWorkerText {
@@ -179,29 +179,29 @@
 }
 
 .selectedWorkerText strong {
-  color: #17202a;
+  color: var(--color-components-team-composition-modal-selected-worker-text-text);
   font-size: 14px;
   font-weight: 900;
 }
 
 .selectedWorkerText span {
-  color: #687789;
+  color: var(--color-components-team-composition-modal-selected-worker-text-text-2);
   font-size: 12px;
   font-weight: 800;
 }
 
 .selectedWorkerText .workerTeamHint {
-  color: #8a5a15;
+  color: var(--color-components-team-composition-modal-selected-worker-text-worker-team-hint-text);
 }
 
 .removeWorkerButton,
 .addWorkerButton {
   align-items: center;
   appearance: none;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-components-team-composition-modal-remove-worker-button-add-worker-button-background);
+  border: 1px solid var(--color-components-team-composition-modal-remove-worker-button-add-worker-button-border);
   border-radius: 6px;
-  color: #2f3f50;
+  color: var(--color-components-team-composition-modal-remove-worker-button-add-worker-button-text);
   display: flex;
   font-size: 18px;
   font-weight: 900;
@@ -214,7 +214,7 @@
 
 .removeWorkerButton:hover,
 .addWorkerButton:hover {
-  background: #edf2f6;
+  background: var(--color-components-team-composition-modal-remove-worker-button-add-worker-button-hover-hover-background);
   cursor: pointer;
 }
 
@@ -233,10 +233,10 @@
 
 .workerSearchDropdown {
   align-items: stretch;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-components-team-composition-modal-worker-search-dropdown-background);
+  border: 1px solid var(--color-components-team-composition-modal-worker-search-dropdown-border);
   border-radius: 8px;
-  box-shadow: 0 18px 38px rgba(23, 32, 42, 0.14);
+  box-shadow: 0 18px 38px var(--color-components-team-composition-modal-worker-search-dropdown-shadow-color);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -253,10 +253,10 @@
 .workerSearchOption {
   align-items: center;
   appearance: none;
-  background: transparent;
+  background: var(--color-components-team-composition-modal-worker-search-option-background);
   border: 0;
   border-radius: 6px;
-  color: #17202a;
+  color: var(--color-components-team-composition-modal-worker-search-option-text);
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -266,7 +266,7 @@
 }
 
 .workerSearchOption:hover {
-  background: #edf2f6;
+  background: var(--color-components-team-composition-modal-worker-search-option-hover-background);
   cursor: pointer;
 }
 
@@ -277,7 +277,7 @@
 
 .workerSearchOption span,
 .emptySearchResult {
-  color: #687789;
+  color: var(--color-components-team-composition-modal-worker-search-option-empty-search-result-text);
   font-size: 12px;
   font-weight: 800;
 }

@@ -1,5 +1,5 @@
 .sectionLabel {
-  color: #176b5d;
+  color: var(--color-pages-profile-page-section-label-text);
   font-size: 14px;
   font-weight: 700;
   margin: 0 0 12px;
@@ -24,14 +24,14 @@
 }
 
 .profileHeader h1 {
-  color: #17202a;
+  color: var(--color-pages-profile-page-profile-header-text);
   font-size: 32px;
   line-height: 1.22;
   margin: 0;
 }
 
 .profileDescription {
-  color: #4f5d6b;
+  color: var(--color-pages-profile-page-profile-description-text);
   font-size: 14px;
   font-weight: 800;
   line-height: 1.55;
@@ -55,26 +55,26 @@
 }
 
 .profileStatusGroup span {
-  color: #687789;
+  color: var(--color-pages-profile-page-profile-status-group-text);
 }
 
 .profileStatusGroup strong {
-  color: #176b5d;
+  color: var(--color-pages-profile-page-profile-status-group-text-2);
 }
 
 .profileErrorMessage {
-  color: #a33d21;
+  color: var(--color-pages-profile-page-profile-error-message-text);
   margin: 0 0 12px;
 }
 
 .profileToast {
   align-items: center;
   animation: profileToastEnter 180ms ease-out;
-  background: #176b5d;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: var(--color-pages-profile-page-profile-toast-background);
+  border: 1px solid var(--color-pages-profile-page-profile-toast-border);
   border-radius: 8px;
-  box-shadow: 0 12px 30px rgba(23, 107, 93, 0.24);
-  color: #ffffff;
+  box-shadow: 0 12px 30px var(--color-pages-profile-page-profile-toast-shadow-color);
+  color: var(--color-pages-profile-page-profile-toast-text);
   display: flex;
   font-size: 14px;
   font-weight: 900;
@@ -110,8 +110,8 @@
 
 .profileSection {
   align-items: stretch;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-profile-page-profile-section-background);
+  border: 1px solid var(--color-pages-profile-page-profile-section-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -121,8 +121,8 @@
 
 .profileSectionHeader {
   align-items: center;
-  background: #edf2f6;
-  border-bottom: 1px solid #d9e2ec;
+  background: var(--color-pages-profile-page-profile-section-header-background);
+  border-bottom: 1px solid var(--color-pages-profile-page-profile-section-header-border);
   display: flex;
   justify-content: space-between;
   min-height: 48px;
@@ -130,7 +130,7 @@
 }
 
 .profileSectionHeader h2 {
-  color: #17202a;
+  color: var(--color-pages-profile-page-profile-section-header-text);
   font-size: 17px;
   font-weight: 900;
   line-height: 1.25;
@@ -164,17 +164,17 @@
 
 .profileField span,
 .profileToggle span {
-  color: #2f3f50;
+  color: var(--color-pages-profile-page-profile-field-profile-toggle-text);
   font-size: 13px;
   font-weight: 900;
 }
 
 .profileField input,
 .profileField select {
-  background: #fbfcfe;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-profile-page-profile-field-profile-field-background);
+  border: 1px solid var(--color-pages-profile-page-profile-field-profile-field-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-pages-profile-page-profile-field-profile-field-text);
   font-size: 14px;
   min-height: 40px;
   padding: 0 12px;
@@ -190,8 +190,8 @@
 }
 
 .profileField input:read-only {
-  background: #edf2f6;
-  color: #687789;
+  background: var(--color-pages-profile-page-profile-field-background);
+  color: var(--color-pages-profile-page-profile-field-text);
 }
 
 .profileField input:disabled,
@@ -202,15 +202,15 @@
 
 .profileField input:focus,
 .profileField select:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  border-color: var(--color-pages-profile-page-profile-field-profile-field-focus-focus-border);
+  box-shadow: 0 0 0 3px var(--color-pages-profile-page-profile-field-profile-field-focus-focus-shadow-color);
   outline: 0;
 }
 
 .profileToggle {
   align-items: center;
-  background: #fbfcfe;
-  border: 1px solid #c8d4e0;
+  background: var(--color-pages-profile-page-profile-toggle-background);
+  border: 1px solid var(--color-pages-profile-page-profile-toggle-border);
   border-radius: 8px;
   flex-direction: row;
   justify-content: flex-start;
@@ -219,7 +219,7 @@
 }
 
 .profileToggle input {
-  accent-color: #176b5d;
+  accent-color: var(--color-pages-profile-page-profile-toggle-accent);
   height: 16px;
   width: 16px;
 }
@@ -229,7 +229,7 @@
 }
 
 .requiredMark {
-  color: #c8482e;
+  color: var(--color-pages-profile-page-required-mark-text);
   font-size: 13px;
 }
 
@@ -256,15 +256,15 @@
 }
 
 .profilePrimaryButton {
-  background: #176b5d;
+  background: var(--color-pages-profile-page-profile-primary-button-background);
   border: 0;
-  color: #ffffff;
+  color: var(--color-pages-profile-page-profile-primary-button-text);
 }
 
 .profileSecondaryButton {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
-  color: #2f3f50;
+  background: var(--color-pages-profile-page-profile-secondary-button-background);
+  border: 1px solid var(--color-pages-profile-page-profile-secondary-button-border);
+  color: var(--color-pages-profile-page-profile-secondary-button-text);
 }
 
 .profilePrimaryButton:hover,
@@ -283,8 +283,8 @@
 
 .withdrawSection {
   align-items: center;
-  background: #fffaf6;
-  border: 1px solid #e2c9b5;
+  background: var(--color-pages-profile-page-withdraw-section-background);
+  border: 1px solid var(--color-pages-profile-page-withdraw-section-border);
   border-radius: 8px;
   display: flex;
   gap: 18px;
@@ -294,7 +294,7 @@
 }
 
 .withdrawSection h2 {
-  color: #6d3d20;
+  color: var(--color-pages-profile-page-withdraw-section-text);
   font-size: 17px;
   font-weight: 900;
   line-height: 1.25;
@@ -302,7 +302,7 @@
 }
 
 .withdrawSection p {
-  color: #735845;
+  color: var(--color-pages-profile-page-withdraw-section-text-2);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.5;
@@ -312,10 +312,10 @@
 .withdrawButton {
   align-items: center;
   appearance: none;
-  background: #a95b2c;
+  background: var(--color-pages-profile-page-withdraw-button-background);
   border: 0;
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--color-pages-profile-page-withdraw-button-text);
   display: flex;
   font-size: 14px;
   font-weight: 900;

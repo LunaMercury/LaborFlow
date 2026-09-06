@@ -1,5 +1,5 @@
 .sectionLabel {
-  color: #176b5d;
+  color: var(--color-components-worker-profile-modal-section-label-text);
   font-size: 14px;
   font-weight: 700;
   margin: 0 0 12px;
@@ -7,7 +7,7 @@
 
 .modalBackdrop {
   align-items: center;
-  background: rgba(23, 32, 42, 0.42);
+  background: var(--color-components-worker-profile-modal-modal-backdrop-background);
   display: flex;
   inset: 0;
   justify-content: center;
@@ -18,10 +18,10 @@
 
 .workerProfileDialog {
   align-items: stretch;
-  background: #ffffff;
-  border: 1px solid #d9e2ec;
+  background: var(--color-components-worker-profile-modal-worker-profile-dialog-background);
+  border: 1px solid var(--color-components-worker-profile-modal-worker-profile-dialog-border);
   border-radius: 8px;
-  box-shadow: 0 24px 60px rgba(23, 32, 42, 0.24);
+  box-shadow: 0 24px 60px var(--color-components-worker-profile-modal-worker-profile-dialog-shadow-color);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -85,7 +85,7 @@
 }
 
 .formField span {
-  color: #2f3f50;
+  color: var(--color-components-worker-profile-modal-form-field-text);
   font-size: 13px;
   font-weight: 900;
 }
@@ -95,10 +95,10 @@
 .availabilityMemoField input,
 .paymentField input,
 .paymentField select {
-  background: #fbfcfe;
-  border: 1px solid #c8d4e0;
+  background: var(--color-components-worker-profile-modal-payment-field-payment-field-background);
+  border: 1px solid var(--color-components-worker-profile-modal-payment-field-payment-field-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-components-worker-profile-modal-payment-field-payment-field-text);
   font-size: 14px;
   min-height: 40px;
   padding: 0 12px;
@@ -116,13 +116,13 @@
 .availabilityMemoField input:focus,
 .paymentField input:focus,
 .paymentField select:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  border-color: var(--color-components-worker-profile-modal-payment-field-payment-field-focus-focus-focus-focus-focus-border);
+  box-shadow: 0 0 0 3px var(--color-components-worker-profile-modal-payment-field-payment-field-focus-focus-focus-focus-focus-shadow-color);
   outline: 0;
 }
 
 .requiredMark {
-  color: #d0445f;
+  color: var(--color-components-worker-profile-modal-required-mark-text);
 }
 
 .fullWidthField {
@@ -151,15 +151,15 @@
 }
 
 .genderButton {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
-  color: #4f5d6b;
+  background: var(--color-components-worker-profile-modal-gender-button-background);
+  border: 1px solid var(--color-components-worker-profile-modal-gender-button-border);
+  color: var(--color-components-worker-profile-modal-gender-button-text);
 }
 
 .activeGenderButton {
-  background: #176b5d;
-  border: 1px solid #176b5d;
-  color: #ffffff;
+  background: var(--color-components-worker-profile-modal-active-gender-button-background);
+  border: 1px solid var(--color-components-worker-profile-modal-active-gender-button-border);
+  color: var(--color-components-worker-profile-modal-active-gender-button-text);
 }
 
 .genderButton:hover,
@@ -170,8 +170,8 @@
 
 .availabilitySection {
   align-items: stretch;
-  background: #fbfcfe;
-  border: 1px solid #d9e2ec;
+  background: var(--color-components-worker-profile-modal-availability-section-background);
+  border: 1px solid var(--color-components-worker-profile-modal-availability-section-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -189,8 +189,8 @@
 
 .workerRiskSetting {
   align-items: center;
-  background: #fff8f4;
-  border: 1px solid #e8c8b8;
+  background: var(--color-components-worker-profile-modal-worker-risk-setting-background);
+  border: 1px solid var(--color-components-worker-profile-modal-worker-risk-setting-border);
   border-radius: 7px;
   display: flex;
   gap: 16px;
@@ -206,24 +206,24 @@
 }
 
 .workerRiskSetting strong {
-  color: #7d3f31;
+  color: var(--color-components-worker-profile-modal-worker-risk-setting-text);
   font-size: 13px;
 }
 
 .workerRiskSetting > div > span {
-  color: #82675e;
+  color: var(--color-components-worker-profile-modal-worker-risk-setting-text-2);
   font-size: 11px;
 }
 
 .availabilityHeader span,
 .availabilityMemoField span {
-  color: #2f3f50;
+  color: var(--color-components-worker-profile-modal-availability-header-availability-memo-field-text);
   font-size: 13px;
   font-weight: 900;
 }
 
 .availabilityHeader p {
-  color: #687789;
+  color: var(--color-components-worker-profile-modal-availability-header-text);
   font-size: 12px;
   font-weight: 800;
   line-height: 1.4;
@@ -232,10 +232,10 @@
 
 .availabilityToggle {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-components-worker-profile-modal-availability-toggle-background);
+  border: 1px solid var(--color-components-worker-profile-modal-availability-toggle-border);
   border-radius: 999px;
-  color: #176b5d;
+  color: var(--color-components-worker-profile-modal-availability-toggle-text);
   display: flex;
   flex-shrink: 0;
   font-size: 13px;
@@ -247,7 +247,7 @@
 }
 
 .availabilityToggle input {
-  accent-color: #176b5d;
+  accent-color: var(--color-components-worker-profile-modal-availability-toggle-accent);
   height: 16px;
   margin: 0;
   width: 16px;
@@ -285,22 +285,22 @@
 }
 
 .availabilityPresetRow button {
-  background: #edf2f6;
-  border: 1px solid #c8d4e0;
-  color: #2f3f50;
+  background: var(--color-components-worker-profile-modal-availability-preset-row-background);
+  border: 1px solid var(--color-components-worker-profile-modal-availability-preset-row-border);
+  color: var(--color-components-worker-profile-modal-availability-preset-row-text);
 }
 
 .availableDayButton {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
-  color: #4f5d6b;
+  background: var(--color-components-worker-profile-modal-available-day-button-background);
+  border: 1px solid var(--color-components-worker-profile-modal-available-day-button-border);
+  color: var(--color-components-worker-profile-modal-available-day-button-text);
   min-width: 42px;
 }
 
 .activeAvailableDayButton {
-  background: #eef6f4;
-  border: 1px solid #176b5d;
-  color: #176b5d;
+  background: var(--color-components-worker-profile-modal-active-available-day-button-background);
+  border: 1px solid var(--color-components-worker-profile-modal-active-available-day-button-border);
+  color: var(--color-components-worker-profile-modal-active-available-day-button-text);
   min-width: 42px;
 }
 
@@ -314,8 +314,8 @@
 
 .paymentSection {
   align-items: stretch;
-  background: #fbfcfe;
-  border: 1px solid #d9e2ec;
+  background: var(--color-components-worker-profile-modal-payment-section-background);
+  border: 1px solid var(--color-components-worker-profile-modal-payment-section-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -334,13 +334,13 @@
 
 .paymentHeader span,
 .paymentField span {
-  color: #2f3f50;
+  color: var(--color-components-worker-profile-modal-payment-header-payment-field-text);
   font-size: 13px;
   font-weight: 900;
 }
 
 .paymentHeader p {
-  color: #687789;
+  color: var(--color-components-worker-profile-modal-payment-header-text);
   font-size: 12px;
   font-weight: 800;
   line-height: 1.4;
@@ -368,7 +368,7 @@
 
 .workSkillSection {
   align-items: stretch;
-  border: 1px solid #d9e2ec;
+  border: 1px solid var(--color-components-worker-profile-modal-work-skill-section-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -377,8 +377,8 @@
 }
 
 .workSkillHeader {
-  background: #edf2f6;
-  border-bottom: 1px solid #d9e2ec;
+  background: var(--color-components-worker-profile-modal-work-skill-header-background);
+  border-bottom: 1px solid var(--color-components-worker-profile-modal-work-skill-header-border);
   padding: 14px 16px;
 }
 
@@ -388,7 +388,7 @@
 }
 
 .workSkillHeader p {
-  color: #687789;
+  color: var(--color-components-worker-profile-modal-work-skill-header-text);
   font-size: 13px;
   font-weight: 700;
   margin: 0;
@@ -404,7 +404,7 @@
 
 .separationSection {
   align-items: stretch;
-  border: 1px solid #d9e2ec;
+  border: 1px solid var(--color-components-worker-profile-modal-separation-section-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -428,7 +428,7 @@
 .separationHeader p,
 .separationStateText,
 .separationErrorText {
-  color: #687789;
+  color: var(--color-components-worker-profile-modal-separation-state-text-separation-error-text-text);
   font-size: 13px;
   font-weight: 700;
   line-height: 1.5;
@@ -436,9 +436,9 @@
 }
 
 .separationHeader > span {
-  background: #eef6f4;
+  background: var(--color-components-worker-profile-modal-separation-header-background);
   border-radius: 999px;
-  color: #176b5d;
+  color: var(--color-components-worker-profile-modal-separation-header-text);
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 900;
@@ -446,13 +446,13 @@
 }
 
 .separationErrorText {
-  color: #b42318;
+  color: var(--color-components-worker-profile-modal-separation-error-text-text);
 }
 
 .separationErrorState {
   align-items: center;
-  background: #fff7f5;
-  border: 1px solid #efc4bc;
+  background: var(--color-components-worker-profile-modal-separation-error-state-background);
+  border: 1px solid var(--color-components-worker-profile-modal-separation-error-state-border);
   border-radius: 8px;
   display: flex;
   gap: 12px;
@@ -461,10 +461,10 @@
 }
 
 .separationErrorState button {
-  background: #ffffff;
-  border: 1px solid #d6a49b;
+  background: var(--color-components-worker-profile-modal-separation-error-state-background-2);
+  border: 1px solid var(--color-components-worker-profile-modal-separation-error-state-border-2);
   border-radius: 6px;
-  color: #8f3f30;
+  color: var(--color-components-worker-profile-modal-separation-error-state-text);
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 900;
@@ -486,8 +486,8 @@
 
 .separationRuleRow {
   align-items: center;
-  background: #fbfcfe;
-  border: 1px solid #d9e2ec;
+  background: var(--color-components-worker-profile-modal-separation-rule-row-background);
+  border: 1px solid var(--color-components-worker-profile-modal-separation-rule-row-border);
   border-radius: 8px;
   display: grid;
   gap: 10px;
@@ -496,7 +496,7 @@
 }
 
 .separationRuleRow strong {
-  color: #263746;
+  color: var(--color-components-worker-profile-modal-separation-rule-row-text);
   font-size: 13px;
   min-width: 0;
   overflow: hidden;
@@ -506,10 +506,10 @@
 
 .separationRuleRow input,
 .separationSearchField > input {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-background);
+  border: 1px solid var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-border);
   border-radius: 8px;
-  color: #17202a;
+  color: var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-text);
   font-size: 13px;
   min-height: 38px;
   padding: 0 11px;
@@ -518,16 +518,16 @@
 
 .separationRuleRow input:focus,
 .separationSearchField > input:focus {
-  border-color: #176b5d;
-  box-shadow: 0 0 0 3px rgba(23, 107, 93, 0.14);
+  border-color: var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-focus-focus-border);
+  box-shadow: 0 0 0 3px var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-focus-focus-shadow-color);
   outline: 0;
 }
 
 .separationRuleRow > button {
   align-items: center;
-  background: transparent;
+  background: var(--color-components-worker-profile-modal-separation-rule-row-background-2);
   border: 0;
-  color: #8b98a5;
+  color: var(--color-components-worker-profile-modal-separation-rule-row-text-2);
   display: flex;
   font-size: 22px;
   height: 32px;
@@ -537,7 +537,7 @@
 }
 
 .separationRuleRow > button:hover {
-  color: #b42318;
+  color: var(--color-components-worker-profile-modal-separation-rule-row-hover-text);
   cursor: pointer;
 }
 
@@ -550,10 +550,10 @@
 }
 
 .separationSearchResults {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
+  background: var(--color-components-worker-profile-modal-separation-search-results-background);
+  border: 1px solid var(--color-components-worker-profile-modal-separation-search-results-border);
   border-radius: 8px;
-  box-shadow: 0 14px 28px rgba(23, 32, 42, 0.16);
+  box-shadow: 0 14px 28px var(--color-components-worker-profile-modal-separation-search-results-shadow-color);
   display: flex;
   flex-direction: column;
   left: 0;
@@ -567,9 +567,9 @@
 
 .separationSearchResults button {
   align-items: center;
-  background: #ffffff;
+  background: var(--color-components-worker-profile-modal-separation-search-results-background);
   border: 0;
-  border-bottom: 1px solid #edf1f4;
+  border-bottom: 1px solid var(--color-components-worker-profile-modal-separation-search-results-border-2);
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -583,17 +583,17 @@
 }
 
 .separationSearchResults button:hover {
-  background: #eef6f4;
+  background: var(--color-components-worker-profile-modal-separation-search-results-hover-background);
   cursor: pointer;
 }
 
 .separationSearchResults strong {
-  color: #263746;
+  color: var(--color-components-worker-profile-modal-separation-search-results-text);
   font-size: 13px;
 }
 
 .separationSearchResults span {
-  color: #687789;
+  color: var(--color-components-worker-profile-modal-separation-search-results-text-2);
   font-size: 12px;
 }
 
@@ -612,21 +612,21 @@
 }
 
 .primaryActionButton {
-  background: #176b5d;
+  background: var(--color-components-worker-profile-modal-primary-action-button-background);
   border: 0;
-  color: #ffffff;
+  color: var(--color-components-worker-profile-modal-primary-action-button-text);
 }
 
 .secondaryActionButton {
-  background: #ffffff;
-  border: 1px solid #c8d4e0;
-  color: #2f3f50;
+  background: var(--color-components-worker-profile-modal-secondary-action-button-background);
+  border: 1px solid var(--color-components-worker-profile-modal-secondary-action-button-border);
+  color: var(--color-components-worker-profile-modal-secondary-action-button-text);
 }
 
 .dangerActionButton {
-  background: #fff7ed;
-  border: 1px solid #d97706;
-  color: #92400e;
+  background: var(--color-components-worker-profile-modal-danger-action-button-background);
+  border: 1px solid var(--color-components-worker-profile-modal-danger-action-button-border);
+  color: var(--color-components-worker-profile-modal-danger-action-button-text);
   margin-right: 8px;
 }
 
