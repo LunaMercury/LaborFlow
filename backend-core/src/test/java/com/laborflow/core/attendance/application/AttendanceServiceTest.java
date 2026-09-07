@@ -392,7 +392,7 @@ class AttendanceServiceTest {
     }
 
     @Test
-    void rejectsMissingOrOutOfScopeAssignmentWithoutSaving() {
+    void treatsAssignmentOutsideCurrentAgencyScopeAsNotFoundWithoutSaving() {
         UUID assignmentUuid = assignmentUuid(12);
         when(attendanceDao.findAssignmentContext(AGENCY_OWNER_UUID, assignmentUuid))
             .thenReturn(Optional.empty());
