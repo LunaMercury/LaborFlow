@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "./apiBaseUrl";
 import type { ClientWorkSite } from "./clientsApi";
+import { parseErrorMessage } from "./parseErrorMessage";
 import type { WorkerSeparationRule } from "./workforceApi";
 
 const apiBaseUrl = getApiBaseUrl();
@@ -156,15 +157,6 @@ export type ReplaceNoShowPayload = {
   originalAssignmentUuid: string;
   replacementWorkerProfileUuid: string;
 };
-
-async function parseErrorMessage(response: Response, fallbackMessage: string) {
-  try {
-    const body = (await response.json()) as { message?: string };
-    return body.message || fallbackMessage;
-  } catch {
-    return fallbackMessage;
-  }
-}
 
 export async function fetchScheduleTasks(loginId: string, workDate: string): Promise<ScheduleTask[]> {
   const response = await fetch(

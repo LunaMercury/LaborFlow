@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "./apiBaseUrl";
+import { parseErrorMessage } from "./parseErrorMessage";
 
 const apiBaseUrl = getApiBaseUrl();
 
@@ -71,14 +72,5 @@ export async function withdrawAccount(loginId: string): Promise<void> {
 
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response, "계정을 탈퇴 처리하지 못했습니다."));
-  }
-}
-
-async function parseErrorMessage(response: Response, fallbackMessage: string) {
-  try {
-    const body = (await response.json()) as { message?: string };
-    return body.message || fallbackMessage;
-  } catch {
-    return fallbackMessage;
   }
 }

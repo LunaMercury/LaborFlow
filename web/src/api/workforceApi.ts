@@ -1,6 +1,7 @@
 import type { WorkTypeOption } from "../data/workTypeOptions";
 import type { WorkerRow } from "../data/workerRows";
 import { getApiBaseUrl } from "./apiBaseUrl";
+import { parseErrorMessage } from "./parseErrorMessage";
 
 const apiBaseUrl = getApiBaseUrl();
 
@@ -195,15 +196,6 @@ export async function updateWorkerWorkTypes(
 
   const body = (await response.json()) as WorkerListResponse;
   return body.workers;
-}
-
-async function parseErrorMessage(response: Response, fallbackMessage: string) {
-  try {
-    const body = (await response.json()) as { message?: string };
-    return body.message || fallbackMessage;
-  } catch {
-    return fallbackMessage;
-  }
 }
 
 export async function createWorker(

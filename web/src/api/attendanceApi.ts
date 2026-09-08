@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "./apiBaseUrl";
+import { parseErrorMessage } from "./parseErrorMessage";
 
 const apiBaseUrl = getApiBaseUrl();
 
@@ -70,15 +71,6 @@ type AttendanceTaskNoteResponse = {
   note: string;
   scheduleDayUuid: string;
 };
-
-async function parseErrorMessage(response: Response, fallbackMessage: string) {
-  try {
-    const body = (await response.json()) as { message?: string };
-    return body.message || fallbackMessage;
-  } catch {
-    return fallbackMessage;
-  }
-}
 
 export async function confirmPlannedAttendance(
   loginId: string,

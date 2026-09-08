@@ -88,6 +88,12 @@
 
 DB 길이/제약 위반이 Service에서 미리 검사되지 않으면 Spring JDBC 예외가 `500 INTERNAL_SERVER_ERROR`로 감춰질 수 있다. 이는 정상적인 검증 정책으로 확정하지 않고 개선 후보로 둔다.
 
+## 프론트 오류 본문 처리
+
+`web/src/api/parseErrorMessage.ts`는 오류 응답의 JSON `message`를 읽고, 값이 없거나 빈 문자열이거나 본문이 올바른 JSON이 아니면 호출부가 지정한 기존 문구를 반환한다. 거래처, 작업자, 일정, 근태, 프로필 API 중 원래 서버 메시지를 사용하던 호출만 이 함수를 공유한다.
+
+고정 한국어 문구만 표시하던 조회·확정 API는 이 공통 함수로 바꾸지 않았다. `updateScheduleTask`의 `409 WORKER_SEPARATION_CONFLICT`도 일정 도메인에서 본문을 직접 한 번만 읽어 `WorkerSeparationConflictError`와 `conflicts`를 보존한다. 따라서 공통화는 오류 표시 정책을 통일하지 않으며, 기존 화면의 fallback 선택과 확인 후 저장 흐름을 변경하지 않는다.
+
 ## 재시도와 동시성
 
 - 멱등키, 요청 ID 기반 중복 제거, ETag/버전 기반 낙관적 잠금은 없다.
