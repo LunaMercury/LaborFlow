@@ -1,6 +1,6 @@
 ﻿# 불일치와 미구현 영역
 
-[API 문서 홈](README.md) · [공통 계약](common.md)
+[API 문서 홈](README.md) · [공통 계약](common.md) · [DB 경계와 확인 사항](../database/boundaries-and-gaps.md)
 
 이 파일은 현재 구현을 정상 정책으로 정당화하지 않고, 후속 작업에서 확인하거나 수정해야 할 차이를 모은다.
 

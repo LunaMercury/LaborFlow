@@ -3,6 +3,10 @@
 Migration files are the source of truth for the PostgreSQL schema.
 `backend-core` uses Flyway and copies these files into `classpath:db/migration` during the Gradle `processResources` task.
 
+현재 최종 스키마, 테이블 관계, 업무별 데이터 흐름과 구현 불일치는
+[`docs/database/README.md`](../docs/database/README.md)에서 확인합니다. 해당 문서는
+개발 중인 구조의 소스 기준 스냅샷이며 migration 자체를 대체하지 않습니다.
+
 The checked-in files keep the simple ordered name format (`001_...sql`).
 During build they are packaged as Flyway migrations (`V001__...sql`).
 
