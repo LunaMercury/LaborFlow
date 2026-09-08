@@ -2,6 +2,8 @@
 
 인력 배치, 차량 배치, 현장 흐름을 관리하는 앱/웹 프로젝트입니다.
 
+현재 구현을 기준으로 한 프론트엔드/백엔드 계약은 [API 계약 문서](docs/api/README.md)에서 확인할 수 있습니다.
+
 ## Local Run
 
 - Windows: `run-windows.bat`, `stop-windows.bat`
