@@ -5,9 +5,19 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import styles from "./WorkerWorkTypeCell.module.css";
 import type { WorkTypeOption } from "../data/workTypeOptions";
+import {
+  addUnratedWorkTypeRating,
+  getWorkSkillGrade,
+  getWorkSkillGradeDefinition,
+  removeWorkTypeRating,
+  resolveRatingForGradeSelection,
+  WORK_SKILL_GRADE_DEFINITIONS,
+  type WorkSkillGrade,
+} from "../domain/workSkillGrade";
 
 type WorkerWorkTypeCellProps = {
   selectedCodes: string[];
@@ -27,10 +37,16 @@ export function WorkerWorkTypeCell({
   onChange,
 }: WorkerWorkTypeCellProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [activeGradeWorkTypeCode, setActiveGradeWorkTypeCode] = useState<string | null>(
+    null,
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
+  const [gradeMenuStyle, setGradeMenuStyle] = useState<CSSProperties>({});
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const gradeButtonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const gradeMenuRef = useRef<HTMLDivElement>(null);
 
   const selectedWorkTypes = useMemo(
     () => workTypeOptions.filter((workType) => selectedCodes.includes(workType.code)),
@@ -57,25 +73,82 @@ export function WorkerWorkTypeCell({
   }, [searchTerm, selectedCodes]);
 
   const addWorkType = (workTypeCode: string) => {
-    onChange([...selectedCodes, workTypeCode], {
-      ...selectedRatings,
-      [workTypeCode]: selectedRatings[workTypeCode] ?? 0,
-    });
+    onChange(
+      [...selectedCodes, workTypeCode],
+      addUnratedWorkTypeRating(selectedRatings, workTypeCode),
+    );
     setSearchTerm("");
     setIsPickerOpen(false);
   };
 
   const removeWorkType = (workTypeCode: string) => {
-    const nextRatings = { ...selectedRatings };
-    delete nextRatings[workTypeCode];
-    onChange(selectedCodes.filter((selectedCode) => selectedCode !== workTypeCode), nextRatings);
+    onChange(
+      selectedCodes.filter((selectedCode) => selectedCode !== workTypeCode),
+      removeWorkTypeRating(selectedRatings, workTypeCode),
+    );
   };
 
-  const updateWorkTypeRating = (workTypeCode: string, rating: number) => {
+  const updateWorkTypeGrade = (workTypeCode: string, grade: WorkSkillGrade) => {
+    const currentRating = selectedRatings[workTypeCode];
     onChange(selectedCodes, {
       ...selectedRatings,
-      [workTypeCode]: Math.max(0, Math.min(5, rating)),
+      [workTypeCode]: resolveRatingForGradeSelection(currentRating, grade),
     });
+    setActiveGradeWorkTypeCode(null);
+    gradeButtonRefs.current.get(workTypeCode)?.focus();
+  };
+
+  const openGradeMenu = (workTypeCode: string, button: HTMLButtonElement) => {
+    const viewportPadding = 8;
+    const menuGap = 6;
+    const buttonRect = button.getBoundingClientRect();
+    const menuWidth = Math.min(340, window.innerWidth - viewportPadding * 2);
+    const maxViewportHeight = window.innerHeight - viewportPadding * 2;
+    const availableBelow = window.innerHeight - buttonRect.bottom - menuGap - viewportPadding;
+    const availableAbove = buttonRect.top - menuGap - viewportPadding;
+    const shouldOpenBelow = availableBelow >= availableAbove;
+    const gradeMenuHeight = Math.min(
+      390,
+      Math.max(120, shouldOpenBelow ? availableBelow : availableAbove),
+      maxViewportHeight,
+    );
+    const top = shouldOpenBelow
+      ? Math.min(buttonRect.bottom + menuGap, window.innerHeight - gradeMenuHeight - viewportPadding)
+      : Math.max(viewportPadding, buttonRect.top - gradeMenuHeight - menuGap);
+    const left = Math.min(
+      Math.max(viewportPadding, buttonRect.right - menuWidth),
+      window.innerWidth - menuWidth - viewportPadding,
+    );
+
+    setGradeMenuStyle({
+      left,
+      maxHeight: gradeMenuHeight,
+      top,
+      width: menuWidth,
+    });
+    setActiveGradeWorkTypeCode(workTypeCode);
+  };
+
+  const handleGradeMenuNavigation = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      return;
+    }
+
+    const options = Array.from(
+      gradeMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [],
+    );
+    const currentIndex = options.indexOf(document.activeElement as HTMLButtonElement);
+    const nextIndex =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? options.length - 1
+          : event.key === "ArrowDown"
+            ? Math.min(options.length - 1, currentIndex + 1)
+            : Math.max(0, currentIndex - 1);
+
+    event.preventDefault();
+    options[nextIndex]?.focus();
   };
 
   useLayoutEffect(() => {
@@ -176,6 +249,56 @@ export function WorkerWorkTypeCell({
     };
   }, [isPickerOpen]);
 
+  useEffect(() => {
+    if (!activeGradeWorkTypeCode) {
+      return;
+    }
+
+    const activeButton = gradeButtonRefs.current.get(activeGradeWorkTypeCode);
+
+    const closeGradeMenuOnOutsideClick = (event: MouseEvent) => {
+      const clickedNode = event.target;
+
+      if (!(clickedNode instanceof Node)) {
+        return;
+      }
+
+      if (activeButton?.contains(clickedNode) || gradeMenuRef.current?.contains(clickedNode)) {
+        return;
+      }
+
+      setActiveGradeWorkTypeCode(null);
+    };
+
+    const closeGradeMenu = () => setActiveGradeWorkTypeCode(null);
+
+    const handleGradeMenuKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeGradeMenu();
+        activeButton?.focus();
+      }
+    };
+
+    document.addEventListener("mousedown", closeGradeMenuOnOutsideClick);
+    document.addEventListener("keydown", handleGradeMenuKeyDown);
+    window.addEventListener("resize", closeGradeMenu);
+    window.addEventListener("scroll", closeGradeMenu, true);
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      gradeMenuRef.current
+        ?.querySelector<HTMLButtonElement>('[aria-selected="true"]')
+        ?.focus();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener("mousedown", closeGradeMenuOnOutsideClick);
+      document.removeEventListener("keydown", handleGradeMenuKeyDown);
+      window.removeEventListener("resize", closeGradeMenu);
+      window.removeEventListener("scroll", closeGradeMenu, true);
+    };
+  }, [activeGradeWorkTypeCode]);
+
   return (
     <div className={styles.workTypeEditor}>
       <div className={styles.workTypePillList}>
@@ -184,32 +307,40 @@ export function WorkerWorkTypeCell({
             <div className={styles.workTypePillRow} key={workType.code}>
               <span className={styles.workTypePillLabel}>{workType.name}</span>
               {showRatings ? (
-              <div
-                aria-label={`${workType.name} 별점`}
-                className={styles.workTypeRatingButtons}
-              >
-                {[1, 2, 3, 4, 5].map((rating) => {
+                (() => {
                   const currentRating = selectedRatings[workType.code] ?? 0;
+                  const currentGrade = getWorkSkillGrade(currentRating);
+                  const gradeDefinition = getWorkSkillGradeDefinition(currentGrade);
 
                   return (
                     <button
-                      aria-label={`${workType.name} ${rating}점`}
-                      aria-pressed={currentRating === rating}
-                      className={styles.workTypeRatingButton}
-                      key={rating}
+                      aria-expanded={activeGradeWorkTypeCode === workType.code}
+                      aria-haspopup="listbox"
+                      aria-label={`${workType.name} 숙련도 ${gradeDefinition.displayCode}, ${gradeDefinition.label}. 등급 선택`}
+                      className={styles.workTypeGradeButton}
+                      ref={(button) => {
+                        if (button) {
+                          gradeButtonRefs.current.set(workType.code, button);
+                        } else {
+                          gradeButtonRefs.current.delete(workType.code);
+                        }
+                      }}
+                      title={`${gradeDefinition.displayCode} · ${gradeDefinition.label}: ${gradeDefinition.description}`}
                       type="button"
-                      onClick={() =>
-                        updateWorkTypeRating(
-                          workType.code,
-                          currentRating === rating ? 0 : rating,
-                        )
-                      }
+                      onClick={(event) => {
+                        if (activeGradeWorkTypeCode === workType.code) {
+                          setActiveGradeWorkTypeCode(null);
+                          return;
+                        }
+
+                        openGradeMenu(workType.code, event.currentTarget);
+                      }}
                     >
-                      {rating <= currentRating ? "★" : "☆"}
+                      <strong>{gradeDefinition.displayCode}</strong>
+                      <span>{gradeDefinition.label}</span>
                     </button>
                   );
-                })}
-              </div>
+                })()
               ) : null}
               <button
                 aria-label={`${workType.name} 삭제`}
@@ -225,6 +356,50 @@ export function WorkerWorkTypeCell({
           <span className={styles.emptyWorkTypeText}>선택된 작업 없음</span>
         )}
       </div>
+
+      {showRatings && activeGradeWorkTypeCode ? (
+        <div
+          aria-label="작업 숙련도 등급"
+          className={styles.workTypeGradeMenu}
+          ref={gradeMenuRef}
+          role="listbox"
+          style={gradeMenuStyle}
+          onKeyDown={handleGradeMenuNavigation}
+        >
+          <p className={styles.workTypeGradeMenuIntro}>
+            기존 별점은 화면에서 등급으로 환산합니다. 등급을 바꿀 때만 대표 점수가
+            저장됩니다.
+          </p>
+          {WORK_SKILL_GRADE_DEFINITIONS.map((definition) => {
+            const currentGrade = getWorkSkillGrade(
+              selectedRatings[activeGradeWorkTypeCode] ?? 0,
+            );
+
+            return (
+              <button
+                aria-selected={currentGrade === definition.code}
+                className={styles.workTypeGradeOption}
+                key={definition.code}
+                role="option"
+                type="button"
+                onClick={() =>
+                  updateWorkTypeGrade(activeGradeWorkTypeCode, definition.code)
+                }
+              >
+                <span className={styles.workTypeGradeOptionHeading}>
+                  <strong>{definition.displayCode}</strong>
+                  <span>{definition.label}</span>
+                </span>
+                <small>{definition.description}</small>
+              </button>
+            );
+          })}
+          <p className={styles.workTypeGradeMenuNote}>
+            미평가는 작업 종류를 삭제하지 않습니다. D 등급도 배치 금지를 뜻하지
+            않습니다.
+          </p>
+        </div>
+      ) : null}
 
       <div className={styles.workTypeAddArea}>
         <button

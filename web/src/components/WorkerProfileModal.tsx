@@ -680,7 +680,10 @@ export function WorkerProfileModal({
             <div className={styles.workSkillSection}>
               <div className={styles.workSkillHeader}>
                 <h3>가능한 작업</h3>
-                <p>작업자를 배치할 때 사용할 작업 속성을 선택합니다.</p>
+                <p>
+                  작업 종류를 등록한 뒤 작업별 숙련등급을 선택합니다. 기존 별점은
+                  A~D 또는 미평가로 환산해 표시합니다.
+                </p>
               </div>
               <div className={styles.workTypeEditorPanel}>
                 <WorkerWorkTypeCell

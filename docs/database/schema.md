@@ -121,7 +121,7 @@
 ### `work_type`, `labor_agency_worker_work_skill` — 사용 중
 
 - `work_type`: `uuid PK`, `code varchar(80) NN UQ`, `name varchar(100) NN`, `description text`, `status varchar(16) NN DEFAULT 'ACTIVE'`, timestamps. `lower(code)` UQ, name 인덱스, 비공백과 status 제약, updated trigger.
-- `labor_agency_worker_work_skill`: `worker_profile_uuid uuid NN FK CASCADE`, `work_type_uuid uuid NN FK RESTRICT`, `rating smallint NN DEFAULT 0`, `note text`, timestamps, `deleted_at`, 복합 PK. 최종 rating `0..5`; 활성 프로필 부분 인덱스; updated trigger.
+- `labor_agency_worker_work_skill`: `worker_profile_uuid uuid NN FK CASCADE`, `work_type_uuid uuid NN FK RESTRICT`, `rating smallint NN DEFAULT 0`, `note text`, timestamps, `deleted_at`, 복합 PK. 최종 rating `0..5`; 활성 프로필 부분 인덱스; updated trigger. Web은 이 숫자를 A~D/미평가 등급으로 환산하지만 원래 숫자를 보존하며, DB에 별도 등급 컬럼은 없다.
 - 코드: `JdbcWorkforceDao.findWorkTypes`, 작업자 상세 조회와 `replaceWorkerWorkTypes`.
 
 ### `labor_agency_worker_payment_profile` — 사용 중

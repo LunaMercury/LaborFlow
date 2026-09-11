@@ -26,6 +26,12 @@ if (-not (Test-Path "node_modules")) {
     if ($LASTEXITCODE -ne 0) { throw "npm install failed" }
 }
 
+Write-Host "Running web behavior tests..." -ForegroundColor Yellow
+& $npmCmd run test:api-errors
+if ($LASTEXITCODE -ne 0) { throw "npm run test:api-errors failed" }
+& $npmCmd run test:work-skill-grades
+if ($LASTEXITCODE -ne 0) { throw "npm run test:work-skill-grades failed" }
+
 Write-Host "Running TypeScript and Vite build..." -ForegroundColor Yellow
 & $npmCmd run build
 if ($LASTEXITCODE -ne 0) { throw "npm run build failed" }

@@ -72,6 +72,18 @@
 | `workTypeCodes` | string[]/null | 빈 목록 | 중복/공백 제거; 존재하지 않거나 비활성인 코드는 오류 없이 저장되지 않음 |
 | `workTypeRatings` | object/null | 코드별 `0` | 값은 코드별로 `0..5` 범위로 잘라 저장; `workTypeCodes`에 없는 키는 무시 |
 
+### 작업 숙련도 UI와 숫자 계약
+
+API와 DB의 `workTypeRatings` 값은 계속 `0..5` 숫자다. Web은 이 숫자를
+`5=A(숙련)`, `4=B(보통)`, `2~3=C(초보)`, `1=D(미숙)`, `0` 또는 값 없음은
+`—(미평가)`로 환산해 표시한다. 이 등급은 작업 종류별 평가이며 작업자 전체 등급이 아니다.
+
+사용자가 다른 등급을 선택할 때만 `A=5`, `B=4`, `C=3`, `D=1`, `미평가=0`을
+대표값으로 보낸다. 같은 화면 등급을 다시 선택하면 기존 숫자를 유지하므로 기존 `2`가
+`C`로 보이더라도 자동으로 `3`이 되지 않는다. 다른 필드 조회·수정도 평점을 변환하지
+않는다. 작업 종류를 새로 추가하면 `0`으로 시작하며, 미평가 선택과 작업 종류 삭제는
+서로 다른 요청 상태다. 등급은 배치 허용·금지나 피해 이력을 뜻하지 않는다.
+
 전체 수정 `UpdateWorkerProfileRequest`는 `workerName/localNickname` 대신 `name/nickname`을 사용하고 `separationRules`를 추가한다. 이름과 호칭 중 하나, 전화번호는 수정 시에도 필수다. 선택 필드를 생략하면 대부분 기본값 또는 `null`로 덮어쓰므로 PATCH라는 이름과 달리 부분 병합 계약이 아니다.
 
 `separationRules`는 다음 배열이다. 생략/`null`이면 기존 규칙을 유지하고 빈 배열이면 모두 해제한다. 최대 100건, 자기 자신/중복/다른 사무소 프로필은 거부하며 `reason`은 공백을 `null`로 바꾸고 최대 500자다.
@@ -166,7 +178,7 @@
 | `PATCH .../{profileUuid}/phone` | `{ "phone": string }` | 숫자 11자리, 같은 사무소 중복 금지; 민감/로컬 전화 갱신 |
 | `PATCH .../{profileUuid}/pickup-location` | `{ "pickupLocation": string }` | 공백/생략은 `null`로 지움 |
 | `PATCH .../{profileUuid}/gender` | `{ "gender": string }` | `M/MALE`, `F/FEMALE`, 나머지는 `UNKNOWN` |
-| `PUT .../{profileUuid}/work-types` | `{ "workTypeCodes": string[], "workTypeRatings": object }` | 현재 능력 전체 교체; 평점 `0..5`로 보정 |
+| `PUT .../{profileUuid}/work-types` | `{ "workTypeCodes": string[], "workTypeRatings": object }` | 현재 능력 전체 교체; 내부 평점 `0..5`로 보정. Web의 A~D/미평가 표시는 위 환산 규칙을 사용 |
 
 근거: `WorkforceController.updateWorkerIdentity/updateWorkerPhone/updateWorkerPickupLocation/updateWorkerGender/updateWorkerWorkTypes`, 대응하는 `WorkforceService` 메서드와 `web/src/api/workforceApi.ts`.
 

@@ -14,4 +14,6 @@ if [[ ! -d "node_modules" ]]; then
   npm ci
 fi
 
+npm run test:api-errors
+npm run test:work-skill-grades
 npm run build
