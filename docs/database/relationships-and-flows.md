@@ -1,4 +1,4 @@
-# 관계와 업무 흐름
+﻿# 관계와 업무 흐름
 
 [DB 문서 홈](README.md) · [최종 스키마](schema.md) · [경계와 확인 사항](boundaries-and-gaps.md)
 

@@ -1,4 +1,4 @@
-# Database Migrations
+﻿# Database Migrations
 
 Migration files are the source of truth for the PostgreSQL schema.
 `backend-core` uses Flyway and copies these files into `classpath:db/migration` during the Gradle `processResources` task.

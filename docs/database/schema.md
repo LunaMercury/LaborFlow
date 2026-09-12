@@ -1,4 +1,4 @@
-# 최종 스키마 기준표
+﻿# 최종 스키마 기준표
 
 [DB 문서 홈](README.md) · [관계와 흐름](relationships-and-flows.md) · [경계와 확인 사항](boundaries-and-gaps.md)
 

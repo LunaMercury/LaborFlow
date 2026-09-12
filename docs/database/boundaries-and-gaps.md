@@ -1,4 +1,4 @@
-# 데이터 경계와 확인 사항
+﻿# 데이터 경계와 확인 사항
 
 [DB 문서 홈](README.md) · [최종 스키마](schema.md) · [관계와 흐름](relationships-and-flows.md) · [API 불일치](../api/gaps.md)
 
