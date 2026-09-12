@@ -86,29 +86,44 @@ function Initialize-Environment {
     if (-not $env:REDIS_PASSWORD) { $env:REDIS_PASSWORD = "admin" }
 }
 
-function Resolve-TailscaleIp {
-    if ($env:TAILSCALE_IP) {
-        return $env:TAILSCALE_IP
+function Test-TailscaleIpv4 {
+    param([string]$Address)
+
+    $parsedAddress = $null
+    if (-not [System.Net.IPAddress]::TryParse($Address, [ref]$parsedAddress)) {
+        return $false
     }
 
-    $tailscaleAdapter = [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces() |
+    $bytes = $parsedAddress.GetAddressBytes()
+    return $bytes.Length -eq 4 -and $bytes[0] -eq 100 -and $bytes[1] -ge 64 -and $bytes[1] -le 127
+}
+
+function Resolve-TailscaleIp {
+    $tailscaleAdapters = [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces() |
         Where-Object {
             $_.OperationalStatus -eq [System.Net.NetworkInformation.OperationalStatus]::Up -and
             ($_.Name -like "*Tailscale*" -or $_.Description -like "*Tailscale*")
-        } |
-        Select-Object -First 1
-    if ($tailscaleAdapter) {
-        $address = $tailscaleAdapter.GetIPProperties().UnicastAddresses |
-            Where-Object { $_.Address.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork } |
-            Select-Object -First 1
-        if ($address) {
-            return $address.Address.IPAddressToString
         }
+    $adapterAddresses = @(
+        $tailscaleAdapters | ForEach-Object {
+            $_.GetIPProperties().UnicastAddresses |
+            Where-Object {
+                $_.Address.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork -and
+                (Test-TailscaleIpv4 $_.Address.IPAddressToString)
+            } | ForEach-Object { $_.Address.IPAddressToString }
+        }
+    )
+
+    if ($env:TAILSCALE_IP -and $adapterAddresses -contains $env:TAILSCALE_IP) {
+        return $env:TAILSCALE_IP
+    }
+    if ($adapterAddresses.Count -gt 0) {
+        return $adapterAddresses[0]
     }
 
     try {
         $ip = (& tailscale.exe ip -4 2>$null | Select-Object -First 1).Trim()
-        if ($ip) {
+        if ($ip -and (Test-TailscaleIpv4 $ip)) {
             return $ip
         }
     }
@@ -355,7 +370,7 @@ function Get-CoreCommand {
         $env:GRADLE_USER_HOME = $coreGradleUserHome
         Push-Location $coreWorkingDirectory
         try {
-            & $gradleWrapper --no-daemon --console=plain "-PlaborflowBuildDir=$coreBuildDir" bootJar
+            & $gradleWrapper --no-daemon --console=plain "-PlaborflowBuildDir=$coreBuildDir" bootJar | Out-Host
             $buildExitCode = $LASTEXITCODE
         }
         finally {
