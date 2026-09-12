@@ -82,14 +82,38 @@ export async function fetchWorkers(loginId: string): Promise<WorkerRow[]> {
   return body.workers;
 }
 
-export async function fetchWorkTypes(): Promise<WorkTypeOption[]> {
-  const response = await fetch(`${apiBaseUrl}/api/workforce/work-types`);
+export async function fetchWorkTypes(loginId: string): Promise<WorkTypeOption[]> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/work-types?loginId=${encodeURIComponent(loginId)}`,
+  );
 
   if (!response.ok) {
     throw new Error("작업 유형을 불러오지 못했습니다.");
   }
 
   return (await response.json()) as WorkTypeOption[];
+}
+
+export async function createWorkType(
+  loginId: string,
+  name: string,
+): Promise<WorkTypeOption> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/workforce/work-types?loginId=${encodeURIComponent(loginId)}`,
+    {
+      body: JSON.stringify({ name }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "새 작업을 추가하지 못했습니다."));
+  }
+
+  return (await response.json()) as WorkTypeOption;
 }
 
 export async function fetchWorkerSeparationRules(

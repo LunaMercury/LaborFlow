@@ -202,7 +202,7 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
   }, [loadRecords]);
 
   useEffect(() => {
-    Promise.all([fetchWorkers(loginId), fetchWorkTypes()])
+    Promise.all([fetchWorkers(loginId), fetchWorkTypes(loginId)])
       .then(([nextWorkers, nextWorkTypes]) => {
         setWorkers(nextWorkers);
         setWorkTypes(nextWorkTypes);

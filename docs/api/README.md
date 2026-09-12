@@ -28,7 +28,7 @@
 
 ## 현재 등록 경로 목록
 
-backend-core Controller에 등록된 40개 경로를 기준으로 했다.
+backend-core Controller에 등록된 41개 경로를 기준으로 했다.
 
 | 도메인 | 메서드와 경로 | 상세 문서 |
 |---|---|---|
@@ -42,6 +42,7 @@ backend-core Controller에 등록된 40개 경로를 기준으로 했다.
 | Clients | `DELETE /api/clients/{profileUuid}` | [clients.md](clients.md#api) |
 | Workforce | `GET /api/workforce/workers` | [workforce.md](workforce.md#조회-api) |
 | Workforce | `GET /api/workforce/work-types` | [workforce.md](workforce.md#조회-api) |
+| Workforce | `POST /api/workforce/work-types` | [workforce.md](workforce.md#조회-api) |
 | Workforce | `GET /api/workforce/worker-separation-rules` | [workforce.md](workforce.md#조회-api) |
 | Workforce | `POST /api/workforce/workers` | [workforce.md](workforce.md#작업자-api) |
 | Workforce | `POST /api/workforce/workers/from-guest-assignment/{assignmentUuid}` | [workforce.md](workforce.md#작업자-api) |

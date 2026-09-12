@@ -120,9 +120,9 @@
 
 ### `work_type`, `labor_agency_worker_work_skill` — 사용 중
 
-- `work_type`: `uuid PK`, `code varchar(80) NN UQ`, `name varchar(100) NN`, `description text`, `status varchar(16) NN DEFAULT 'ACTIVE'`, timestamps. `lower(code)` UQ, name 인덱스, 비공백과 status 제약, updated trigger.
+- `work_type`: `uuid PK`, `code varchar(80) NN UQ`, `name varchar(100) NN`, `description text`, `status varchar(16) NN DEFAULT 'ACTIVE'`, `agency_owner_uuid uuid FK RESTRICT`, `created_by_account_uuid uuid FK SET NULL`, timestamps. `agency_owner_uuid IS NULL`인 기존 행은 시스템 기본 작업이고 값이 있으면 해당 사무소의 사용자 정의 작업이다. `lower(code)` UQ, 이름 인덱스, 활성 사무소별 `lower(btrim(name))` 부분 UQ, 사무소·상태·이름 인덱스, 비공백과 status 제약, updated trigger.
 - `labor_agency_worker_work_skill`: `worker_profile_uuid uuid NN FK CASCADE`, `work_type_uuid uuid NN FK RESTRICT`, `rating smallint NN DEFAULT 0`, `note text`, timestamps, `deleted_at`, 복합 PK. 최종 rating `0..5`; 활성 프로필 부분 인덱스; updated trigger. Web은 이 숫자를 A~D/미평가 등급으로 환산하지만 원래 숫자를 보존하며, DB에 별도 등급 컬럼은 없다.
-- 코드: `JdbcWorkforceDao.findWorkTypes`, 작업자 상세 조회와 `replaceWorkerWorkTypes`.
+- 코드: `JdbcWorkforceDao.findActiveWorkTypes/findVisibleWorkTypeByName/insertAgencyWorkType`, 작업자 상세 조회와 `replaceWorkerWorkTypes`. 기본 작업과 현재 사무소 작업만 조회·연결한다.
 
 ### `labor_agency_worker_payment_profile` — 사용 중
 

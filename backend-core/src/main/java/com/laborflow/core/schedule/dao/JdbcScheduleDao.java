@@ -508,7 +508,9 @@ public class JdbcScheduleDao implements ScheduleDao {
                 SELECT d.work_site_uuid, wt.uuid
                 FROM public.work_schedule_day d
                 JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
-                JOIN public.work_type wt ON wt.code = ? AND wt.status = 'ACTIVE'
+                JOIN public.work_type wt ON wt.code = ?
+                    AND wt.status = 'ACTIVE'
+                    AND (wt.agency_owner_uuid IS NULL OR wt.agency_owner_uuid = ?)
                 WHERE s.agency_owner_uuid = ?
                     AND s.deleted_at IS NULL
                     AND d.uuid = ?
@@ -517,6 +519,7 @@ public class JdbcScheduleDao implements ScheduleDao {
                 SET deleted_at = NULL
                 """,
                 workTypeCode,
+                agencyOwnerUuid,
                 agencyOwnerUuid,
                 scheduleDayUuid
             );
@@ -1420,12 +1423,15 @@ public class JdbcScheduleDao implements ScheduleDao {
                 )
                 SELECT ?, wt.uuid
                 FROM public.work_type wt
-                WHERE wt.code = ? AND wt.status = 'ACTIVE'
+                WHERE wt.code = ?
+                    AND wt.status = 'ACTIVE'
+                    AND (wt.agency_owner_uuid IS NULL OR wt.agency_owner_uuid = ?)
                 ON CONFLICT (work_site_uuid, work_type_uuid) DO UPDATE
                 SET deleted_at = NULL
                 """,
                 workSiteUuid,
-                workTypeCode
+                workTypeCode,
+                agencyOwnerUuid
             );
         }
 

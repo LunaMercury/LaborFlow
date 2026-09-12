@@ -33,6 +33,7 @@ contracts:
   - A replacement worker with an overlapping assignment remains selectable only after the operator explicitly acknowledges the time-conflict warning.
   - Manual no-show risk flags and observed no-show incident counts are separate signals; clearing a manual flag must not erase incident history.
   - Worker separation rules are agency-scoped undirected pairs stored once in canonical UUID order; editing either worker must update the same relationship.
+  - Work types with no agency owner are system defaults; user-created work types are visible and assignable only within their labor agency, while worker skill ratings remain numeric 0 through 5 and start unrated.
   - Assignment saves must serialize the same agency/date/work-site validation scope, revalidate worker separation rules on the server across overlapping time ranges, and retain account-attributed PostgreSQL audit history for explicit overrides.
   - Redis is limited to short-lived cache, rate limit counters, idempotency keys, distributed locks, and realtime fan-out support.
   - Redis keys and values must not contain raw personal data, passwords, provider secrets, or long-lived audit records.

@@ -1003,7 +1003,7 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
 
     Promise.all([
       fetchWorkers(loginId),
-      fetchWorkTypes(),
+      fetchWorkTypes(loginId),
       fetchScheduleTasks(loginId, selectedDate),
       fetchWorkerSeparationRules(loginId)
         .then((rules) => ({ failed: false, rules }))

@@ -56,7 +56,7 @@ Worker records are split into central identity and agency-private views:
 - `worker`: central worker identity with shared canonical fields.
 - `worker_sensitive_profile`: central encrypted sensitive fields. `phone_hash` is unique when present, so one normalized phone number maps to one worker UUID.
 - `labor_agency_worker_profile`: per-agency private worker profile. Local name, nickname, phone copy, pickup location, and private memo are visible only to the owning agency owner.
-- `work_type`: shared work type dictionary such as garlic harvest or garlic sorting.
+- `work_type`: system default work types plus labor-agency-scoped custom work types. Existing default rows have no `agency_owner_uuid`; a custom row belongs only to its creating agency.
 - `labor_agency_worker_work_skill`: per-agency worker skill rating by work type. The stored contract remains numeric `0..5`; Web maps it to A-D/unrated without rewriting existing values. It belongs to the agency-private worker profile, not the central worker identity.
 - `labor_agency_worker_profile.is_active` and `available_days_mask`: the agency-private default availability rule. The bit mask uses Monday=1, Tuesday=2, Wednesday=4, Thursday=8, Friday=16, Saturday=32, Sunday=64.
 - `labor_agency_worker_availability_exception`: date-range availability overrides such as resting, unavailable, or explicitly available periods.

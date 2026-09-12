@@ -3,6 +3,7 @@ package com.laborflow.core.workforce.api;
 import com.laborflow.core.workforce.application.WorkforceService;
 import com.laborflow.core.workforce.dto.CreateWorkerTeamRequest;
 import com.laborflow.core.workforce.dto.CreateWorkerRequest;
+import com.laborflow.core.workforce.dto.CreateWorkTypeRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerIdentityRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerPhoneRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerPickupLocationRequest;
@@ -40,8 +41,18 @@ public class WorkforceController {
     }
 
     @GetMapping("/work-types")
-    public List<WorkTypeResponse> getWorkTypes() {
-        return workforceService.getWorkTypes();
+    public List<WorkTypeResponse> getWorkTypes(
+        @RequestParam(defaultValue = "test") String loginId
+    ) {
+        return workforceService.getWorkTypes(loginId);
+    }
+
+    @PostMapping("/work-types")
+    public WorkTypeResponse createWorkType(
+        @RequestParam(defaultValue = "test") String loginId,
+        @RequestBody CreateWorkTypeRequest request
+    ) {
+        return workforceService.createWorkType(loginId, request);
     }
 
     @GetMapping("/worker-separation-rules")

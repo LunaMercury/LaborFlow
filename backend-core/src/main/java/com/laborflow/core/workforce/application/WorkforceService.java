@@ -3,6 +3,7 @@ package com.laborflow.core.workforce.application;
 import com.laborflow.core.workforce.dao.WorkforceDao;
 import com.laborflow.core.workforce.dto.CreateWorkerTeamRequest;
 import com.laborflow.core.workforce.dto.CreateWorkerRequest;
+import com.laborflow.core.workforce.dto.CreateWorkTypeRequest;
 import com.laborflow.core.workforce.dto.UpdateWorkerProfileRequest;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerListResponse;
@@ -28,8 +29,28 @@ public class WorkforceService {
         return new WorkerListResponse(workforceDao.findWorkersByLoginId(normalizeLoginId(loginId)));
     }
 
-    public List<WorkTypeResponse> getWorkTypes() {
-        return workforceDao.findActiveWorkTypes();
+    public List<WorkTypeResponse> getWorkTypes(String loginId) {
+        return workforceDao.findActiveWorkTypes(findAgencyOwnerUuid(loginId));
+    }
+
+    @Transactional
+    public WorkTypeResponse createWorkType(String loginId, CreateWorkTypeRequest request) {
+        String normalizedLoginId = normalizeLoginId(loginId);
+        String name = normalizeRequiredText(request.name());
+        if (name.length() > 100) {
+            throw new IllegalArgumentException("Work type name must be 100 characters or fewer.");
+        }
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(normalizedLoginId);
+        UUID accountUuid = workforceDao.findAccountUuidByLoginId(normalizedLoginId)
+            .orElseThrow(() -> new IllegalArgumentException("Account was not found."));
+
+        return workforceDao.findVisibleWorkTypeByName(agencyOwnerUuid, name)
+            .orElseGet(() -> {
+                String code = "custom_" + UUID.randomUUID().toString().replace("-", "");
+                return workforceDao.insertAgencyWorkType(agencyOwnerUuid, accountUuid, code, name)
+                    .orElseGet(() -> workforceDao.findVisibleWorkTypeByName(agencyOwnerUuid, name)
+                        .orElseThrow(() -> new IllegalStateException("Work type could not be created.")));
+            });
     }
 
     public List<WorkerSeparationRuleResponse> getWorkerSeparationRules(String loginId) {

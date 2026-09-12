@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  createWorkType,
   fetchWorkers,
   fetchWorkTypes,
   updateWorkerPickupLocation as saveWorkerPickupLocation,
@@ -384,7 +385,7 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
   useEffect(() => {
     let isMounted = true;
 
-    Promise.all([fetchWorkers(loginId), fetchWorkTypes()])
+    Promise.all([fetchWorkers(loginId), fetchWorkTypes(loginId)])
       .then(([nextWorkers, nextWorkTypes]) => {
         if (!isMounted) {
           return;
@@ -405,6 +406,18 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
       isMounted = false;
     };
   }, [loginId]);
+
+  const addCustomWorkType = async (name: string) => {
+    const createdWorkType = await createWorkType(loginId, name);
+    setWorkTypes((currentWorkTypes) =>
+      currentWorkTypes.some((workType) => workType.code === createdWorkType.code)
+        ? currentWorkTypes
+        : [...currentWorkTypes, createdWorkType].sort((left, right) =>
+            left.name.localeCompare(right.name, "ko-KR"),
+          ),
+    );
+    return createdWorkType;
+  };
 
   const updateWorkerWorkTypes = async (
     workerIndex: number,
@@ -590,6 +603,7 @@ export function WorkersPage({ loginId, onNavigate }: WorkersPageProps) {
               : undefined
           }
           workTypeOptions={workTypes}
+          onCreateWorkType={addCustomWorkType}
           onClose={() => setProfileModalState(null)}
           onDeleted={(nextWorkers) => {
             setWorkers(nextWorkers);

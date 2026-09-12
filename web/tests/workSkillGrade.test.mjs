@@ -29,7 +29,8 @@ const {
 const { WorkerWorkTypeCell } = await server.ssrLoadModule(
   "/src/components/WorkerWorkTypeCell.tsx",
 );
-const { updateWorkerWorkTypes } = await server.ssrLoadModule("/src/api/workforceApi.ts");
+const { createWorkType, fetchWorkTypes, updateWorkerWorkTypes } =
+  await server.ssrLoadModule("/src/api/workforceApi.ts");
 
 after(async () => {
   await server.close();
@@ -141,6 +142,32 @@ test("a failed work-type save can be retried without changing the numeric payloa
         workTypeRatings: { garlic_harvest: 2 },
       },
     ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("work-type lookup and creation keep the agency login and creation payload", async () => {
+  const originalFetch = globalThis.fetch;
+  const requests = [];
+
+  globalThis.fetch = async (url, init = {}) => {
+    requests.push({ url: String(url), init });
+    const workType = { code: "custom_1", name: "마늘 심기" };
+    return Response.json(init.method === "POST" ? workType : [workType]);
+  };
+
+  try {
+    assert.deepEqual(await fetchWorkTypes("test user"), [
+      { code: "custom_1", name: "마늘 심기" },
+    ]);
+    assert.deepEqual(await createWorkType("test user", "마늘 심기"), {
+      code: "custom_1",
+      name: "마늘 심기",
+    });
+    assert.match(requests[0].url, /work-types\?loginId=test%20user$/);
+    assert.equal(requests[1].init.method, "POST");
+    assert.deepEqual(JSON.parse(requests[1].init.body), { name: "마늘 심기" });
   } finally {
     globalThis.fetch = originalFetch;
   }

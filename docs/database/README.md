@@ -4,11 +4,11 @@
 
 ## 조사 기준
 
-- 기준일: 2026-09-08 (Asia/Seoul과 같은 UTC+9 업무 환경을 전제로 소스 해석)
+- 기준일: 2026-09-12 (Asia/Seoul과 같은 UTC+9 업무 환경을 전제로 소스 해석)
 - 브랜치: `dev`
 - 커밋: `cdfe6c35cb0180226558730a5d40b96dc69d364f`
 - 시작 상태: 추적 중인 미커밋 변경 없음, `origin/dev`보다 5커밋 앞섬
-- 스키마 기준: `database/migrations/001_...sql`부터 `032_...sql`까지 순서대로 적용한 최종 상태
+- 스키마 기준: `database/migrations/001_...sql`부터 `033_...sql`까지 순서대로 적용한 최종 상태
 - 애플리케이션 기준: backend-core의 Service, DAO, 트랜잭션 선언과 기존 API 문서 대조
 - 운영 DB 확인: 수행하지 않음. `flyway_schema_history`, 실제 테이블·인덱스·데이터는 조회하지 않았다.
 
@@ -35,7 +35,10 @@
 erDiagram
     labor_agency_owner ||--o{ app_account : "사무소 계정"
     labor_agency_owner ||--o{ labor_agency_worker_profile : "사무소별 작업자"
+    labor_agency_owner o|--o{ work_type : "사용자 정의 작업"
     worker ||--o{ labor_agency_worker_profile : "중앙 식별자 공유"
+    labor_agency_worker_profile ||--o{ labor_agency_worker_work_skill : "작업별 숙련도"
+    work_type ||--o{ labor_agency_worker_work_skill : "작업 종류"
     labor_agency_owner ||--o{ labor_agency_farm_owner_profile : "사무소별 거래처"
     farm_owner ||--o{ labor_agency_farm_owner_profile : "중앙 식별자 공유"
     labor_agency_farm_owner_profile ||--o{ labor_agency_farm_owner_site : "등록 현장"

@@ -150,19 +150,73 @@ public class JdbcWorkforceDao implements WorkforceDao {
     }
 
     @Override
-    public List<WorkTypeResponse> findActiveWorkTypes() {
+    public List<WorkTypeResponse> findActiveWorkTypes(UUID agencyOwnerUuid) {
         return jdbcTemplate.query(
             """
             SELECT code, name
             FROM public.work_type
             WHERE status = 'ACTIVE'
+                AND (agency_owner_uuid IS NULL OR agency_owner_uuid = ?)
             ORDER BY name
             """,
             (resultSet, rowNumber) -> new WorkTypeResponse(
                 resultSet.getString("code"),
                 resultSet.getString("name")
-            )
+            ),
+            agencyOwnerUuid
         );
+    }
+
+    @Override
+    public Optional<WorkTypeResponse> findVisibleWorkTypeByName(UUID agencyOwnerUuid, String name) {
+        return jdbcTemplate.query(
+            """
+            SELECT code, name
+            FROM public.work_type
+            WHERE status = 'ACTIVE'
+                AND (agency_owner_uuid IS NULL OR agency_owner_uuid = ?)
+                AND lower(btrim(name)) = lower(btrim(?))
+            ORDER BY CASE WHEN agency_owner_uuid IS NULL THEN 0 ELSE 1 END
+            LIMIT 1
+            """,
+            (resultSet, rowNumber) -> new WorkTypeResponse(
+                resultSet.getString("code"),
+                resultSet.getString("name")
+            ),
+            agencyOwnerUuid,
+            name
+        ).stream().findFirst();
+    }
+
+    @Override
+    public Optional<WorkTypeResponse> insertAgencyWorkType(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        String code,
+        String name
+    ) {
+        return jdbcTemplate.query(
+            """
+            INSERT INTO public.work_type (
+                code,
+                name,
+                agency_owner_uuid,
+                created_by_account_uuid,
+                status
+            )
+            VALUES (?, ?, ?, ?, 'ACTIVE')
+            ON CONFLICT DO NOTHING
+            RETURNING code, name
+            """,
+            (resultSet, rowNumber) -> new WorkTypeResponse(
+                resultSet.getString("code"),
+                resultSet.getString("name")
+            ),
+            code,
+            name,
+            agencyOwnerUuid,
+            accountUuid
+        ).stream().findFirst();
     }
 
     @Override
@@ -801,9 +855,18 @@ public class JdbcWorkforceDao implements WorkforceDao {
                     work_type_uuid,
                     rating
                 )
-                SELECT ?, uuid, ?
-                FROM public.work_type
-                WHERE code = ? AND status = 'ACTIVE'
+                SELECT ?, work_type.uuid, ?
+                FROM public.work_type work_type
+                WHERE code = ?
+                    AND status = 'ACTIVE'
+                    AND (
+                        agency_owner_uuid IS NULL
+                        OR agency_owner_uuid = (
+                            SELECT agency_owner_uuid
+                            FROM public.labor_agency_worker_profile
+                            WHERE uuid = ?
+                        )
+                    )
                 ON CONFLICT (worker_profile_uuid, work_type_uuid) DO UPDATE
                 SET rating = EXCLUDED.rating,
                     deleted_at = NULL,
@@ -811,7 +874,8 @@ public class JdbcWorkforceDao implements WorkforceDao {
                 """,
                 workerProfileUuid,
                 rating,
-                workTypeCode
+                workTypeCode,
+                workerProfileUuid
             );
         }
     }

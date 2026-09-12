@@ -24,6 +24,7 @@ type WorkerWorkTypeCellProps = {
   selectedRatings?: Record<string, number>;
   showRatings?: boolean;
   workTypeOptions: WorkTypeOption[];
+  onCreateWorkType?: (name: string) => Promise<WorkTypeOption>;
   onChange: (nextCodes: string[], nextRatings: Record<string, number>) => void;
 };
 
@@ -34,6 +35,7 @@ export function WorkerWorkTypeCell({
   selectedRatings = {},
   showRatings = true,
   workTypeOptions,
+  onCreateWorkType,
   onChange,
 }: WorkerWorkTypeCellProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -41,6 +43,8 @@ export function WorkerWorkTypeCell({
     null,
   );
   const [searchTerm, setSearchTerm] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [isCreatingWorkType, setIsCreatingWorkType] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
   const [gradeMenuStyle, setGradeMenuStyle] = useState<CSSProperties>({});
   const addButtonRef = useRef<HTMLButtonElement>(null);
@@ -50,7 +54,7 @@ export function WorkerWorkTypeCell({
 
   const selectedWorkTypes = useMemo(
     () => workTypeOptions.filter((workType) => selectedCodes.includes(workType.code)),
-    [selectedCodes],
+    [selectedCodes, workTypeOptions],
   );
 
   const filteredWorkTypes = useMemo(() => {
@@ -70,7 +74,17 @@ export function WorkerWorkTypeCell({
         normalizeSearchText(workType.code).includes(normalizedSearchTerm)
       );
     });
-  }, [searchTerm, selectedCodes]);
+  }, [searchTerm, selectedCodes, workTypeOptions]);
+
+  const normalizedCustomName = searchTerm.trim();
+  const hasExactWorkTypeName = workTypeOptions.some(
+    (workType) => normalizeSearchText(workType.name) === normalizeSearchText(searchTerm),
+  );
+  const canCreateWorkType =
+    Boolean(onCreateWorkType) &&
+    normalizedCustomName.length > 0 &&
+    normalizedCustomName.length <= 100 &&
+    !hasExactWorkTypeName;
 
   const addWorkType = (workTypeCode: string) => {
     onChange(
@@ -79,6 +93,25 @@ export function WorkerWorkTypeCell({
     );
     setSearchTerm("");
     setIsPickerOpen(false);
+  };
+
+  const createAndAddWorkType = async () => {
+    if (!onCreateWorkType || !canCreateWorkType || isCreatingWorkType) {
+      return;
+    }
+
+    setCreateError("");
+    setIsCreatingWorkType(true);
+    try {
+      const createdWorkType = await onCreateWorkType(normalizedCustomName);
+      addWorkType(createdWorkType.code);
+    } catch (error) {
+      setCreateError(
+        error instanceof Error ? error.message : "새 작업을 추가하지 못했습니다.",
+      );
+    } finally {
+      setIsCreatingWorkType(false);
+    }
   };
 
   const removeWorkType = (workTypeCode: string) => {
@@ -415,12 +448,22 @@ export function WorkerWorkTypeCell({
         {isPickerOpen ? (
           <div className={styles.workTypeDropdown} ref={dropdownRef} style={dropdownStyle}>
             <input
-              aria-label="작업 검색"
+              aria-label={onCreateWorkType ? "작업 검색 또는 새 작업 입력" : "작업 검색"}
               className={styles.workTypeSearchInput}
-              placeholder="작업 검색"
+              maxLength={100}
+              placeholder={onCreateWorkType ? "작업 검색 또는 새 작업 입력" : "작업 검색"}
               type="search"
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={(event) => {
+                setSearchTerm(event.target.value);
+                setCreateError("");
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && canCreateWorkType) {
+                  event.preventDefault();
+                  void createAndAddWorkType();
+                }
+              }}
             />
 
             <div className={styles.workTypeOptionList}>
@@ -438,6 +481,22 @@ export function WorkerWorkTypeCell({
               ) : (
                 <span className={styles.emptyWorkTypeText}>검색 결과 없음</span>
               )}
+              {canCreateWorkType ? (
+                <button
+                  className={styles.createWorkTypeButton}
+                  disabled={isCreatingWorkType}
+                  type="button"
+                  onClick={() => void createAndAddWorkType()}
+                >
+                  <strong>{normalizedCustomName}</strong>
+                  <span>{isCreatingWorkType ? "추가 중" : "새 작업으로 추가"}</span>
+                </button>
+              ) : null}
+              {createError ? (
+                <p className={styles.createWorkTypeError} role="alert">
+                  {createError}
+                </p>
+              ) : null}
             </div>
           </div>
         ) : null}

@@ -21,6 +21,7 @@ type WorkerProfileModalProps = {
   worker?: WorkerRow;
   workers: WorkerRow[];
   workTypeOptions: WorkTypeOption[];
+  onCreateWorkType?: (name: string) => Promise<WorkTypeOption>;
   onClose: () => void;
   onDeleted?: (workers: WorkerRow[]) => void;
   onSaved: (workers: WorkerRow[]) => void;
@@ -113,6 +114,7 @@ export function WorkerProfileModal({
   worker,
   workers,
   workTypeOptions,
+  onCreateWorkType,
   onClose,
   onDeleted,
   onSaved,
@@ -690,6 +692,7 @@ export function WorkerProfileModal({
                   selectedCodes={workTypeCodes}
                   selectedRatings={workTypeRatings}
                   workTypeOptions={workTypeOptions}
+                  onCreateWorkType={onCreateWorkType}
                   onChange={(nextCodes, nextRatings) => {
                     setWorkTypeCodes(nextCodes);
                     setWorkTypeRatings(nextRatings);

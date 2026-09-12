@@ -110,10 +110,24 @@ API와 DB의 `workTypeRatings` 값은 계속 `0..5` 숫자다. Web은 이 숫자
 ### `GET /api/workforce/work-types`
 
 - 목적/화면: 작업자 능력, 일정 작업 종류, 필터 선택지.
-- 파라미터/사무소 범위: 없음. 전역 활성 작업 유형을 반환한다.
+- 쿼리: `loginId` string, 생략/공백 시 `test`.
+- 사무소 범위: 시스템 기본 작업(`agency_owner_uuid IS NULL`)과 현재 사무소가 만든 활성 사용자 정의 작업만 반환한다. 다른 사무소의 사용자 정의 작업은 반환하지 않는다.
 - 성공: `200`, `[{ "code": "garlic_harvest", "name": "마늘 수확" }]`.
 - 재시도: 안전하다.
 - 근거: `WorkforceController.getWorkTypes`, `WorkforceService.getWorkTypes`, `JdbcWorkforceDao.findActiveWorkTypes`, `fetchWorkTypes`.
+
+### `POST /api/workforce/work-types`
+
+- 목적/화면: `/workers`의 작업자 등록·수정 모달에서 기존 목록에 없는 작업 종류를 현재 사무소의 사용자 정의 작업으로 추가한다.
+- 쿼리: `loginId` string, 생략/공백 시 `test`.
+- 본문: `{ "name": string }`. 앞뒤 공백 제거 후 필수이며 최대 100자다.
+- 성공: `200`, `{ "code": "custom_가상코드", "name": "마늘 심기" }`. 새 작업의 숙련도는 이 API가 저장하지 않으며, 작업자에게 연결할 때 `rating=0`(미평가)로 시작한다.
+- 중복: 시스템 기본 작업 또는 현재 사무소 작업 중 공백·대소문자를 정규화한 같은 이름이 있으면 새 행을 만들지 않고 기존 항목을 반환한다.
+- 저장/범위: `work_type.agency_owner_uuid`와 `created_by_account_uuid`를 기록한다. 생성된 코드는 서버가 발급하며 클라이언트가 지정하지 않는다.
+- 실패: 이름 누락·공백·100자 초과, 활성 계정/사무소를 찾지 못한 경우 `400 BAD_REQUEST`; 기타 미처리 오류는 공통 오류 계약을 따른다.
+- 재시도: 같은 사무소의 같은 이름은 DB 부분 UNIQUE와 재조회로 중복 생성을 막지만, 별도의 멱등키 계약은 없다.
+- 인증 한계: 현재는 요청의 `loginId`로 계정과 사무소를 찾는 데모 범위이며 검증된 인증 주체로 대체되지 않았다.
+- 근거: `WorkforceController.createWorkType`, `WorkforceService.createWorkType`, `JdbcWorkforceDao.findVisibleWorkTypeByName/insertAgencyWorkType`, `createWorkType`.
 
 ### `GET /api/workforce/worker-separation-rules`
 
@@ -178,7 +192,7 @@ API와 DB의 `workTypeRatings` 값은 계속 `0..5` 숫자다. Web은 이 숫자
 | `PATCH .../{profileUuid}/phone` | `{ "phone": string }` | 숫자 11자리, 같은 사무소 중복 금지; 민감/로컬 전화 갱신 |
 | `PATCH .../{profileUuid}/pickup-location` | `{ "pickupLocation": string }` | 공백/생략은 `null`로 지움 |
 | `PATCH .../{profileUuid}/gender` | `{ "gender": string }` | `M/MALE`, `F/FEMALE`, 나머지는 `UNKNOWN` |
-| `PUT .../{profileUuid}/work-types` | `{ "workTypeCodes": string[], "workTypeRatings": object }` | 현재 능력 전체 교체; 내부 평점 `0..5`로 보정. Web의 A~D/미평가 표시는 위 환산 규칙을 사용 |
+| `PUT .../{profileUuid}/work-types` | `{ "workTypeCodes": string[], "workTypeRatings": object }` | 현재 능력 전체 교체; 시스템 기본 작업 또는 해당 프로필과 같은 사무소의 사용자 정의 작업만 연결; 내부 평점 `0..5`로 보정. Web의 A~D/미평가 표시는 위 환산 규칙을 사용 |
 
 근거: `WorkforceController.updateWorkerIdentity/updateWorkerPhone/updateWorkerPickupLocation/updateWorkerGender/updateWorkerWorkTypes`, 대응하는 `WorkforceService` 메서드와 `web/src/api/workforceApi.ts`.
 

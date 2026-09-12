@@ -12,7 +12,16 @@ import java.util.UUID;
 public interface WorkforceDao {
     List<WorkerResponse> findWorkersByLoginId(String loginId);
 
-    List<WorkTypeResponse> findActiveWorkTypes();
+    List<WorkTypeResponse> findActiveWorkTypes(UUID agencyOwnerUuid);
+
+    Optional<WorkTypeResponse> findVisibleWorkTypeByName(UUID agencyOwnerUuid, String name);
+
+    Optional<WorkTypeResponse> insertAgencyWorkType(
+        UUID agencyOwnerUuid,
+        UUID accountUuid,
+        String code,
+        String name
+    );
 
     Optional<UUID> findAgencyOwnerUuidByLoginId(String loginId);
 
