@@ -307,7 +307,7 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
                 <input type="date" value={taskPickerDate} onChange={(event) => setTaskPickerDate(event.target.value)} />
               </label>
               <label className={`${styles.filterField} ${styles.searchField}`}>
-                <span>거래처·현장·작업 검색</span>
+                <span>작업내용</span>
                 <input
                   autoFocus
                   type="search"

@@ -405,7 +405,18 @@
 }
 
 .taskPickerFilters {
-  align-items: flex-end;
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.taskPickerFilters .filterField {
+  width: 100%;
+}
+
+.taskPickerFilters .searchField input {
+  font-size: 16px;
+  min-height: 54px;
+  padding: 12px 14px;
 }
 
 .taskPickerList {
