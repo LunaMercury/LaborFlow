@@ -8,6 +8,33 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $coreRoot = Join-Path $repoRoot "backend-core"
 if (-not (Test-Path $coreRoot)) { throw "backend-core/ does not exist." }
 
+function Resolve-CoreGradleCommand {
+    param(
+        [string]$CoreRoot,
+        [string]$GradleUserHome
+    )
+
+    $wrapperProperties = Join-Path $CoreRoot "gradle\wrapper\gradle-wrapper.properties"
+    if (Test-Path $wrapperProperties) {
+        $distributionLine = Get-Content $wrapperProperties |
+            Where-Object { $_ -match '^distributionUrl=' } |
+            Select-Object -First 1
+        if ($distributionLine -match '/(?<distribution>gradle-[^/]+-(?:bin|all))\.zip') {
+            $distributionRoot = Join-Path $GradleUserHome "wrapper\dists\$($Matches.distribution)"
+            $cachedCommand = Get-ChildItem $distributionRoot -Filter "gradle.bat" -File -Recurse -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -match '\\bin\\gradle\.bat$' } |
+                Select-Object -First 1
+            if ($cachedCommand) {
+                Write-Host "Using cached Gradle distribution: $($cachedCommand.FullName)" -ForegroundColor Yellow
+                return $cachedCommand.FullName
+            }
+        }
+    }
+
+    Write-Host "Cached Gradle distribution was not found. The wrapper may download it once." -ForegroundColor Yellow
+    return (Join-Path $CoreRoot "gradlew.bat")
+}
+
 Set-Location -Path $coreRoot
 if (Test-Path ".\gradlew.bat") {
     $requiredJavaMajor = 26
@@ -42,6 +69,17 @@ if (Test-Path ".\gradlew.bat") {
         }
     }
     New-Item -ItemType Directory -Force -Path $env:GRADLE_USER_HOME | Out-Null
+    if ($env:LABORFLOW_CORE_PROJECT_CACHE_DIR) {
+        $projectCacheDir = $env:LABORFLOW_CORE_PROJECT_CACHE_DIR
+    }
+    elseif ($env:LOCALAPPDATA) {
+        $projectCacheDir = Join-Path $env:LOCALAPPDATA "LaborFlow\gradle\backend-core-project-cache"
+    }
+    else {
+        $projectCacheDir = Join-Path $repoRoot ".gradle-user-home\backend-core-project-cache"
+    }
+    New-Item -ItemType Directory -Force -Path $projectCacheDir | Out-Null
+
     if ($env:LABORFLOW_CORE_BUILD_DIR) {
         $coreBuildDir = $env:LABORFLOW_CORE_BUILD_DIR
     }
@@ -53,13 +91,23 @@ if (Test-Path ".\gradlew.bat") {
     }
     New-Item -ItemType Directory -Force -Path $coreBuildDir | Out-Null
     $buildDirArgument = "-PlaborflowBuildDir=$coreBuildDir"
-    .\gradlew.bat --stop | Out-Host
+    $gradleCommand = Resolve-CoreGradleCommand -CoreRoot $coreRoot -GradleUserHome $env:GRADLE_USER_HOME
+    $gradleArguments = @(
+        "--no-daemon",
+        "--console=plain",
+        "--project-cache-dir",
+        $projectCacheDir,
+        $buildDirArgument,
+        "test"
+    )
+
+    & $gradleCommand --stop | Out-Host
     try {
-        .\gradlew.bat --no-daemon --console=plain $buildDirArgument test
+        & $gradleCommand @gradleArguments
         if ($LASTEXITCODE -ne 0) { throw "gradlew test failed" }
     }
     finally {
-        .\gradlew.bat --stop | Out-Host
+        & $gradleCommand --stop | Out-Host
     }
 } else {
     throw "backend-core/gradlew.bat is missing. Update .skills/verify-core.ps1 for this project."
