@@ -23,6 +23,7 @@ const styles = { ...appStyles, ...attendanceStyles };
 
 type AttendancePageProps = {
   loginId: string;
+  onNavigate: (path: string) => void;
 };
 
 type AttendanceDraft = {
@@ -141,7 +142,7 @@ function isValidOptionalTime(value: string) {
   return value === "" || /^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/.test(value);
 }
 
-export function AttendancePage({ loginId }: AttendancePageProps) {
+export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
   const [selectedDate, setSelectedDate] = useState(initialAttendanceDate);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceTasks, setAttendanceTasks] = useState<AttendanceTask[]>([]);
@@ -354,6 +355,29 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
     }
   };
 
+  const navigateToWorkJournal = (
+    task: AttendanceTask,
+    taskRecords: AttendanceRecord[],
+  ) => {
+    const hasUnsavedRecords = taskRecords.some((record) => {
+      const draft = drafts[record.assignmentUuid] ?? createDraft(record);
+      return !draftMatchesRecord(draft, record);
+    });
+    const hasUnsavedNote =
+      (taskNoteDrafts[task.scheduleDayUuid] ?? "") !==
+      (savedTaskNotes[task.scheduleDayUuid] ?? "");
+    if (
+      (hasUnsavedRecords || hasUnsavedNote) &&
+      !window.confirm("저장하지 않은 근태 변경사항이 있습니다. 작업일지로 이동할까요?")
+    ) {
+      return;
+    }
+    const returnTo = `/attendance?workDate=${encodeURIComponent(selectedDate)}`;
+    onNavigate(
+      `/work-journals?scheduleDayUuid=${encodeURIComponent(task.scheduleDayUuid)}&returnTo=${encodeURIComponent(returnTo)}`,
+    );
+  };
+
   const handleConfirmAll = async () => {
     setIsConfirmingAll(true);
     try {
@@ -508,7 +532,16 @@ export function AttendancePage({ loginId }: AttendancePageProps) {
                           .join(" · ")}
                       </p>
                     </div>
-                    <strong>{taskRecords.length}명</strong>
+                    <div className={styles.attendanceTaskHeaderActions}>
+                      <strong>{taskRecords.length}명</strong>
+                      <button
+                        className={styles.attendanceJournalButton}
+                        type="button"
+                        onClick={() => navigateToWorkJournal(task, taskRecords)}
+                      >
+                        작업일지
+                      </button>
+                    </div>
                   </header>
                   <div className={styles.attendanceTableFrame}>
                     <table className={styles.attendanceTable}>

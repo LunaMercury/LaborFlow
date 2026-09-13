@@ -499,6 +499,32 @@
   margin: 0;
 }
 
+.scheduleColumnHeaderActions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.schedulePageLinkButton {
+  background: var(--color-pages-work-schedule-page-schedule-date-move-button-background);
+  border: 1px solid var(--color-pages-work-schedule-page-schedule-date-move-button-border);
+  border-radius: 6px;
+  color: var(--color-pages-work-schedule-page-schedule-date-move-button-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 30px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.schedulePageLinkButton:hover {
+  background: var(--color-pages-work-schedule-page-schedule-date-move-button-hover-background);
+  border-color: var(--color-pages-work-schedule-page-schedule-date-move-button-hover-border);
+  cursor: pointer;
+}
+
 .scheduleCountBadge {
   align-items: center;
   background: var(--color-pages-work-schedule-page-schedule-count-badge-background);
@@ -2152,6 +2178,16 @@
     font-size: 11px;
     min-height: 24px;
     padding: 0 7px;
+  }
+
+  .scheduleColumnHeaderActions {
+    gap: 4px;
+  }
+
+  .schedulePageLinkButton {
+    font-size: 11px;
+    min-height: 24px;
+    padding: 0 6px;
   }
 
   .scheduleWorkerFilterPanel {

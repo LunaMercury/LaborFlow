@@ -49,6 +49,7 @@ const TASK_ORDER_STORAGE_PREFIX = "laborflow.workSchedule.taskOrder";
 
 type WorkSchedulePageProps = {
   loginId: string;
+  onNavigate: (path: string) => void;
 };
 
 type AssignmentArea = "men" | "women";
@@ -781,7 +782,7 @@ function TaskMemoEditor({
   );
 }
 
-export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
+export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps) {
   const [selectedDate, setSelectedDate] = useState(getInitialSelectedDate);
   const [workerSearchDraft, setWorkerSearchDraft] = useState("");
   const [workFilters, setWorkFilters] = useState<string[]>([]);
@@ -2793,6 +2794,16 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
     : [];
   const draggingWorkerRow = draggingWorkerRows[0];
 
+  const navigateToAttendance = () => {
+    if (
+      tasks.some((task) => hasTaskDraftChanges(task)) &&
+      !window.confirm("저장하지 않은 작업자 배치 변경사항이 있습니다. 근태 관리로 이동할까요?")
+    ) {
+      return;
+    }
+    onNavigate(`/attendance?workDate=${encodeURIComponent(selectedDate)}`);
+  };
+
   return (
     <main className={styles.mainContent}>
       <section className={styles.workSchedulePanel} aria-label="작업자 배치">
@@ -2972,9 +2983,18 @@ export function WorkSchedulePage({ loginId }: WorkSchedulePageProps) {
                 <p className={styles.sectionLabel}>작업 목록</p>
                 <h2>{selectedDate} 작업</h2>
               </div>
-              <span className={styles.scheduleCountBadge}>
-                {tasks.length}건
-              </span>
+              <div className={styles.scheduleColumnHeaderActions}>
+                <button
+                  className={styles.schedulePageLinkButton}
+                  type="button"
+                  onClick={navigateToAttendance}
+                >
+                  근태 관리
+                </button>
+                <span className={styles.scheduleCountBadge}>
+                  {tasks.length}건
+                </span>
+              </div>
             </div>
 
             <div className={styles.scheduleTaskList}>

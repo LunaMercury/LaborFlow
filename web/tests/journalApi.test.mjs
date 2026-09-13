@@ -202,6 +202,7 @@ test("both journal pages expose independent mobile-accessible entry controls", (
   assert.match(salesMarkup, />새 일지</);
   assert.match(salesMarkup, /type="search"/);
   assert.match(workMarkup, /id="work-journal-title"/);
+  assert.match(workMarkup, />작업일지 작성</);
   assert.match(workMarkup, />일정으로 돌아가기</);
   assert.match(workMarkup, /거래처 검색/);
 });

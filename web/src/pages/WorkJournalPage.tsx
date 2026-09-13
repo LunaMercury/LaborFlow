@@ -8,6 +8,7 @@ import {
   type WorkJournalDetail,
   type WorkJournalSummary,
 } from "../api/journalApi";
+import { fetchScheduleTasks, type ScheduleTask } from "../api/scheduleApi";
 import appStyles from "../App.module.css";
 import { StatusSnackbar } from "../components/StatusSnackbar";
 import { useUnsavedChangesGuard } from "../hooks/useUnsavedChangesGuard";
@@ -33,6 +34,17 @@ function initialScheduleDayUuid() {
 function initialReturnPath() {
   const value = new URLSearchParams(window.location.search).get("returnTo");
   return value?.startsWith("/") ? value : "/schedule";
+}
+
+function businessTodayValue() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${value.year}-${value.month}-${value.day}`;
 }
 
 function attendanceTime(record: WorkJournalAttendance) {
@@ -61,6 +73,12 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
   const [listError, setListError] = useState("");
   const [detailError, setDetailError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [isTaskPickerOpen, setIsTaskPickerOpen] = useState(false);
+  const [taskPickerDate, setTaskPickerDate] = useState(businessTodayValue);
+  const [taskPickerQuery, setTaskPickerQuery] = useState("");
+  const [taskPickerTasks, setTaskPickerTasks] = useState<ScheduleTask[]>([]);
+  const [isTaskPickerLoading, setIsTaskPickerLoading] = useState(false);
+  const [taskPickerError, setTaskPickerError] = useState("");
   const isDirty = memo !== savedMemo;
   const confirmDiscard = useUnsavedChangesGuard(isDirty);
   const returnPath = useMemo(initialReturnPath, []);
@@ -97,6 +115,63 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
   useEffect(() => {
     if (selectedScheduleDayUuid) void loadDetail(selectedScheduleDayUuid);
   }, [loadDetail, selectedScheduleDayUuid]);
+
+  useEffect(() => {
+    if (!isTaskPickerOpen) return;
+    if (!taskPickerDate) {
+      setTaskPickerTasks([]);
+      setTaskPickerError("");
+      return;
+    }
+
+    let isCurrent = true;
+    setIsTaskPickerLoading(true);
+    setTaskPickerError("");
+    fetchScheduleTasks(loginId, taskPickerDate)
+      .then((tasks) => {
+        if (isCurrent) setTaskPickerTasks(tasks);
+      })
+      .catch((error) => {
+        if (!isCurrent) return;
+        setTaskPickerTasks([]);
+        setTaskPickerError(
+          error instanceof Error ? error.message : "작업 목록을 불러오지 못했습니다.",
+        );
+      })
+      .finally(() => {
+        if (isCurrent) setIsTaskPickerLoading(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isTaskPickerOpen, loginId, taskPickerDate]);
+
+  const filteredTaskPickerTasks = useMemo(() => {
+    const normalizedQuery = taskPickerQuery.trim().toLocaleLowerCase("ko-KR");
+    if (!normalizedQuery) return taskPickerTasks;
+    return taskPickerTasks.filter((task) =>
+      [task.ownerName, task.siteName, task.address, task.title]
+        .join(" ")
+        .toLocaleLowerCase("ko-KR")
+        .includes(normalizedQuery),
+    );
+  }, [taskPickerQuery, taskPickerTasks]);
+
+  const openTaskPicker = () => {
+    setTaskPickerQuery("");
+    setIsTaskPickerOpen(true);
+  };
+
+  const chooseTask = (task: ScheduleTask) => {
+    if (!confirmDiscard()) return;
+    if (task.id === selectedScheduleDayUuid) {
+      void loadDetail(task.id);
+    } else {
+      setSelectedScheduleDayUuid(task.id);
+    }
+    setIsTaskPickerOpen(false);
+  };
 
   const selectJournal = (scheduleDayUuid: string) => {
     if (scheduleDayUuid === selectedScheduleDayUuid || !confirmDiscard()) return;
@@ -143,7 +218,10 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
       <section className={styles.journalPanel} aria-labelledby="work-journal-title">
         <div className={styles.journalHeader}>
           <div><p className={styles.sectionLabel}>작업일지</p><h1 id="work-journal-title">실제 작업 기록</h1></div>
-          <div className={styles.journalHeaderActions}><button className={styles.secondaryButton} type="button" onClick={() => onNavigate(returnPath)}>일정으로 돌아가기</button></div>
+          <div className={styles.journalHeaderActions}>
+            <button className={styles.primaryButton} type="button" onClick={openTaskPicker}>작업일지 작성</button>
+            <button className={styles.secondaryButton} type="button" onClick={() => onNavigate(returnPath)}>일정으로 돌아가기</button>
+          </div>
         </div>
 
         <form className={styles.filterBar} onSubmit={(event) => { event.preventDefault(); setAppliedFilters({ fromDate, toDate, clientQuery: clientQuery.trim() }); }}>
@@ -198,10 +276,66 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
                   <button className={styles.primaryButton} disabled={isSaving} type="button" onClick={() => void saveJournal()}>{isSaving ? "저장 중" : "저장"}</button>
                 </div>
               </>
-            ) : <div className={styles.emptyState}>일정의 작업 내용 수정 화면에서 작업일지를 열거나, 저장된 목록을 선택하세요.</div>}
+            ) : <div className={styles.emptyState}>작업일지 작성 버튼에서 기존 작업을 선택하거나, 저장된 목록을 선택하세요.</div>}
           </section>
         </div>
       </section>
+      {isTaskPickerOpen ? (
+        <div
+          className={styles.taskPickerOverlay}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsTaskPickerOpen(false);
+          }}
+        >
+          <section
+            aria-labelledby="work-journal-task-picker-title"
+            aria-modal="true"
+            className={styles.taskPickerDialog}
+            role="dialog"
+          >
+            <header className={styles.taskPickerHeader}>
+              <div>
+                <p className={styles.sectionLabel}>작업일지 작성</p>
+                <h2 id="work-journal-task-picker-title">기존 작업 선택</h2>
+              </div>
+              <button className={styles.secondaryButton} type="button" onClick={() => setIsTaskPickerOpen(false)}>취소</button>
+            </header>
+            <div className={styles.taskPickerFilters}>
+              <label className={styles.filterField}>
+                <span>작업일</span>
+                <input type="date" value={taskPickerDate} onChange={(event) => setTaskPickerDate(event.target.value)} />
+              </label>
+              <label className={`${styles.filterField} ${styles.searchField}`}>
+                <span>거래처·현장·작업 검색</span>
+                <input
+                  autoFocus
+                  type="search"
+                  value={taskPickerQuery}
+                  placeholder="거래처, 현장 또는 작업 내용"
+                  onChange={(event) => setTaskPickerQuery(event.target.value)}
+                />
+              </label>
+            </div>
+            <div className={styles.taskPickerList}>
+              {isTaskPickerLoading ? (
+                <div className={styles.loadingState}>작업을 불러오는 중입니다.</div>
+              ) : taskPickerError ? (
+                <div className={styles.errorState}>{taskPickerError}</div>
+              ) : filteredTaskPickerTasks.length === 0 ? (
+                <div className={styles.emptyState}>선택한 날짜에 조건과 맞는 작업이 없습니다.</div>
+              ) : filteredTaskPickerTasks.map((task) => (
+                <button className={styles.taskPickerItem} key={task.id} type="button" onClick={() => chooseTask(task)}>
+                  <span>{task.ownerName || "거래처 미입력"}</span>
+                  <strong>{task.title || "작업 내용 미입력"}</strong>
+                  <small>{[task.siteName, task.address].filter(Boolean).join(" · ") || "현장 정보 없음"}</small>
+                  <small>{task.timeRange || "시간 미입력"}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      ) : null}
       <StatusSnackbar message={statusMessage} onDismiss={() => setStatusMessage("")} />
     </main>
   );

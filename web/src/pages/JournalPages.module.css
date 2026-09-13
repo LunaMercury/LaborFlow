@@ -24,6 +24,10 @@
   gap: 16px;
 }
 
+.journalHeaderActions {
+  gap: 8px;
+}
+
 .journalHeader h1 {
   color: var(--color-pages-journal-page-heading-text);
   font-size: 30px;
@@ -358,6 +362,95 @@
   margin: 0;
 }
 
+.taskPickerOverlay {
+  align-items: center;
+  background: var(--color-pages-journal-page-task-picker-overlay-background);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 18px;
+  position: fixed;
+  z-index: 1000;
+}
+
+.taskPickerDialog {
+  align-items: stretch;
+  background: var(--color-pages-journal-page-task-picker-background);
+  border: 1px solid var(--color-pages-journal-page-task-picker-border);
+  border-radius: 8px;
+  box-shadow: 0 18px 50px var(--color-pages-journal-page-task-picker-shadow-color);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: flex-start;
+  max-height: min(720px, calc(100vh - 36px));
+  max-width: 720px;
+  overflow: hidden;
+  padding: 18px;
+  width: 100%;
+}
+
+.taskPickerHeader,
+.taskPickerFilters {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.taskPickerHeader h2 {
+  color: var(--color-pages-journal-page-heading-text);
+  font-size: 21px;
+  margin: 0;
+}
+
+.taskPickerFilters {
+  align-items: flex-end;
+}
+
+.taskPickerList {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 220px;
+  overflow-y: auto;
+}
+
+.taskPickerItem {
+  align-items: flex-start;
+  background: var(--color-pages-journal-page-task-picker-item-background);
+  border: 0;
+  border-bottom: 1px solid var(--color-pages-journal-page-task-picker-item-border);
+  color: var(--color-pages-journal-page-body-text);
+  display: grid;
+  gap: 5px 12px;
+  grid-template-columns: minmax(100px, 0.35fr) minmax(0, 0.65fr);
+  justify-content: center;
+  padding: 13px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.taskPickerItem:hover,
+.taskPickerItem:focus-visible {
+  background: var(--color-pages-journal-page-task-picker-item-hover-background);
+  cursor: pointer;
+  outline: none;
+}
+
+.taskPickerItem span,
+.taskPickerItem strong {
+  font-size: 14px;
+}
+
+.taskPickerItem small {
+  color: var(--color-pages-journal-page-secondary-text);
+  font-size: 12px;
+  grid-column: 2;
+  line-height: 1.4;
+}
+
 @media (max-width: 819px) {
   .journalPanel {
     gap: 12px;
@@ -428,8 +521,41 @@
   }
 
   .journalHeaderActions,
-  .journalHeaderActions .primaryButton {
+  .journalHeaderActions .primaryButton,
+  .journalHeaderActions .secondaryButton {
     width: 100%;
+  }
+
+  .journalHeaderActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .taskPickerOverlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .taskPickerDialog {
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 8px 8px 0 0;
+    border-right: 0;
+    max-height: 88vh;
+    padding: 14px;
+  }
+
+  .taskPickerFilters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .taskPickerItem {
+    grid-template-columns: 1fr;
+  }
+
+  .taskPickerItem small {
+    grid-column: auto;
   }
 
   .editorActions,

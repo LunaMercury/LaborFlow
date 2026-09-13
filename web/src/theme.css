@@ -44,6 +44,13 @@
   --color-pages-journal-page-attendance-row-background: #fbfcfe;
   --color-pages-journal-page-attendance-row-border: #dde5ee;
   --color-pages-journal-page-status-text: #176b5d;
+  --color-pages-journal-page-task-picker-overlay-background: rgba(23, 32, 42, 0.34);
+  --color-pages-journal-page-task-picker-background: #ffffff;
+  --color-pages-journal-page-task-picker-border: #d9e2ec;
+  --color-pages-journal-page-task-picker-shadow-color: rgba(23, 32, 42, 0.18);
+  --color-pages-journal-page-task-picker-item-background: #ffffff;
+  --color-pages-journal-page-task-picker-item-border: #dde5ee;
+  --color-pages-journal-page-task-picker-item-hover-background: #eef6f4;
 
   /* App.module.css */
   --color-app-page-background: #f6f8fb;

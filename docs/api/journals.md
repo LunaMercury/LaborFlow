@@ -70,6 +70,7 @@
 `GET /api/journals/work/{scheduleDayUuid}?loginId={loginId}`
 
 - 일정관리의 작업 수정 화면에서 선택한 날짜 또는 저장된 목록이 호출한다.
+- `/work-journals`의 `작업일지 작성`은 작업일과 거래처·현장·작업 검색으로 기존 일정을 먼저 선택한다. 일정 선택 목록은 기존 `GET /api/schedule/tasks`를 사용하며, 선택만으로 빈 일지를 저장하지 않는다.
 - 현재 사무소의 활성 일정이면 저장된 일지가 없어도 `200`이며 `journalUuid`, `createdAt`, `updatedAt`은 `null`, `memo`는 `""`다.
 - 거래처·현장·주소·작업 내용은 현재 일정 원본을 읽는다. 근태 배열은 활성 배정별 현재 근태를 읽고, 레코드가 없으면 `status="UNRECORDED"`와 null 실제 시간·휴게를 반환한다.
 - `actualWorkerCount`는 `status="WORKED"`인 배정의 `workerCount` 합계다. 등록 작업자는 1명이고 익명 참여자 묶음은 저장된 배정 인원수를 사용한다. 배정·DRAFT를 실제 근무로 간주하거나 작업자별 시간을 서로 보완하지 않는다.

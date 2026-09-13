@@ -212,10 +212,35 @@
   margin: 3px 0 0;
 }
 
-.attendanceTaskHeader > strong {
-  color: var(--color-pages-attendance-page-attendance-task-header-text-3);
+.attendanceTaskHeaderActions {
+  align-items: center;
+  display: flex;
   flex: 0 0 auto;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.attendanceTaskHeaderActions > strong {
+  color: var(--color-pages-attendance-page-attendance-task-header-text-3);
   font-size: 14px;
+}
+
+.attendanceJournalButton {
+  background: var(--color-pages-attendance-page-save-attendance-button-background);
+  border: 1px solid var(--color-pages-attendance-page-save-attendance-button-border);
+  border-radius: 6px;
+  color: var(--color-pages-attendance-page-save-attendance-button-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 32px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.attendanceJournalButton:hover {
+  background: var(--color-pages-attendance-page-save-attendance-button-hover-disabled-not-background);
+  cursor: pointer;
 }
 
 .attendanceTableFrame {
@@ -509,6 +534,12 @@
 
   .attendanceTaskHeader {
     align-items: flex-start;
+  }
+
+  .attendanceTaskHeaderActions {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .attendanceTaskNote {

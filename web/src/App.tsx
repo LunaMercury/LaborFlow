@@ -123,7 +123,10 @@ export default function App() {
       ) : isLoggedIn && isClientsPage ? (
         <ClientsPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isAttendancePage ? (
-        <AttendancePage loginId={readDemoSession()?.loginId ?? "test"} />
+        <AttendancePage
+          loginId={readDemoSession()?.loginId ?? "test"}
+          onNavigate={navigateTo}
+        />
       ) : isLoggedIn && isTeamsPage ? (
         <TeamsPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isSchedulePage ? (
@@ -132,7 +135,10 @@ export default function App() {
           onNavigate={navigateTo}
         />
       ) : isLoggedIn && isWorkSchedulePage ? (
-        <WorkSchedulePage loginId={readDemoSession()?.loginId ?? "test"} />
+        <WorkSchedulePage
+          loginId={readDemoSession()?.loginId ?? "test"}
+          onNavigate={navigateTo}
+        />
       ) : isLoggedIn && isFormsPage ? (
         <FormsPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isSalesJournalPage ? (
