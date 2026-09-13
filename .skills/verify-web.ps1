@@ -31,6 +31,8 @@ Write-Host "Running web behavior tests..." -ForegroundColor Yellow
 if ($LASTEXITCODE -ne 0) { throw "npm run test:api-errors failed" }
 & $npmCmd run test:work-skill-grades
 if ($LASTEXITCODE -ne 0) { throw "npm run test:work-skill-grades failed" }
+& $npmCmd run test:journals
+if ($LASTEXITCODE -ne 0) { throw "npm run test:journals failed" }
 
 Write-Host "Running TypeScript and Vite build..." -ForegroundColor Yellow
 & $npmCmd run build

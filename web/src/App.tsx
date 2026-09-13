@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./App.module.css";
 import { Header } from "./components/Header";
 import { servicePages } from "./data/servicePages";
@@ -6,6 +6,7 @@ import { ClientsPage } from "./pages/ClientsPage";
 import { AttendancePage } from "./pages/AttendancePage";
 import { FormsPage } from "./pages/FormsPage";
 import { HomePage } from "./pages/HomePage";
+import { SalesJournalPage } from "./pages/SalesJournalPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { ScheduleCalendarPage } from "./pages/ScheduleCalendarPage";
@@ -13,6 +14,8 @@ import { ServicePage } from "./pages/ServicePage";
 import { TeamsPage } from "./pages/TeamsPage";
 import { WorkersPage } from "./pages/WorkersPage";
 import { WorkSchedulePage } from "./pages/WorkSchedulePage";
+import { WorkJournalPage } from "./pages/WorkJournalPage";
+import { BEFORE_APP_NAVIGATE_EVENT } from "./hooks/useUnsavedChangesGuard";
 import {
   clearDemoSession,
   readDemoSession,
@@ -21,10 +24,21 @@ import {
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const currentUrlRef = useRef(`${window.location.pathname}${window.location.search}`);
   const [isLoggedIn, setIsLoggedIn] = useState(() => readDemoSession() !== null);
 
   useEffect(() => {
-    const handlePopState = () => setCurrentPath(window.location.pathname);
+    const handlePopState = () => {
+      const navigationEvent = new Event(BEFORE_APP_NAVIGATE_EVENT, {
+        cancelable: true,
+      });
+      if (!window.dispatchEvent(navigationEvent)) {
+        window.history.pushState(null, "", currentUrlRef.current);
+        return;
+      }
+      currentUrlRef.current = `${window.location.pathname}${window.location.search}`;
+      setCurrentPath(window.location.pathname);
+    };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
@@ -40,14 +54,21 @@ export default function App() {
   }, []);
 
   const navigateTo = (path: string) => {
+    const navigationEvent = new Event(BEFORE_APP_NAVIGATE_EVENT, {
+      cancelable: true,
+    });
+    if (!window.dispatchEvent(navigationEvent)) {
+      return;
+    }
     window.history.pushState(null, "", path);
+    currentUrlRef.current = path;
     setCurrentPath(window.location.pathname);
   };
 
   const handleLogin = (rememberLogin: boolean, loginId: string) => {
     saveDemoSession(rememberLogin, loginId);
     setIsLoggedIn(true);
-    navigateTo(currentPath === "/login" ? "/" : currentPath);
+    navigateTo(currentPath === "/login" ? "/" : currentUrlRef.current);
   };
 
   const handleLogout = () => {
@@ -64,6 +85,8 @@ export default function App() {
   const isSchedulePage = currentPath === "/schedule";
   const isWorkSchedulePage = currentPath === "/work-schedule";
   const isFormsPage = currentPath === "/forms";
+  const isSalesJournalPage = currentPath === "/sales-journals";
+  const isWorkJournalPage = currentPath === "/work-journals";
   const isProfilePage = currentPath === "/profile";
   const shouldShowLoginPage =
     !isLoggedIn && (
@@ -76,6 +99,8 @@ export default function App() {
       isSchedulePage ||
       isWorkSchedulePage ||
       isFormsPage ||
+      isSalesJournalPage ||
+      isWorkJournalPage ||
       isProfilePage
     );
   const isServicePage = isLoggedIn && isProtectedServicePath;
@@ -110,6 +135,13 @@ export default function App() {
         <WorkSchedulePage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isFormsPage ? (
         <FormsPage loginId={readDemoSession()?.loginId ?? "test"} />
+      ) : isLoggedIn && isSalesJournalPage ? (
+        <SalesJournalPage loginId={readDemoSession()?.loginId ?? "test"} />
+      ) : isLoggedIn && isWorkJournalPage ? (
+        <WorkJournalPage
+          loginId={readDemoSession()?.loginId ?? "test"}
+          onNavigate={navigateTo}
+        />
       ) : isLoggedIn && isProfilePage ? (
         <ProfilePage
           loginId={readDemoSession()?.loginId ?? "test"}

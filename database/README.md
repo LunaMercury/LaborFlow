@@ -7,6 +7,10 @@ Migration files are the source of truth for the PostgreSQL schema.
 [`docs/database/README.md`](../docs/database/README.md)에서 확인합니다. 해당 문서는
 개발 중인 구조의 소스 기준 스냅샷이며 migration 자체를 대체하지 않습니다.
 
+영업일지와 날짜별 작업일지는 migration `034_create_operation_journals.sql`에서
+추가됩니다. 작업일지는 `work_schedule_day.uuid`에 연결되고 일정·배정·근태
+원본을 복제하거나 수정하지 않습니다.
+
 The checked-in files keep the simple ordered name format (`001_...sql`).
 During build they are packaged as Flyway migrations (`V001__...sql`).
 

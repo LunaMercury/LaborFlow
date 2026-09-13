@@ -2,7 +2,7 @@
 
 [DB 문서 홈](README.md) · [관계와 흐름](relationships-and-flows.md) · [경계와 확인 사항](boundaries-and-gaps.md)
 
-이 문서는 migration `001`부터 `032`까지를 순서대로 읽어 `ALTER`, 인덱스 재생성, 제약 삭제·추가를 반영한 **파일상 최종 상태**를 적는다. 운영 DB 적용 상태는 확인하지 않았다.
+이 문서는 migration `001`부터 `034`까지를 순서대로 읽어 `ALTER`, 인덱스 재생성, 제약 삭제·추가를 반영한 **파일상 최종 상태**를 적는다. 운영 DB 적용 상태는 확인하지 않았다.
 
 ## 표기법과 공통 규칙
 
@@ -25,11 +25,12 @@
 | 거래처 | `farm_owner`, `farm_owner_sensitive_profile`, `labor_agency_farm_owner_profile`, `labor_agency_farm_owner_site` | 사용 중 | 중앙 거래처·사무소별 거래처·등록 현장 |
 | 일정 | `farm_work_site`, `farm_work_site_work_type`, `work_schedule_day`, `work_schedule_assignment` | 사용 중 | 작업 묶음·날짜·배정 |
 | 근태 | `worker_attendance_record`, `worker_attendance_revision`, `worker_activity_summary`, `work_schedule_day_attendance_summary`, `work_schedule_day_attendance_summary_revision` | 사용 중 | 근태·메모·이력·최근 활동 |
+| 일지 | `sales_journal`, `work_journal` | 사용 중 | 영업 현장 자유 기록·날짜별 작업 메모 |
 | 노쇼 | `worker_no_show_incident`, `worker_no_show_incident_revision` | 사용 중 | 노쇼 원배정·대체·취소 이력 |
 | 정산 | `work_schedule_assignment_pay_term`, `attendance_settlement_period` | DB 기반 | 배정 단가·정산 기간 |
 | 통화 분석 | `call_analysis_job`, `call_analysis_result` | DB 기반 | 녹음 분석 작업·임시 결과 |
 
-총 39개다.
+총 41개다.
 
 ## 코드 근거 지도
 
@@ -40,6 +41,7 @@
 - 거래처와 등록 현장: `backend-core/src/main/java/com/laborflow/core/clients/dao/JdbcClientsDao.java`
 - 일정·배정·노쇼: `backend-core/src/main/java/com/laborflow/core/schedule/dao/JdbcScheduleDao.java`
 - 근태·메모·활동 요약: `backend-core/src/main/java/com/laborflow/core/attendance/dao/JdbcAttendanceDao.java`
+- 영업·작업일지: `backend-core/src/main/java/com/laborflow/core/journal/dao/JdbcJournalDao.java`
 - 계정 프로필·탈퇴: `backend-core/src/main/java/com/laborflow/core/profile/dao/JdbcProfileDao.java`
 - 트랜잭션 경계: 각 도메인의 `application/*Service.java`에 선언된 `@Transactional`
 
@@ -253,6 +255,23 @@
 - pay term: `assignment_uuid uuid PK/FK CASCADE`, `rate_type varchar(16) NN`, `agreed_rate_amount numeric(14,2) NN`, `agency_fee_amount numeric(14,2)`, `worker_pay_amount numeric(14,2)`, `currency_code char(3) NN DEFAULT 'KRW'`, timestamps, `deleted_at`. rate `HOURLY|DAILY|HALF_DAY|PIECE`, 금액≥0, 통화 대문자 3자리; updated trigger.
 - settlement: `uuid PK`, `agency_owner_uuid uuid NN FK RESTRICT`, `period_start date NN`, `period_end date NN`, `status varchar(16) NN DEFAULT 'OPEN'`, `confirmed_at`, `confirmed_by_account_uuid FK SET NULL`, `paid_at`, `locked_at`, timestamps, `deleted_at`. 범위, status `OPEN|CONFIRMED|PAID|LOCKED`, 활성 owner/range UQ; updated trigger.
 - 코드: 현재 DAO/API 사용이 확인되지 않는다. 근태 레코드의 `settlement_period_uuid`만 FK 기반으로 준비돼 있다.
+
+## 일지
+
+### `sales_journal` — 사용 중
+
+- 목적: 한 기록에 여러 지역·거래처·잠재 작업을 함께 적는 사무소별 영업 현장 기록.
+- 컬럼: `uuid PK`, `agency_owner_uuid uuid NN FK RESTRICT`, `activity_at timestamptz NN`, `content text NN`, 생성·수정 계정 UUID 각각 FK SET NULL, timestamps, `deleted_at`.
+- 제약/인덱스: 본문 비공백 CHECK, 활성 `(agency_owner_uuid, activity_at DESC, uuid)` 부분 인덱스; updated trigger. 같은 날짜의 여러 기록을 막는 UQ는 없다.
+- 코드: `JdbcJournalDao.findSalesJournals`, `insertSalesJournal`, `updateSalesJournal`, `softDeleteSalesJournal`.
+
+### `work_journal` — 사용 중
+
+- 목적: 날짜별 실제 작업인 `work_schedule_day`에 연결된 운영용 작업 메모. 일정·근태 원본 정보는 복사하지 않는다.
+- 컬럼: `uuid PK`, `agency_owner_uuid uuid NN FK RESTRICT`, `schedule_day_uuid uuid NN FK RESTRICT`, `memo text`, 생성·수정 계정 UUID 각각 FK SET NULL, timestamps, `deleted_at`.
+- 제약/인덱스: 메모가 있으면 비공백 CHECK, 활성 `schedule_day_uuid` UQ, 활성 `(agency_owner_uuid, updated_at DESC, schedule_day_uuid)` 부분 인덱스; updated trigger.
+- 관계: 날짜별 작업 하나에 활성 일지 최대 하나다. 현재 일정 삭제 API는 소프트 삭제하므로 일지는 물리적으로 남을 수 있다.
+- 코드: `JdbcJournalDao.findWorkJournalDetail`, `findWorkJournalAttendance`, `upsertWorkJournal`, `softDeleteWorkJournal`.
 
 ## 노쇼
 

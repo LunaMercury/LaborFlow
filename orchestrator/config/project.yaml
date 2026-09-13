@@ -35,6 +35,8 @@ contracts:
   - Worker separation rules are agency-scoped undirected pairs stored once in canonical UUID order; editing either worker must update the same relationship.
   - Work types with no agency owner are system defaults; user-created work types are visible and assignable only within their labor agency, while worker skill ratings remain numeric 0 through 5 and start unrated.
   - Assignment saves must serialize the same agency/date/work-site validation scope, revalidate worker separation rules on the server across overlapping time ranges, and retain account-attributed PostgreSQL audit history for explicit overrides.
+  - Sales journals are agency-scoped free-form records with a user-editable activity timestamp and must not require or infer a client relationship.
+  - Work journals are uniquely linked to one active work_schedule_day, store only the journal memo, and read schedule, assignment, and attendance facts without mutating those sources.
   - Redis is limited to short-lived cache, rate limit counters, idempotency keys, distributed locks, and realtime fan-out support.
   - Redis keys and values must not contain raw personal data, passwords, provider secrets, or long-lived audit records.
   - Backend-core feature packages use api/application/dto/dao layers; shared infrastructure belongs under common only when reused across domains.

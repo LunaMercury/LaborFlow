@@ -63,6 +63,7 @@ erDiagram
     worker_attendance_record ||--o{ worker_attendance_revision : "attendance_uuid"
     work_schedule_day ||--o| work_schedule_day_attendance_summary : "schedule_day_uuid"
     work_schedule_day ||--o{ work_schedule_day_attendance_summary_revision : "schedule_day_uuid"
+    work_schedule_day ||--o{ work_journal : "schedule_day_uuid"
     work_schedule_assignment ||--o| worker_no_show_incident : "original_assignment_uuid"
     worker_no_show_incident ||--o{ worker_no_show_incident_revision : "incident_uuid"
     labor_agency_worker_profile o|--o{ worker_no_show_incident : "replacement_worker"
@@ -73,6 +74,22 @@ erDiagram
 - `worker_count`는 남아 있지만 등록 작업자는 migration `027`에서 1로 정규화됐다. 기존 추가 인원은 소개자·정산 수령자를 원 등록 작업자로 둔 guest 행으로 전환됐다.
 - 근태는 활성 assignment당 최대 한 행이다. guest 근태의 `worker_profile_uuid`는 null일 수 있다.
 - 노쇼 incident는 원배정과 0 또는 1개의 현재 대체 배정을 가리킨다. 원배정당 활성 incident도 최대 하나다.
+- 작업일지는 날짜별 `work_schedule_day`에 연결된다. 활성 일지는 최대 하나이며 일정·배정·근태 값을 복사하지 않고 조회 시 현재 원본을 조합한다.
+
+## 영업일지와 작업일지
+
+```mermaid
+erDiagram
+    labor_agency_owner ||--o{ sales_journal : "agency_owner_uuid"
+    labor_agency_owner ||--o{ work_journal : "agency_owner_uuid"
+    work_schedule_day ||--o{ work_journal : "schedule_day_uuid"
+    app_account o|--o{ sales_journal : "created_by / updated_by"
+    app_account o|--o{ work_journal : "created_by / updated_by"
+```
+
+- `sales_journal`은 거래처 FK가 없는 의도적인 자유 기록이다. 한 본문에 여러 지역·거래처가 함께 등장할 수 있다.
+- `work_journal`은 다일 묶음 `farm_work_site`가 아니라 날짜별 `work_schedule_day`에 연결되어 다른 날짜의 메모가 섞이지 않는다.
+- 활성 일지의 1:1은 부분 UQ로 보장되며 소프트 삭제 후 같은 작업에 새 활성 일지를 만들 수 있다.
 
 ## 동시 배치 주의
 
@@ -140,9 +157,18 @@ erDiagram
 6. 취소는 시스템 생성 대체 배정을 조건부 제거하고 원 assignment status와 근태 snapshot을 복원한다. incident는 `CANCELLED`가 되고 revision을 남긴다.
 7. 노쇼 횟수는 취소되지 않은 incident 이력을 조회한다. 수동 `worker_risk_flag`와는 별도다.
 
+### 영업일지 작성과 작업일지 저장
+
+1. 영업일지는 현재 계정의 사무소 UUID, 사용자가 수정 가능한 활동 시각, 자유 본문을 저장한다. 생성·수정 시각은 DB 시각으로 별도 기록된다.
+2. 영업일지 조회는 활동 시각의 `Asia/Seoul` 날짜 범위와 본문 포함 검색을 사용한다.
+3. 작업일지 상세 GET은 빈 행을 만들지 않는다. 저장할 때만 날짜별 작업에 INSERT 또는 UPDATE한다.
+4. 작업일지의 거래처·현장·작업내용은 일정 원본에서, 실제 작업자·시간은 배정과 근태 원본에서 읽는다. 근태가 없으면 `UNRECORDED`로 표시한다.
+5. 작업일지 메모 저장·삭제는 일정·배정·근태·정산 데이터를 갱신하지 않는다.
+
 ### 삭제
 
 - 작업자 삭제: 사무소 profile을 `ARCHIVED`/`deleted_at`, 지급 profile과 활성 팀원 연결을 `deleted_at` 처리한다. 중앙 worker는 보존한다. 현재 DAO는 skill 행을 함께 소프트 삭제하지 않는다.
 - 거래처 삭제: 사무소 거래처 profile만 `ARCHIVED`/`deleted_at` 처리한다. 중앙 farm owner, 등록 현장, 과거 일정은 물리 삭제하지 않는다. 부모 profile이 비활성이라 현장 목록에서는 숨겨진다.
 - 일정 삭제: assignment를 소프트 삭제하고 day를 `ARCHIVED`/`deleted_at` 처리한다. 활성 day가 없으면 farm_work_site도 archive한다. 근태·노쇼 이력은 물리 FK와 함께 남는다.
+- 일지 삭제: `sales_journal` 또는 `work_journal`의 `deleted_at`만 기록한다. 연결된 일정과 근태 원본은 변경하지 않는다.
 - 계정 탈퇴: account와 labor agency owner의 status를 `ARCHIVED`로 바꾼다. `deleted_at`이나 연쇄 삭제는 사용하지 않는다.

@@ -17,6 +17,7 @@ import {
   type ScheduleTask,
 } from "../api/scheduleApi";
 import appStyles from "../App.module.css";
+import { useUnsavedChangesGuard } from "../hooks/useUnsavedChangesGuard";
 import calendarStyles from "./ScheduleCalendarPage.module.css";
 
 const styles = { ...appStyles, ...calendarStyles };
@@ -482,6 +483,27 @@ function getMonthLabel(monthValue: string) {
   return `${year}년 ${Number(month)}월`;
 }
 
+function getInitialMonthValue() {
+  const value = new URLSearchParams(window.location.search).get("month");
+  return value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value)
+    ? value
+    : getMonthInputValue(new Date());
+}
+
+function getEventDateFromCardClick(
+  clickEvent: ReactMouseEvent<HTMLElement>,
+  segment: CalendarEventSegment,
+) {
+  const rect = clickEvent.currentTarget.getBoundingClientRect();
+  const segmentDays = diffDays(segment.endDate, segment.startDate) + 1;
+  if (rect.width <= 0 || segmentDays <= 1) {
+    return segment.startDate;
+  }
+  const relativeX = Math.min(rect.width - 1, Math.max(0, clickEvent.clientX - rect.left));
+  const dayOffset = Math.min(segmentDays - 1, Math.floor(relativeX / (rect.width / segmentDays)));
+  return addDays(segment.startDate, dayOffset);
+}
+
 function createVisibleDates(monthValue: string) {
   const [year, month] = monthValue.split("-").map(Number);
   const firstDate = new Date(year, month - 1, 1);
@@ -838,7 +860,7 @@ export function ScheduleCalendarPage({
   const [calendarViewMode, setCalendarViewMode] = useState<CalendarViewMode>(
     getDefaultCalendarViewMode,
   );
-  const [monthValue, setMonthValue] = useState(getMonthInputValue(new Date()));
+  const [monthValue, setMonthValue] = useState(getInitialMonthValue);
   const [todayScrollRequest, setTodayScrollRequest] = useState(0);
   const [isCalendarLoading, setIsCalendarLoading] = useState(true);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -852,11 +874,17 @@ export function ScheduleCalendarPage({
   );
   const [isCreatingSchedule, setIsCreatingSchedule] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [editingEventDate, setEditingEventDate] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<ScheduleEditDraft | null>(null);
+  const [isEditDirty, setIsEditDirty] = useState(false);
   const [isUpdatingSchedule, setIsUpdatingSchedule] = useState(false);
   const isCalendarModalOpen = createModalDate !== null || editingEvent !== null;
   const [reloadToken, setReloadToken] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
+  const confirmDiscardEdit = useUnsavedChangesGuard(
+    Boolean(editingEvent) && isEditDirty,
+    "저장하지 않은 일정 변경사항이 있습니다. 이동할까요?",
+  );
   const todayDate = useMemo(() => toInputDate(new Date()), []);
   const visibleDates = useMemo(
     () => createVisibleDates(monthValue),
@@ -1413,9 +1441,11 @@ export function ScheduleCalendarPage({
     }
   };
 
-  const openEditModal = (event: CalendarEvent) => {
+  const openEditModal = (event: CalendarEvent, selectedDate = event.startDate) => {
     setEditingEvent(event);
+    setEditingEventDate(selectedDate);
     setEditDraft(createEditScheduleDraft(event));
+    setIsEditDirty(false);
     fetchFarmOwners(loginId, event.ownerName)
       .then((farmOwners) => {
         const farmOwner = farmOwners.find(
@@ -1434,12 +1464,14 @@ export function ScheduleCalendarPage({
   };
 
   const closeEditModal = () => {
-    if (isUpdatingSchedule) {
+    if (isUpdatingSchedule || !confirmDiscardEdit()) {
       return;
     }
 
     setEditingEvent(null);
+    setEditingEventDate(null);
     setEditDraft(null);
+    setIsEditDirty(false);
   };
 
   const submitEditSchedule = async () => {
@@ -1531,7 +1563,9 @@ export function ScheduleCalendarPage({
         ),
       );
       setStatusMessage("작업내용을 저장했습니다.");
+      setIsEditDirty(false);
       setEditingEvent(null);
+      setEditingEventDate(null);
       setEditDraft(null);
       setReloadToken((token) => token + 1);
     } catch (error) {
@@ -1566,7 +1600,9 @@ export function ScheduleCalendarPage({
         ),
       );
       setStatusMessage("일정을 삭제했습니다.");
+      setIsEditDirty(false);
       setEditingEvent(null);
+      setEditingEventDate(null);
       setEditDraft(null);
       setReloadToken((token) => token + 1);
     } catch (error) {
@@ -1970,7 +2006,10 @@ export function ScheduleCalendarPage({
                                 onClick={(clickEvent) => {
                                   clickEvent.stopPropagation();
                                   if (!dragClickSuppressedRef.current) {
-                                    openEditModal(event);
+                                    openEditModal(
+                                      event,
+                                      getEventDateFromCardClick(clickEvent, segment),
+                                    );
                                   }
                                 }}
                                 style={{
@@ -2069,7 +2108,7 @@ export function ScheduleCalendarPage({
                       className={styles.mobileAgendaEventCard}
                       key={`${agendaDay.date}-${event.id}`}
                       type="button"
-                      onClick={() => openEditModal(event)}
+                      onClick={() => openEditModal(event, agendaDay.date)}
                     >
                       <span className={styles.mobileAgendaOwner}>
                         {event.ownerName}
@@ -2449,6 +2488,25 @@ export function ScheduleCalendarPage({
                       className={styles.scheduleAssignmentButton}
                       disabled={isUpdatingSchedule}
                       type="button"
+                      onClick={() => {
+                        const selectedDate = editingEventDate ?? editingEvent.startDate;
+                        const dateIndex = editingEvent.sourceDates.indexOf(selectedDate);
+                        const scheduleDayUuid = editingEvent.taskIds[dateIndex >= 0 ? dateIndex : 0];
+                        if (!scheduleDayUuid) {
+                          window.alert("작업일지를 작성하려면 일정을 먼저 저장해주세요.");
+                          return;
+                        }
+                        onNavigate(
+                          `/work-journals?scheduleDayUuid=${encodeURIComponent(scheduleDayUuid)}&returnTo=${encodeURIComponent(`/schedule?month=${selectedDate.slice(0, 7)}`)}`,
+                        );
+                      }}
+                    >
+                      작업일지
+                    </button>
+                    <button
+                      className={styles.scheduleAssignmentButton}
+                      disabled={isUpdatingSchedule}
+                      type="button"
                       onClick={() =>
                         onNavigate(
                           `/work-schedule?workDate=${encodeURIComponent(editingEvent.startDate)}`,
@@ -2500,6 +2558,7 @@ export function ScheduleCalendarPage({
               <form
                 className={styles.scheduleCreateBody}
                 ref={editFormRef}
+                onChange={() => setIsEditDirty(true)}
                 onSubmit={(event) => {
                   event.preventDefault();
                   submitEditSchedule();

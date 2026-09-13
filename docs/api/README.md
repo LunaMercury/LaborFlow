@@ -9,8 +9,8 @@
 ## 조사 기준
 
 - 브랜치: `dev`
-- 커밋: `219fbbb8014c6b404de01ae5f94d2220664d3ad2`
-- 조사 시작 상태: 추적 중인 미커밋 변경 없음, `origin/dev`보다 3커밋 앞섬
+- 구현 시작 기준 커밋: `4970ccebd7aba17b7c3943ed4d067f64f7190a75`
+- 조사 시작 상태: 추적 중인 미커밋 변경 없음, `origin/dev`보다 4커밋 앞섬
 - 조사 방식: Controller, DTO, Service, 예외 처리, 필요한 DAO/DB 제약, `web/src/api`와 호출 화면을 소스로 대조
 - 실행 검증: 수행하지 않음. 이 문서는 위 커밋의 소스 계약을 기준으로 한다.
 
@@ -23,12 +23,13 @@
 - [거래처와 현장](clients.md): 농장주/거래처와 거래처별 여러 현장
 - [일정과 배치](schedule.md): 달력, 날짜별 배치, 익명 인원, 충돌 확인, 노쇼, 다일 범위
 - [근태](attendance.md): 조회, 수정, 예정대로 근무, 작업 메모
+- [일지](journals.md): 영업 현장 기록과 날짜별 작업 메모·실제 근태 조회
 - [프로필, 헬스, backend-fast](platform.md): 내 정보, 탈퇴, 상태 확인, Rust 경로
 - [불일치와 미구현 영역](gaps.md): 프론트/백엔드 차이, DB만 있는 기능, 개선 후보
 
 ## 현재 등록 경로 목록
 
-backend-core Controller에 등록된 41개 경로를 기준으로 했다.
+backend-core Controller에 등록된 50개 경로를 기준으로 했다.
 
 | 도메인 | 메서드와 경로 | 상세 문서 |
 |---|---|---|
@@ -73,6 +74,15 @@ backend-core Controller에 등록된 41개 경로를 기준으로 했다.
 | Attendance | `GET /api/attendance/records` | [attendance.md](attendance.md#조회) |
 | Attendance | `PATCH /api/attendance/records/{assignmentUuid}` | [attendance.md](attendance.md#근태-수정) |
 | Attendance | `PATCH /api/attendance/schedule-days/{scheduleDayUuid}/note` | [attendance.md](attendance.md#작업-메모) |
+| Journals | `GET /api/journals/sales` | [journals.md](journals.md#목록-조회) |
+| Journals | `GET /api/journals/sales/{journalUuid}` | [journals.md](journals.md#상세-조회) |
+| Journals | `POST /api/journals/sales` | [journals.md](journals.md#작성과-수정) |
+| Journals | `PUT /api/journals/sales/{journalUuid}` | [journals.md](journals.md#작성과-수정) |
+| Journals | `DELETE /api/journals/sales/{journalUuid}` | [journals.md](journals.md#삭제) |
+| Journals | `GET /api/journals/work` | [journals.md](journals.md#저장된-목록-조회) |
+| Journals | `GET /api/journals/work/{scheduleDayUuid}` | [journals.md](journals.md#일정별-상세-조회) |
+| Journals | `PUT /api/journals/work/{scheduleDayUuid}` | [journals.md](journals.md#메모-저장) |
+| Journals | `DELETE /api/journals/work/{scheduleDayUuid}` | [journals.md](journals.md#일지-삭제) |
 
 backend-fast에는 `GET /health` 하나만 구현되어 있다. `/ws`나 `/fast/*`에 대응하는 애플리케이션 경로는 현재 없다.
 

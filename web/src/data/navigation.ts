@@ -17,6 +17,8 @@ export const menuItems: NavigationItem[] = [
   { label: "일정 관리", path: "/schedule" },
   { label: "작업자 배치", path: "/work-schedule" },
   { label: "근태 관리", path: "/attendance" },
+  { label: "작업일지", path: "/work-journals" },
+  { label: "영업일지", path: "/sales-journals" },
   { label: "각종 서식", path: "/forms" },
 ];
 

@@ -11,6 +11,40 @@
  *   intentionally inherits the owning control's semantic text color.
  */
 :root {
+  /* pages/JournalPages.module.css */
+  --color-pages-journal-page-heading-text: #17202a;
+  --color-pages-journal-page-section-label-text: #176b5d;
+  --color-pages-journal-page-body-text: #2f3f50;
+  --color-pages-journal-page-secondary-text: #687789;
+  --color-pages-journal-page-accent-text: #176b5d;
+  --color-pages-journal-page-error-text: #b42318;
+  --color-pages-journal-page-primary-button-background: #176b5d;
+  --color-pages-journal-page-primary-button-border: #176b5d;
+  --color-pages-journal-page-primary-button-text: #ffffff;
+  --color-pages-journal-page-secondary-button-background: #ffffff;
+  --color-pages-journal-page-secondary-button-border: #c8d4e0;
+  --color-pages-journal-page-secondary-button-text: #2f3f50;
+  --color-pages-journal-page-danger-button-background: #fff7ed;
+  --color-pages-journal-page-danger-button-border: #d97706;
+  --color-pages-journal-page-danger-button-text: #92400e;
+  --color-pages-journal-page-filter-background: #edf2f6;
+  --color-pages-journal-page-filter-border: #d4dee8;
+  --color-pages-journal-page-field-label-text: #2f3f50;
+  --color-pages-journal-page-input-background: #fbfcfe;
+  --color-pages-journal-page-input-border: #c8d4e0;
+  --color-pages-journal-page-input-text: #17202a;
+  --color-pages-journal-page-input-focus-border: #176b5d;
+  --color-pages-journal-page-input-focus-shadow-color: rgba(23, 107, 93, 0.14);
+  --color-pages-journal-page-panel-background: #ffffff;
+  --color-pages-journal-page-panel-border: #d9e2ec;
+  --color-pages-journal-page-list-item-background: #ffffff;
+  --color-pages-journal-page-list-item-border: #dde5ee;
+  --color-pages-journal-page-list-item-active-background: #eef6f4;
+  --color-pages-journal-page-metadata-background: #f6f8fb;
+  --color-pages-journal-page-attendance-row-background: #fbfcfe;
+  --color-pages-journal-page-attendance-row-border: #dde5ee;
+  --color-pages-journal-page-status-text: #176b5d;
+
   /* App.module.css */
   --color-app-page-background: #f6f8fb;
   --color-app-page-text: #17202a;

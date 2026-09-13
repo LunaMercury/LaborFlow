@@ -9,6 +9,7 @@
     "build": "tsc && vite build",
     "test:api-errors": "node --test tests/apiErrorHandling.test.mjs",
     "test:work-skill-grades": "node --test tests/workSkillGrade.test.mjs",
+    "test:journals": "node --test tests/journalApi.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
