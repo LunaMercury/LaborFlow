@@ -75,7 +75,6 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
   const [statusMessage, setStatusMessage] = useState("");
   const [isTaskPickerOpen, setIsTaskPickerOpen] = useState(false);
   const [taskPickerDate, setTaskPickerDate] = useState(businessTodayValue);
-  const [taskPickerQuery, setTaskPickerQuery] = useState("");
   const [taskPickerTasks, setTaskPickerTasks] = useState<ScheduleTask[]>([]);
   const [isTaskPickerLoading, setIsTaskPickerLoading] = useState(false);
   const [taskPickerError, setTaskPickerError] = useState("");
@@ -147,20 +146,13 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
     };
   }, [isTaskPickerOpen, loginId, taskPickerDate]);
 
-  const filteredTaskPickerTasks = useMemo(() => {
-    const normalizedQuery = taskPickerQuery.trim().toLocaleLowerCase("ko-KR");
-    if (!normalizedQuery) return taskPickerTasks;
-    return taskPickerTasks.filter((task) =>
-      [task.ownerName, task.siteName, task.address, task.title]
-        .join(" ")
-        .toLocaleLowerCase("ko-KR")
-        .includes(normalizedQuery),
-    );
-  }, [taskPickerQuery, taskPickerTasks]);
-
   const openTaskPicker = () => {
-    setTaskPickerQuery("");
+    setTaskPickerDate(detail?.workDate || businessTodayValue());
     setIsTaskPickerOpen(true);
+  };
+
+  const closeTaskPicker = () => {
+    if (confirmDiscard()) setIsTaskPickerOpen(false);
   };
 
   const chooseTask = (task: ScheduleTask) => {
@@ -168,9 +160,11 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
     if (task.id === selectedScheduleDayUuid) {
       void loadDetail(task.id);
     } else {
+      setDetail(null);
+      setMemo("");
+      setSavedMemo("");
       setSelectedScheduleDayUuid(task.id);
     }
-    setIsTaskPickerOpen(false);
   };
 
   const selectJournal = (scheduleDayUuid: string) => {
@@ -179,7 +173,7 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
   };
 
   const saveJournal = async () => {
-    if (!selectedScheduleDayUuid || isSaving) return;
+    if (!selectedScheduleDayUuid || isSaving) return false;
     setIsSaving(true);
     try {
       const saved = await saveWorkJournal(loginId, selectedScheduleDayUuid, memo);
@@ -188,8 +182,10 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
       setSavedMemo(saved.memo || "");
       setStatusMessage("작업일지를 저장했습니다.");
       await loadList();
+      return true;
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "작업일지를 저장하지 못했습니다.");
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -285,7 +281,7 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
           className={styles.taskPickerOverlay}
           role="presentation"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setIsTaskPickerOpen(false);
+            if (event.target === event.currentTarget) closeTaskPicker();
           }}
         >
           <section
@@ -297,42 +293,73 @@ export function WorkJournalPage({ loginId, onNavigate }: WorkJournalPageProps) {
             <header className={styles.taskPickerHeader}>
               <div>
                 <p className={styles.sectionLabel}>작업일지 작성</p>
-                <h2 id="work-journal-task-picker-title">기존 작업 선택</h2>
+                <h2 id="work-journal-task-picker-title">작업 선택 및 메모 작성</h2>
               </div>
-              <button className={styles.secondaryButton} type="button" onClick={() => setIsTaskPickerOpen(false)}>취소</button>
+              <button className={styles.secondaryButton} type="button" onClick={closeTaskPicker}>취소</button>
             </header>
             <div className={styles.taskPickerFilters}>
               <label className={styles.filterField}>
                 <span>작업일</span>
                 <input type="date" value={taskPickerDate} onChange={(event) => setTaskPickerDate(event.target.value)} />
               </label>
-              <label className={`${styles.filterField} ${styles.searchField}`}>
-                <span>작업내용</span>
-                <input
-                  autoFocus
-                  type="search"
-                  value={taskPickerQuery}
-                  placeholder="거래처, 현장 또는 작업 내용"
-                  onChange={(event) => setTaskPickerQuery(event.target.value)}
-                />
-              </label>
             </div>
-            <div className={styles.taskPickerList}>
-              {isTaskPickerLoading ? (
-                <div className={styles.loadingState}>작업을 불러오는 중입니다.</div>
-              ) : taskPickerError ? (
-                <div className={styles.errorState}>{taskPickerError}</div>
-              ) : filteredTaskPickerTasks.length === 0 ? (
-                <div className={styles.emptyState}>선택한 날짜에 조건과 맞는 작업이 없습니다.</div>
-              ) : filteredTaskPickerTasks.map((task) => (
-                <button className={styles.taskPickerItem} key={task.id} type="button" onClick={() => chooseTask(task)}>
-                  <span>{task.ownerName || "거래처 미입력"}</span>
-                  <strong>{task.title || "작업 내용 미입력"}</strong>
-                  <small>{[task.siteName, task.address].filter(Boolean).join(" · ") || "현장 정보 없음"}</small>
-                  <small>{task.timeRange || "시간 미입력"}</small>
-                </button>
-              ))}
-            </div>
+            <section className={styles.taskPickerWorkSection} aria-labelledby="work-journal-task-list-title">
+              <h3 id="work-journal-task-list-title">작업내용</h3>
+              <div className={styles.taskPickerList}>
+                {isTaskPickerLoading ? (
+                  <div className={styles.loadingState}>작업을 불러오는 중입니다.</div>
+                ) : taskPickerError ? (
+                  <div className={styles.errorState}>{taskPickerError}</div>
+                ) : taskPickerTasks.length === 0 ? (
+                  <div className={styles.emptyState}>선택한 날짜에 등록된 작업이 없습니다.</div>
+                ) : taskPickerTasks.map((task) => (
+                  <button
+                    aria-pressed={task.id === selectedScheduleDayUuid}
+                    className={`${styles.taskPickerItem} ${task.id === selectedScheduleDayUuid ? styles.activeTaskPickerItem : ""}`}
+                    key={task.id}
+                    type="button"
+                    onClick={() => chooseTask(task)}
+                  >
+                    <span>{task.ownerName || "거래처 미입력"}</span>
+                    <strong>{task.title || "작업 내용 미입력"}</strong>
+                    <small>{[task.siteName, task.address].filter(Boolean).join(" · ") || "현장 정보 없음"}</small>
+                    <small>{task.timeRange || "시간 미입력"}</small>
+                  </button>
+                ))}
+              </div>
+            </section>
+            <section className={styles.taskPickerEditor} aria-label="작업 메모 작성">
+              {isDetailLoading ? (
+                <div className={styles.loadingState}>작업 정보를 불러오는 중입니다.</div>
+              ) : detailError ? (
+                <div className={styles.errorState}>{detailError}</div>
+              ) : detail && detail.scheduleDayUuid === selectedScheduleDayUuid ? (
+                <>
+                  <label className={styles.taskPickerMemoField}>
+                    <span>작업 메모</span>
+                    <textarea
+                      value={memo}
+                      onChange={(event) => setMemo(event.target.value)}
+                      placeholder="진행 내용, 남은 작업, 특이사항과 필요한 후속 내용을 자유롭게 기록하세요."
+                    />
+                  </label>
+                  <div className={styles.taskPickerActions}>
+                    <button
+                      className={styles.primaryButton}
+                      disabled={isSaving}
+                      type="button"
+                      onClick={async () => {
+                        if (await saveJournal()) setIsTaskPickerOpen(false);
+                      }}
+                    >
+                      {isSaving ? "저장 중" : "저장"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className={styles.emptyState}>위 목록에서 일지를 작성할 작업을 선택하세요.</div>
+              )}
+            </section>
           </section>
         </div>
       ) : null}
