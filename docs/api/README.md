@@ -58,6 +58,7 @@ backend-core Controller에 등록된 50개 경로를 기준으로 했다.
 | Workforce | `PATCH /api/workforce/worker-profiles/{profileUuid}/gender` | [workforce.md](workforce.md#부분-수정-api) |
 | Workforce | `PUT /api/workforce/worker-profiles/{profileUuid}/work-types` | [workforce.md](workforce.md#부분-수정-api) |
 | Schedule | `GET /api/schedule/tasks` | [schedule.md](schedule.md#조회-api) |
+| Schedule | `GET /api/schedule/tasks/{scheduleDayUuid}/assignment-history` | [schedule.md](schedule.md#배치-이력-조회) |
 | Schedule | `GET /api/schedule/farm-owners` | [schedule.md](schedule.md#조회-api) |
 | Schedule | `POST /api/schedule/tasks` | [schedule.md](schedule.md#일정-생성) |
 | Schedule | `PUT /api/schedule/tasks/{scheduleDayUuid}` | [schedule.md](schedule.md#날짜별-일정과-배치-수정) |

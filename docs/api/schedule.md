@@ -81,6 +81,40 @@
 - 범위: 현재 사무소의 활성 거래처만.
 - 근거: `ScheduleController.getFarmOwners`, `ScheduleService.getFarmOwners`, `JdbcScheduleDao.findFarmOwners`, `fetchFarmOwners`, `ScheduleCalendarPage`.
 
+### 배치 이력 조회
+
+`GET /api/schedule/tasks/{scheduleDayUuid}/assignment-history` (2026-10-09 추가)
+
+- 목적/화면: `/work-schedule` 작업 카드의 `배치 불러오기` 팝업에서 이전 배정 날짜 선택.
+- 경로: 현재 대상 일정의 `scheduleDayUuid` UUID 필수.
+- 쿼리: `loginId` string 필수, `workDate` `yyyy-MM-dd` 필수. 선택 `beforeDate`도 같은 형식이며 배타적 상한이다. 생략하면 `workDate`를 상한으로 사용한다. 대상 날짜 이후의 상한은 거부한다. 빈 문자열은 프론트가 보내지 않는다.
+- 범위: 현재 활성 계정의 사무소에 속한 대상 일정이 해당 날짜에 존재해야 한다. 조회 대상은 같은 사무소의 활성·미삭제 일정/작업 묶음과 미삭제 배정이다. `REPLACED` 원배정은 제외한다. 등록 작업자는 같은 사무소의 활성·미삭제 프로필만 포함하고 guest는 포함한다.
+- 매칭: 같은 `workSiteId`, 또는 같은 중앙 거래처 `ownerUuid`이면서 공백 제거·소문자 처리한 작업 내용이 같은 이전 일정. 과거 거래처 표시 이름 비교보다 식별자 비교를 사용하므로 서로 다른 거래처의 같은 표시 이름이 연결되지 않는다. 저장된 작업 내용 기준이며 카드의 미저장 수정값은 사용하지 않는다.
+- 같은 날짜에 여러 후보가 있으면 같은 작업 묶음 우선, 배정 건수 내림차순, 일정 UUID 순으로 한 후보를 선택한다. 같은 묶음에 배정이 없는 날짜는 이력에 포함되지 않는다.
+- 성공: `200`, 최신 날짜순 최대 30건. `assignmentCount`는 배정 행 수이며 동행 인원 포함 실제 근무 인원을 뜻하지 않는다. 추가 결과가 있으면 마지막 반환 날짜를 `nextBeforeDate`로 제공한다.
+
+```json
+{
+  "entries": [
+    {
+      "workDate": "2026-09-03",
+      "scheduleDayUuid": "11111111-1111-4111-8111-111111111111",
+      "title": "마늘 수확",
+      "siteName": "가상 현장",
+      "assignmentCount": 3
+    }
+  ],
+  "nextBeforeDate": null
+}
+```
+
+- 빈 결과: `entries: []`, `nextBeforeDate: null`. 읽기 전용이며 배정·근태를 생성하지 않는다. 인증은 기존 `loginId` 기반 사무소 조회를 따르며 실제 토큰 인증 보장을 추가하지 않는다.
+- 실패: 계정/사무소/대상 일정 없음 또는 잘못된 상한은 공통 `400 BAD_REQUEST`, 내부 메시지를 숨긴다. 조회 장애는 공통 `500 INTERNAL_SERVER_ERROR`. UUID/날짜 변환 실패는 MVC 단계에서 처리된다.
+- 미리보기/적용 시 기존 `GET /api/schedule/tasks?workDate=...`를 다시 조회하여 선택한 일정 UUID를 확인한다. 미리보기는 저장된 배치 명단이며 실제 근무 기록으로 표시하지 않는다. 이름과 승차장소는 현재 작업자 정보로 표시한다.
+- 적용은 등록 작업자의 영역·인원수만 현재 카드의 프론트 초안으로 가져온다. 이미 다른 카드에 배치되었거나 현재 작업자 목록에 없는 인원, `replaced` 배정은 제외한다. guest는 미리보기만 지원하며 현재 카드의 기존 guest는 유지한다. 적용 가능한 인원이 0명이면 기존 초안을 유지한다. 기존 등록 명단이 있으면 교체 확인을 받는다.
+- DB 저장은 기존 체크 버튼과 `updateScheduleTask`를 사용한다. 동시 배치 주의의 409 확인 후 저장 흐름도 그대로 사용한다. 다시 읽는 요청은 재시도할 수 있으며 DB 쓰기는 없다.
+- 근거: `ScheduleController.getAssignmentHistory`, `ScheduleService.getAssignmentHistory`, `JdbcScheduleDao.findAssignmentHistory`, `fetchAssignmentHistory`, `AssignmentHistoryModal`, `WorkSchedulePage.importHistoricalAssignments`, `buildImportedAssignments`.
+
 ## 일정 생성
 
 ### `POST /api/schedule/tasks`

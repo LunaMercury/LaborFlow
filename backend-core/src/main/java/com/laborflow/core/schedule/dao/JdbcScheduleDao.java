@@ -2,6 +2,7 @@ package com.laborflow.core.schedule.dao;
 
 import com.laborflow.core.clients.dto.ClientWorkSiteResponse;
 import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
+import com.laborflow.core.schedule.dto.AssignmentHistoryEntry;
 import com.laborflow.core.schedule.dto.ScheduleAssignmentResponse;
 import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
@@ -412,6 +413,50 @@ public class JdbcScheduleDao implements ScheduleDao {
         return findTasks(agencyOwnerUuid, workDate).stream()
             .filter(task -> task.id().equals(scheduleDayUuid))
             .findFirst();
+    }
+
+    @Override
+    public List<AssignmentHistoryEntry> findAssignmentHistory(
+        UUID agencyOwnerUuid, UUID workSiteUuid, UUID farmOwnerUuid,
+        String title, LocalDate beforeDate, int limit
+    ) {
+        return jdbcTemplate.query(
+            """
+            SELECT DISTINCT ON (d.work_date)
+                d.work_date, d.uuid, s.work_description, COALESCE(s.site_name, '') AS site_name,
+                count(*)::int AS assignment_count
+            FROM public.work_schedule_day d
+            JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
+            JOIN public.farm_owner fo ON fo.uuid = s.owner_uuid AND fo.deleted_at IS NULL
+            JOIN public.work_schedule_assignment a
+                ON a.schedule_day_uuid = d.uuid
+                AND a.agency_owner_uuid = s.agency_owner_uuid
+                AND a.deleted_at IS NULL AND a.status <> 'REPLACED'
+            LEFT JOIN public.labor_agency_worker_profile p
+                ON p.uuid = a.worker_profile_uuid AND p.agency_owner_uuid = s.agency_owner_uuid
+            WHERE s.agency_owner_uuid = ?
+                AND s.status = 'ACTIVE' AND s.deleted_at IS NULL
+                AND d.status = 'ACTIVE' AND d.deleted_at IS NULL
+                AND d.work_date < ?
+                AND (a.participant_type = 'GUEST' OR (p.status = 'ACTIVE' AND p.deleted_at IS NULL))
+                AND (s.uuid = ? OR (
+                    s.owner_uuid = ?
+                    AND regexp_replace(lower(s.work_description), '\\s+', '', 'g')
+                        = regexp_replace(lower(?), '\\s+', '', 'g')
+                ))
+            GROUP BY d.work_date, d.uuid, s.uuid
+            ORDER BY d.work_date DESC, (s.uuid = ?) DESC, count(*) DESC, d.uuid
+            LIMIT ?
+            """,
+            (resultSet, rowNumber) -> new AssignmentHistoryEntry(
+                resultSet.getObject("work_date", LocalDate.class),
+                resultSet.getObject("uuid", UUID.class),
+                resultSet.getString("work_description"),
+                resultSet.getString("site_name"),
+                resultSet.getInt("assignment_count")
+            ),
+            agencyOwnerUuid, beforeDate, workSiteUuid, farmOwnerUuid, title, workSiteUuid, limit
+        );
     }
 
     @Override

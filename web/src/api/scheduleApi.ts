@@ -50,6 +50,37 @@ type ScheduleTaskListResponse = {
   tasks: ScheduleTask[];
 };
 
+export type AssignmentHistoryEntry = {
+  workDate: string;
+  scheduleDayUuid: string;
+  title: string;
+  siteName: string;
+  assignmentCount: number;
+};
+
+export type AssignmentHistoryResponse = {
+  entries: AssignmentHistoryEntry[];
+  nextBeforeDate: string | null;
+};
+
+export async function fetchAssignmentHistory(
+  loginId: string,
+  taskId: string,
+  workDate: string,
+  beforeDate?: string,
+): Promise<AssignmentHistoryResponse> {
+  const query = new URLSearchParams({ loginId, workDate });
+  if (beforeDate) query.set("beforeDate", beforeDate);
+  const response = await fetch(
+    `${apiBaseUrl}/api/schedule/tasks/${encodeURIComponent(taskId)}/assignment-history?${query}`,
+    { cache: "no-store" },
+  );
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, "배치 이력을 불러오지 못했습니다."));
+  }
+  return (await response.json()) as AssignmentHistoryResponse;
+}
+
 export type FarmOwnerOption = {
   profileUuid: string;
   uuid: string;

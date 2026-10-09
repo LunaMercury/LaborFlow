@@ -5,6 +5,7 @@ import com.laborflow.core.clients.dto.ClientWorkSiteResponse;
 import com.laborflow.core.clients.dto.CreateClientRequest;
 import com.laborflow.core.schedule.dao.ScheduleDao;
 import com.laborflow.core.schedule.dto.AddGuestParticipantsRequest;
+import com.laborflow.core.schedule.dto.AssignmentHistoryResponse;
 import com.laborflow.core.schedule.dto.CreateScheduleTaskRequest;
 import com.laborflow.core.schedule.dto.DeleteScheduleTaskRangeRequest;
 import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
@@ -46,6 +47,27 @@ public class ScheduleService {
     public ScheduleTaskListResponse getTasks(String loginId, LocalDate workDate) {
         UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
         return new ScheduleTaskListResponse(scheduleDao.findTasks(agencyOwnerUuid, workDate));
+    }
+
+    @Transactional(readOnly = true)
+    public AssignmentHistoryResponse getAssignmentHistory(
+        String loginId, UUID scheduleDayUuid, LocalDate workDate, LocalDate beforeDate
+    ) {
+        UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
+        ScheduleTaskResponse target = scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+        if (beforeDate != null && beforeDate.isAfter(workDate)) {
+            throw new IllegalArgumentException("History date is invalid.");
+        }
+        LocalDate cursor = beforeDate == null ? workDate : beforeDate;
+        var entries = scheduleDao.findAssignmentHistory(
+            agencyOwnerUuid, target.workSiteId(), target.ownerUuid(), target.title(), cursor, 31
+        );
+        boolean hasMore = entries.size() > 30;
+        var page = entries.stream().limit(30).toList();
+        return new AssignmentHistoryResponse(
+            page, hasMore ? page.getLast().workDate() : null
+        );
     }
 
     public List<FarmOwnerOptionResponse> getFarmOwners(String loginId, String query) {

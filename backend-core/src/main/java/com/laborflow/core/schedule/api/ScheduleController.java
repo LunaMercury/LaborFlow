@@ -2,6 +2,7 @@ package com.laborflow.core.schedule.api;
 
 import com.laborflow.core.schedule.application.ScheduleService;
 import com.laborflow.core.schedule.dto.AddGuestParticipantsRequest;
+import com.laborflow.core.schedule.dto.AssignmentHistoryResponse;
 import com.laborflow.core.schedule.dto.CreateScheduleTaskRequest;
 import com.laborflow.core.schedule.dto.DeleteScheduleTaskRangeRequest;
 import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
@@ -47,6 +48,16 @@ public class ScheduleController {
         @RequestParam(defaultValue = "") String query
     ) {
         return scheduleService.getFarmOwners(loginId, query);
+    }
+
+    @GetMapping("/tasks/{scheduleDayUuid}/assignment-history")
+    public AssignmentHistoryResponse getAssignmentHistory(
+        @PathVariable UUID scheduleDayUuid,
+        @RequestParam String loginId,
+        @RequestParam LocalDate workDate,
+        @RequestParam(required = false) LocalDate beforeDate
+    ) {
+        return scheduleService.getAssignmentHistory(loginId, scheduleDayUuid, workDate, beforeDate);
     }
 
     @PostMapping("/tasks")

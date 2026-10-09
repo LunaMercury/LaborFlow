@@ -13,6 +13,7 @@ import com.laborflow.core.clients.application.ClientsService;
 import com.laborflow.core.clients.dto.ClientWorkSiteResponse;
 import com.laborflow.core.schedule.dao.ScheduleDao;
 import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
+import com.laborflow.core.schedule.dto.AssignmentHistoryEntry;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import com.laborflow.core.schedule.dto.UpdateScheduleTaskRequest;
 import com.laborflow.core.schedule.dto.UpdateScheduleTaskRangeRequest;
@@ -24,6 +25,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -76,6 +78,71 @@ class ScheduleServiceTest {
             LocalTime.of(7, 0),
             LocalTime.of(17, 0)
         )).thenReturn(List.of());
+    }
+
+    @Test
+    void returnsAssignmentHistoryUsingTheOwnedTargetAndExclusiveCursor() {
+        ScheduleTaskResponse target = savedTask();
+        LocalDate cursor = workDate.minusDays(10);
+        AssignmentHistoryEntry entry = new AssignmentHistoryEntry(
+            cursor.minusDays(1), UUID.randomUUID(), "마늘 뽑기", "동문 농장", 2
+        );
+        when(scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate))
+            .thenReturn(Optional.of(target));
+        when(scheduleDao.findAssignmentHistory(
+            agencyOwnerUuid, target.workSiteId(), ownerUuid, "마늘 뽑기", cursor, 31
+        )).thenReturn(List.of(entry));
+
+        var result = service.getAssignmentHistory("test", scheduleDayUuid, workDate, cursor);
+
+        assertThat(result.entries()).containsExactly(entry);
+        assertThat(result.nextBeforeDate()).isNull();
+        verify(scheduleDao, never()).replaceAssignments(
+            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), anyList()
+        );
+    }
+
+    @Test
+    void limitsHistoryToThirtyDatesAndProvidesAnExclusiveNextCursor() {
+        ScheduleTaskResponse target = savedTask();
+        var entries = IntStream.rangeClosed(1, 31)
+            .mapToObj(day -> new AssignmentHistoryEntry(
+                workDate.minusDays(day), UUID.randomUUID(), "마늘 뽑기", "동문 농장", 1
+            )).toList();
+        when(scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate))
+            .thenReturn(Optional.of(target));
+        when(scheduleDao.findAssignmentHistory(
+            agencyOwnerUuid, target.workSiteId(), ownerUuid, "마늘 뽑기", workDate, 31
+        )).thenReturn(entries);
+
+        var result = service.getAssignmentHistory("test", scheduleDayUuid, workDate, null);
+
+        assertThat(result.entries()).hasSize(30);
+        assertThat(result.entries().getFirst().workDate()).isEqualTo(LocalDate.of(2026, 8, 30));
+        assertThat(result.nextBeforeDate()).isEqualTo(LocalDate.of(2026, 8, 1));
+    }
+
+    @Test
+    void rejectsUnknownOrOtherAgencyTargetBeforeReadingHistory() {
+        when(scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate))
+            .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getAssignmentHistory("test", scheduleDayUuid, workDate, null))
+            .isInstanceOf(IllegalArgumentException.class);
+        verify(scheduleDao, never()).findAssignmentHistory(
+            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString(),
+            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt()
+        );
+    }
+
+    @Test
+    void rejectsCursorAfterTheTargetWorkDate() {
+        when(scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate))
+            .thenReturn(Optional.of(savedTask()));
+        assertThatThrownBy(() -> service.getAssignmentHistory(
+            "test", scheduleDayUuid, workDate, workDate.plusDays(1)
+        )).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

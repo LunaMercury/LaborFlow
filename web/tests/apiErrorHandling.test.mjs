@@ -23,12 +23,65 @@ const {
   WorkerSeparationConflictError,
   createScheduleTask,
   fetchScheduleTasks,
+  fetchAssignmentHistory,
   rescheduleScheduleRange,
   updateScheduleTask,
 } = await server.ssrLoadModule("/src/api/scheduleApi.ts");
 
 after(async () => {
   await server.close();
+});
+
+const { buildImportedAssignments } = await server.ssrLoadModule("/src/components/assignmentHistory.ts");
+
+test("assignment history requests are read-only and preserve office, target, date and cursor", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url: new URL(url), init });
+    return Response.json({ entries: [], nextBeforeDate: null });
+  };
+  try {
+    assert.deepEqual(await fetchAssignmentHistory("sample office", "task-id", "2026-09-04"), { entries: [], nextBeforeDate: null });
+    await fetchAssignmentHistory("sample office", "task-id", "2026-09-04", "2026-09-02");
+    assert.equal(calls[0].url.pathname, "/api/schedule/tasks/task-id/assignment-history");
+    assert.equal(calls[0].url.searchParams.get("loginId"), "sample office");
+    assert.equal(calls[0].url.searchParams.get("workDate"), "2026-09-04");
+    assert.equal(calls[0].url.searchParams.has("beforeDate"), false);
+    assert.equal(calls[1].url.searchParams.get("beforeDate"), "2026-09-02");
+    assert.deepEqual(calls[0].init, { cache: "no-store" });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("history errors retain the message and can be retried without a write", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({ message: "가상 이력 오류" }, { status: 400 });
+  try {
+    await assert.rejects(fetchAssignmentHistory("sample", "task", "2026-09-04"), new Error("가상 이력 오류"));
+    globalThis.fetch = async () => Response.json({ entries: [], nextBeforeDate: null });
+    assert.deepEqual(await fetchAssignmentHistory("sample", "task", "2026-09-04"), { entries: [], nextBeforeDate: null });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("import preserves areas and headcounts while excluding guests, replaced, missing and busy workers", () => {
+  const source = [
+    { workerProfileUuid: "a", area: "men", workerCount: 3 },
+    { workerProfileUuid: "b", area: "women", workerCount: 1 },
+    { workerProfileUuid: "busy", area: "men", workerCount: 1 },
+    { workerProfileUuid: "deleted", area: "women", workerCount: 1 },
+    { workerProfileUuid: "old", area: "men", workerCount: 1, assignmentStatus: "replaced" },
+    { participantType: "guest", workerProfileUuid: null, area: "women", workerCount: 2 },
+  ];
+  const result = buildImportedAssignments(source, new Set(["a", "b", "busy", "old"]), new Set(["busy"]));
+  assert.deepEqual(result.assignments, { men: ["a"], women: ["b"], workerCounts: { a: 3, b: 1 } });
+  assert.equal(result.sourceCount, 4);
+  assert.equal(result.importedCount, 2);
+  assert.equal(source[0].workerCount, 3);
+});
+
+test("empty or entirely excluded history cannot produce an importable draft", () => {
+  assert.equal(buildImportedAssignments([], new Set(), new Set()).importedCount, 0);
+  assert.equal(buildImportedAssignments([{ workerProfileUuid: "a", area: "men", workerCount: 1 }], new Set(["a"]), new Set(["a"])).importedCount, 0);
 });
 
 test("parseErrorMessage returns a JSON message", async () => {

@@ -1,6 +1,7 @@
 package com.laborflow.core.schedule.dao;
 
 import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
+import com.laborflow.core.schedule.dto.AssignmentHistoryEntry;
 import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
 import java.time.LocalDate;
@@ -42,6 +43,11 @@ public interface ScheduleDao {
     List<FarmOwnerOptionResponse> findFarmOwners(UUID agencyOwnerUuid, String query);
 
     List<ScheduleTaskResponse> findTasks(UUID agencyOwnerUuid, LocalDate workDate);
+
+    List<AssignmentHistoryEntry> findAssignmentHistory(
+        UUID agencyOwnerUuid, UUID workSiteUuid, UUID farmOwnerUuid,
+        String title, LocalDate beforeDate, int limit
+    );
 
     Optional<ScheduleTaskResponse> findTask(UUID agencyOwnerUuid, UUID scheduleDayUuid, LocalDate workDate);
 

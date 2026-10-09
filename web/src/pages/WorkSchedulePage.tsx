@@ -37,6 +37,8 @@ import {
 import appStyles from "../App.module.css";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
 import { StatusSnackbar } from "../components/StatusSnackbar";
+import { AssignmentHistoryModal } from "../components/AssignmentHistoryModal";
+import { buildImportedAssignments } from "../components/assignmentHistory";
 import type { WorkerRow } from "../data/workerRows";
 import {
   workTypeOptions as fallbackWorkTypeOptions,
@@ -829,8 +831,7 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
   const [confirmingAttendanceKey, setConfirmingAttendanceKey] = useState<
     string | null
   >(null);
-  const [loadingPreviousAssignmentsTaskId, setLoadingPreviousAssignmentsTaskId] =
-    useState<string | null>(null);
+  const [assignmentHistoryTask, setAssignmentHistoryTask] = useState<ScheduleTask | null>(null);
   const [editingWorkerDraft, setEditingWorkerDraft] =
     useState<EditingWorkerDraft | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -1924,95 +1925,38 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     }
   };
 
-  const importPreviousDayAssignments = async (task: ScheduleTask) => {
-    const previousDate = getPreviousDateInputValue(selectedDate);
-    setLoadingPreviousAssignmentsTaskId(task.id);
-    setStatusMessage("");
-
-    try {
-      const previousTasks = await fetchScheduleTasks(loginId, previousDate);
-      const currentTitle = normalizeScheduleMatchText(
-        getTaskDetailDraft(task).title,
-      );
-      const currentOwnerName = normalizeScheduleMatchText(task.ownerName);
-      const previousTaskByWorkSite = previousTasks.find(
-        (currentTask) => currentTask.workSiteId === task.workSiteId,
-      );
-      const previousTaskByOwnerAndTitle = previousTasks
-        .filter(
-          (currentTask) =>
-            normalizeScheduleMatchText(currentTask.ownerName) ===
-              currentOwnerName &&
-            normalizeScheduleMatchText(currentTask.title) === currentTitle,
-        )
-        .sort((leftTask, rightTask) => {
-          return rightTask.assignments.length - leftTask.assignments.length;
-        })[0];
-      const previousTask = previousTaskByWorkSite ?? previousTaskByOwnerAndTitle;
-
-      if (!previousTask) {
-        setStatusMessage("전일 동일 작업의 배정이 없습니다.");
-        return;
-      }
-
-      const assignedToOtherTasks = new Set(
-        Object.entries(assignedWorkerIdsByTaskId)
-          .filter(([taskId]) => taskId !== task.id)
-          .flatMap(([, assignments]) => [
-            ...assignments.men,
-            ...assignments.women,
-          ]),
-      );
-      const previousRegisteredAssignments = previousTask.assignments.filter(
-        (
-          assignment,
-        ): assignment is ScheduleAssignment & { workerProfileUuid: string } =>
-          Boolean(assignment.workerProfileUuid),
-      );
-      const nextAssignments: TaskAssignments = {
-        men: previousRegisteredAssignments
-          .filter((assignment) => assignment.area === "men")
-          .map((assignment) => assignment.workerProfileUuid)
-          .filter((workerId) => !assignedToOtherTasks.has(workerId)),
-        workerCounts: Object.fromEntries(
-          previousRegisteredAssignments
-            .filter(
-              (assignment) =>
-                !assignedToOtherTasks.has(assignment.workerProfileUuid),
-            )
-            .map((assignment) => [
-              assignment.workerProfileUuid,
-              assignment.workerCount || 1,
-            ]),
-        ),
-        women: previousRegisteredAssignments
-          .filter((assignment) => assignment.area === "women")
-          .map((assignment) => assignment.workerProfileUuid)
-          .filter((workerId) => !assignedToOtherTasks.has(workerId)),
-      };
-      const previousAssignmentCount = previousRegisteredAssignments.length;
-      const importedAssignmentCount =
-        nextAssignments.men.length + nextAssignments.women.length;
-
-      if (previousAssignmentCount === 0) {
-        setStatusMessage("전일 작업자 배정이 비어 있습니다.");
-        return;
-      }
-
-      setAssignedWorkerIdsByTaskId((currentAssignments) => ({
-        ...currentAssignments,
-        [task.id]: nextAssignments,
-      }));
-      setStatusMessage(
-        previousAssignmentCount === importedAssignmentCount
-          ? "전일 작업자를 불러왔습니다. 체크 버튼을 눌러야 저장됩니다."
-          : "전일 작업자 중 이미 다른 작업에 배정된 인원은 제외했습니다. 체크 버튼을 눌러야 저장됩니다.",
-      );
-    } catch {
-      setStatusMessage("전일 작업자를 불러오지 못했습니다.");
-    } finally {
-      setLoadingPreviousAssignmentsTaskId(null);
+  const importHistoricalAssignments = (source: ScheduleTask, sourceDate: string) => {
+    const task = assignmentHistoryTask;
+    if (!task) return false;
+    const assignedToOtherTasks = new Set(
+      Object.entries(assignedWorkerIdsByTaskId)
+        .filter(([taskId]) => taskId !== task.id)
+        .flatMap(([, assignments]) => [...assignments.men, ...assignments.women]),
+    );
+    const imported = buildImportedAssignments(
+      source.assignments,
+      new Set(workers.map(getWorkerId)),
+      assignedToOtherTasks,
+    );
+    if (imported.importedCount === 0) {
+      setStatusMessage("불러올 등록 작업자가 없습니다. 다른 작업에 배정되었거나 삭제된 작업자는 제외됩니다.");
+      return false;
     }
+    const current = assignedWorkerIdsByTaskId[task.id];
+    if (current && (current.men.length || current.women.length)
+      && !window.confirm("현재 카드의 등록 작업자 배치를 선택한 날짜의 배치로 바꾸시겠습니까? 미등록 인원은 유지됩니다.")) {
+      return false;
+    }
+    setAssignedWorkerIdsByTaskId((currentAssignments) => ({
+      ...currentAssignments,
+      [task.id]: imported.assignments,
+    }));
+    setStatusMessage(
+      imported.sourceCount === imported.importedCount
+        ? `${sourceDate} 배치를 불러왔습니다. 체크 버튼을 눌러야 저장됩니다.`
+        : `${sourceDate} 배치를 불러왔습니다. 다른 작업에 배정되었거나 삭제된 작업자는 제외했습니다. 체크 버튼을 눌러야 저장됩니다.`,
+    );
+    return true;
   };
 
   const openWorkerEditor = (worker: WorkerRow) => {
@@ -3754,15 +3698,12 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
                             </div>
                             <div className={styles.scheduleTaskSecondaryActions}>
                               <button
-                                aria-label={`${task.title} 전일 작업자 불러오기`}
+                                aria-label={`${task.title} 배치 불러오기`}
                                 className={styles.schedulePreviousAssignmentsButton}
-                                disabled={
-                                  loadingPreviousAssignmentsTaskId === task.id
-                                }
                                 type="button"
-                                onClick={() => importPreviousDayAssignments(task)}
+                                onClick={() => setAssignmentHistoryTask(task)}
                               >
-                                전일 작업자
+                                배치 불러오기
                               </button>
                               <button
                                 className={styles.scheduleAttendanceConfirmButton}
@@ -3911,6 +3852,17 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
               남 {draggingTask.requiredMen} / 여 {draggingTask.requiredWomen}
             </small>
           </div>
+        ) : null}
+        {assignmentHistoryTask ? (
+          <AssignmentHistoryModal
+            key={`${loginId}:${selectedDate}:${assignmentHistoryTask.id}`}
+            loginId={loginId}
+            workDate={selectedDate}
+            task={assignmentHistoryTask}
+            workers={workers}
+            onClose={() => setAssignmentHistoryTask(null)}
+            onApply={importHistoricalAssignments}
+          />
         ) : null}
         {separationWarningDraft ? (
           <div
