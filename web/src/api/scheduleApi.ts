@@ -2,6 +2,7 @@ import { getApiBaseUrl } from "./apiBaseUrl";
 import type { ClientWorkSite } from "./clientsApi";
 import { parseErrorMessage } from "./parseErrorMessage";
 import type { WorkerSeparationRule } from "./workforceApi";
+import { AssignmentCautionConflictError, throwIfCautionConflict, type AssignmentCaution, type CautionAcknowledgement } from "./assignmentCautionsApi";
 
 const apiBaseUrl = getApiBaseUrl();
 
@@ -118,6 +119,8 @@ export type CreateScheduleTaskPayload = {
 };
 
 export type UpdateScheduleTaskPayload = {
+  movedWorkerProfileUuids?: string[];
+  acknowledgedCautions?: CautionAcknowledgement[];
   acknowledgedSeparationRuleUuids?: string[];
   address: string;
   assignments?: ScheduleAssignment[];
@@ -185,6 +188,7 @@ export type AddGuestParticipantsPayload = {
 };
 
 export type ReplaceNoShowPayload = {
+  acknowledgedCautions?: CautionAcknowledgement[];
   originalAssignmentUuid: string;
   replacementWorkerProfileUuid: string;
 };
@@ -261,14 +265,17 @@ export async function updateScheduleTask(
     if (response.status === 409) {
       const body = (await response.json()) as {
         code?: string;
-        conflicts?: WorkerSeparationRule[];
+        conflicts?: WorkerSeparationRule[] | AssignmentCaution[];
         message?: string;
       };
       if (body.code === "WORKER_SEPARATION_CONFLICT") {
         throw new WorkerSeparationConflictError(
           body.message || "동시 배치 주의 작업자가 포함되어 있습니다.",
-          body.conflicts ?? [],
+          (body.conflicts ?? []) as WorkerSeparationRule[],
         );
+      }
+      if (body.code === "ASSIGNMENT_CAUTION_CONFLICT") {
+        throw new AssignmentCautionConflictError(body.message || "배치 주의 관계를 확인해 주세요.", (body.conflicts ?? []) as AssignmentCaution[]);
       }
       throw new Error(body.message || "작업 일정을 저장하지 못했습니다.");
     }
@@ -352,6 +359,7 @@ export async function replaceNoShow(
     },
   );
   if (!response.ok) {
+    if (response.status === 409) await throwIfCautionConflict(response);
     throw new Error(await parseErrorMessage(response, "노쇼 대체 인원을 저장하지 못했습니다."));
   }
   return (await response.json()) as ScheduleTask;
@@ -372,6 +380,7 @@ export async function changeNoShowReplacement(
     },
   );
   if (!response.ok) {
+    if (response.status === 409) await throwIfCautionConflict(response);
     throw new Error(await parseErrorMessage(response, "노쇼 대체 작업자를 변경하지 못했습니다."));
   }
   return (await response.json()) as ScheduleTask;

@@ -1,5 +1,6 @@
 package com.laborflow.core.workforce.dto;
 
+import com.laborflow.core.cautions.dto.WorkerAssignmentCautionChangeRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +22,7 @@ public record UpdateWorkerProfileRequest(
     Boolean noShowRisk,
     List<String> workTypeCodes,
     Map<String, Integer> workTypeRatings,
-    List<WorkerSeparationRuleRequest> separationRules
+    List<WorkerSeparationRuleRequest> separationRules,
+    List<WorkerAssignmentCautionChangeRequest> assignmentCautionChanges
 ) {
 }

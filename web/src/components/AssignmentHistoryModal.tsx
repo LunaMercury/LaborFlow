@@ -17,11 +17,12 @@ type Props = {
   onApply: (source: ScheduleTask, workDate: string) => boolean;
 };
 
-function HistoryDialog({ title, onClose, children, inactive = false }: {
+export function HistoryDialog({ title, onClose, children, inactive = false, dismissOnBackdrop = false }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   inactive?: boolean;
+  dismissOnBackdrop?: boolean;
 }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
@@ -37,7 +38,10 @@ function HistoryDialog({ title, onClose, children, inactive = false }: {
     };
   }, []);
   return (
-    <div className={styles.backdrop} onPointerDown={(event) => event.stopPropagation()}>
+    <div className={styles.backdrop} onPointerDown={(event) => {
+      event.stopPropagation();
+      if (dismissOnBackdrop && !inactive && event.target === event.currentTarget) closeRef.current();
+    }}>
       <section
         aria-label={title}
         aria-modal={inactive ? undefined : true}

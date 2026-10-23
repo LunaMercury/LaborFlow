@@ -1,5 +1,6 @@
 package com.laborflow.core.workforce.application;
 
+import com.laborflow.core.cautions.application.AssignmentCautionService;
 import com.laborflow.core.workforce.dao.WorkforceDao;
 import com.laborflow.core.workforce.dto.CreateWorkerTeamRequest;
 import com.laborflow.core.workforce.dto.CreateWorkerRequest;
@@ -20,9 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class WorkforceService {
     private final WorkforceDao workforceDao;
+    private final AssignmentCautionService assignmentCautionService;
 
-    public WorkforceService(WorkforceDao workforceDao) {
+    public WorkforceService(WorkforceDao workforceDao, AssignmentCautionService assignmentCautionService) {
         this.workforceDao = workforceDao;
+        this.assignmentCautionService = assignmentCautionService;
     }
 
     public WorkerListResponse getWorkers(String loginId) {
@@ -252,6 +255,7 @@ public class WorkforceService {
                 normalizeSeparationRules(normalizedLoginId, workerProfileUuid, request.separationRules())
             );
         }
+        assignmentCautionService.applyWorkerChanges(normalizedLoginId, workerProfileUuid, request.assignmentCautionChanges());
     }
 
     public List<WorkerSeparationRuleResponse> findAssignmentSeparationConflicts(

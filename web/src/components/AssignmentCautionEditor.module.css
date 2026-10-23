@@ -1,0 +1,26 @@
+.section { display: flex; flex-direction: column; align-items: stretch; gap: 14px; width: 100%; min-width: 0; min-height: 0; padding: 16px; box-sizing: border-box; border: 1px solid var(--color-components-worker-profile-modal-separation-section-border); border-radius: 8px; overflow-y: auto; font-size: 13px; }
+.section h3, .section p { margin: 0; }
+.section h3 { font-size: 16px; font-weight: 700; }
+.section p { color: var(--color-components-worker-profile-modal-separation-state-text-separation-error-text-text); font-size: 13px; font-weight: 700; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.section [role="alert"] p { color: var(--color-pages-journal-page-error-text); }
+.ruleList, .fields { display: flex; flex-direction: column; gap: 12px; }
+.rule { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--color-pages-journal-page-panel-border); }
+.rule > div:first-child { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.rule span { color: var(--color-pages-journal-page-secondary-text); font-size: 13px; }
+.fields label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; }
+.fields input, .fields select, .fields textarea { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; padding: 8px; border: 1px solid var(--color-pages-journal-page-input-border); border-radius: 5px; background: var(--color-pages-journal-page-input-background); color: var(--color-pages-journal-page-input-text); font: inherit; }
+.fields textarea { min-height: 72px; resize: vertical; }
+.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.section button { min-height: 40px; padding: 7px 12px; border: 1px solid var(--color-pages-journal-page-secondary-button-border); border-radius: 5px; background: var(--color-pages-journal-page-secondary-button-background); color: var(--color-pages-journal-page-secondary-button-text); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.section button:disabled { opacity: .5; cursor: not-allowed; }
+.section button.releaseConfirmButton { background: var(--color-assignment-caution-release-background); border-color: var(--color-assignment-caution-release-background); color: var(--color-assignment-caution-release-text); }
+.searchField { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; }
+.searchField > input { border-radius: 8px; min-height: 38px; padding: 0 11px; font-weight: 400; background: var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-background); border-color: var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-border); color: var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-text); }
+.searchField > input:focus { outline: 0; border-color: var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-focus-focus-border); box-shadow: 0 0 0 3px var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-focus-focus-shadow-color); }
+/* Keep the list inside the form's scroll area so modal edges cannot clip it. */
+.searchResults { display: flex; flex-direction: column; align-items: stretch; max-height: 220px; overflow-y: auto; background: var(--color-components-worker-profile-modal-separation-search-results-background); border: 1px solid var(--color-components-worker-profile-modal-separation-search-results-border); border-radius: 8px; }
+.searchResults > button { flex-shrink: 0; min-height: 42px; border: 0; border-bottom: 1px solid var(--color-components-worker-profile-modal-separation-search-results-border-2); border-radius: 0; padding: 8px 12px; text-align: left; white-space: normal; overflow-wrap: anywhere; color: var(--color-components-worker-profile-modal-separation-search-results-text); background: var(--color-components-worker-profile-modal-separation-search-results-background); }
+.searchResults > button:last-child { border-bottom: 0; }
+.searchResults > button:hover, .searchResults > button.activeOption { background: var(--color-components-worker-profile-modal-separation-search-results-hover-background); }
+.searchResults > p { padding: 10px 12px; }
+@media (max-width: 819px) { .rule { flex-wrap: wrap; } .rule > div:first-child { width: 100%; } }

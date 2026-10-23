@@ -33,6 +33,7 @@ contracts:
   - A replacement worker with an overlapping assignment remains selectable only after the operator explicitly acknowledges the time-conflict warning.
   - Manual no-show risk flags and observed no-show incident counts are separate signals; clearing a manual flag must not erase incident history.
   - Worker separation rules are agency-scoped undirected pairs stored once in canonical UUID order; editing either worker must update the same relationship.
+  - Worker-client assignment cautions are agency-scoped shared relations applying to every site of that client, separate from skill ratings and worker separation rules. Confirmed drops change only the draft; the existing check action revalidates current relation versions and saves assignments plus acknowledgement records. Moving workers removes source assignments only in the target-save transaction.
   - Work types with no agency owner are system defaults; user-created work types are visible and assignable only within their labor agency, while worker skill ratings remain numeric 0 through 5 and start unrated.
   - Assignment saves must serialize the same agency/date/work-site validation scope, revalidate worker separation rules on the server across overlapping time ranges, and retain account-attributed PostgreSQL audit history for explicit overrides.
   - Sales journals are agency-scoped free-form records with a user-editable activity timestamp and must not require or infer a client relationship.

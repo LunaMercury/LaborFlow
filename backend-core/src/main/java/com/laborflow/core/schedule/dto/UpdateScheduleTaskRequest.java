@@ -18,6 +18,14 @@ public record UpdateScheduleTaskRequest(
     String memo,
     List<String> workTypeCodes,
     List<ScheduleAssignmentRequest> assignments,
-    List<UUID> acknowledgedSeparationRuleUuids
+    List<UUID> acknowledgedSeparationRuleUuids,
+    List<com.laborflow.core.cautions.dto.CautionAcknowledgement> acknowledgedCautions,
+    List<UUID> movedWorkerProfileUuids
 ) {
+    public UpdateScheduleTaskRequest(UUID ownerUuid, String title, UUID clientWorkSiteUuid, String siteName,
+        String address, String siteMemo, LocalTime startTime, LocalTime endTime, int requiredMen, int requiredWomen,
+        String memo, List<String> workTypeCodes, List<ScheduleAssignmentRequest> assignments, List<UUID> acknowledgedSeparationRuleUuids) {
+        this(ownerUuid, title, clientWorkSiteUuid, siteName, address, siteMemo, startTime, endTime,
+            requiredMen, requiredWomen, memo, workTypeCodes, assignments, acknowledgedSeparationRuleUuids, List.of(), List.of());
+    }
 }

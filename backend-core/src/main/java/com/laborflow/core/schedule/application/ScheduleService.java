@@ -1,6 +1,8 @@
 package com.laborflow.core.schedule.application;
 
 import com.laborflow.core.clients.application.ClientsService;
+import com.laborflow.core.cautions.application.AssignmentCautionService;
+import com.laborflow.core.cautions.dto.AssignmentCautionResponse;
 import com.laborflow.core.clients.dto.ClientWorkSiteResponse;
 import com.laborflow.core.clients.dto.CreateClientRequest;
 import com.laborflow.core.schedule.dao.ScheduleDao;
@@ -33,15 +35,18 @@ public class ScheduleService {
     private final ScheduleDao scheduleDao;
     private final ClientsService clientsService;
     private final WorkforceService workforceService;
+    private final AssignmentCautionService cautionService;
 
     public ScheduleService(
         ScheduleDao scheduleDao,
         ClientsService clientsService,
-        WorkforceService workforceService
+        WorkforceService workforceService,
+        AssignmentCautionService cautionService
     ) {
         this.scheduleDao = scheduleDao;
         this.clientsService = clientsService;
         this.workforceService = workforceService;
+        this.cautionService = cautionService;
     }
 
     public ScheduleTaskListResponse getTasks(String loginId, LocalDate workDate) {
@@ -166,6 +171,11 @@ public class ScheduleService {
             throw new IllegalArgumentException("Farm owner was not found.");
         }
 
+        var movedIds = new LinkedHashSet<>(request.movedWorkerProfileUuids() == null ? List.<UUID>of() : request.movedWorkerProfileUuids());
+        var targetIds = assignments.stream().map(ScheduleAssignmentRequest::workerProfileUuid).toList();
+        if (!targetIds.containsAll(movedIds)) throw new IllegalArgumentException("Moved workers must be assigned to the target.");
+        if (!movedIds.isEmpty()) scheduleDao.lockScheduleDays(agencyOwnerUuid, workDate);
+
         ClientWorkSiteResponse clientWorkSite = clientsService.resolveWorkSite(
             loginId,
             ownerUuid,
@@ -176,6 +186,7 @@ public class ScheduleService {
         );
 
         List<WorkerSeparationRuleResponse> separationConflicts = List.of();
+        List<AssignmentCautionResponse> placementCautions = List.of();
         if (assignmentWriteRequested) {
             scheduleDao.lockAssignmentSeparationScope(
                 agencyOwnerUuid,
@@ -214,6 +225,13 @@ public class ScheduleService {
             if (!unacknowledgedConflicts.isEmpty()) {
                 throw new WorkerSeparationConflictException(unacknowledgedConflicts);
             }
+            ScheduleTaskResponse current = scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
+                .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+            var existingWorkerIds = current.ownerUuid().equals(ownerUuid) ? current.assignments().stream()
+                .filter(a -> !"replaced".equalsIgnoreCase(a.assignmentStatus()))
+                .map(a -> a.workerProfileUuid()).collect(java.util.stream.Collectors.toSet()) : Set.<UUID>of();
+            var newWorkers = targetWorkerProfileUuids.stream().filter(id -> !existingWorkerIds.contains(id) || movedIds.contains(id)).toList();
+            placementCautions = cautionService.validatePlacement(loginId, ownerUuid, newWorkers, request.acknowledgedCautions());
         }
 
         scheduleDao.updateTask(
@@ -238,6 +256,10 @@ public class ScheduleService {
                 scheduleDayUuid,
                 separationConflicts.stream().map(WorkerSeparationRuleResponse::ruleUuid).toList()
             );
+            cautionService.record(loginId, scheduleDayUuid, placementCautions, "ASSIGNMENT_SAVE");
+            if (!movedIds.isEmpty()) {
+                scheduleDao.removeTransferredAssignments(agencyOwnerUuid, scheduleDayUuid, workDate, List.copyOf(movedIds));
+            }
         }
 
         return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
@@ -357,6 +379,7 @@ public class ScheduleService {
             throw new IllegalArgumentException("Replacement worker was not found.");
         }
 
+        var cautions = validateReplacementCautions(normalizedLoginId, agencyOwnerUuid, scheduleDayUuid, workDate, request);
         UUID accountUuid = scheduleDao.findAccountUuidByLoginId(normalizedLoginId)
             .orElseThrow(() -> new IllegalArgumentException("Account was not found."));
         scheduleDao.replaceNoShow(
@@ -366,6 +389,7 @@ public class ScheduleService {
             request.originalAssignmentUuid(),
             request.replacementWorkerProfileUuid()
         );
+        cautionService.record(normalizedLoginId, scheduleDayUuid, cautions, "NO_SHOW_REPLACEMENT");
 
         return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
             .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
@@ -379,6 +403,7 @@ public class ScheduleService {
         ReplaceNoShowRequest request
     ) {
         NoShowRequestContext context = validateNoShowRequest(loginId, scheduleDayUuid, request);
+        var cautions = validateReplacementCautions(loginId, context.agencyOwnerUuid(), scheduleDayUuid, workDate, request);
         scheduleDao.changeNoShowReplacement(
             context.agencyOwnerUuid(),
             context.accountUuid(),
@@ -386,6 +411,7 @@ public class ScheduleService {
             request.originalAssignmentUuid(),
             request.replacementWorkerProfileUuid()
         );
+        cautionService.record(loginId, scheduleDayUuid, cautions, "NO_SHOW_REPLACEMENT");
         return scheduleDao.findTask(context.agencyOwnerUuid(), scheduleDayUuid, workDate)
             .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
     }
@@ -412,6 +438,13 @@ public class ScheduleService {
         );
         return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)
             .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+    }
+
+    private List<AssignmentCautionResponse> validateReplacementCautions(String loginId, UUID office, UUID day,
+        LocalDate workDate, ReplaceNoShowRequest request) {
+        var task = scheduleDao.findTask(office, day, workDate)
+            .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
+        return cautionService.validatePlacement(loginId, task.ownerUuid(), List.of(request.replacementWorkerProfileUuid()), request.acknowledgedCautions());
     }
 
     private NoShowRequestContext validateNoShowRequest(

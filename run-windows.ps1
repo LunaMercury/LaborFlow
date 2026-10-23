@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$ScriptArguments
@@ -123,6 +123,17 @@ function Initialize-Environment {
     Set-DefaultEnvironmentVariable "VITE_FAST_API_BASE_URL" "http://localhost:$($ports.Fast)"
     Set-DefaultEnvironmentVariable "VITE_REALTIME_WS_URL" "ws://localhost:$($ports.Fast)/ws"
     $env:SERVER_PORT = "$($ports.Core)"
+}
+
+function Assert-DockerReady {
+    if (-not (Get-Command "docker.exe" -ErrorAction SilentlyContinue)) {
+        throw "Docker를 찾을 수 없습니다. Docker Desktop을 설치한 뒤 다시 시도해주세요."
+    }
+
+    & cmd.exe /d /c "docker info >nul 2>nul"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Docker가 실행 중이 아닙니다. Docker Desktop을 실행한 뒤 다시 시도해주세요."
+    }
 }
 
 function Read-ServiceState {
@@ -449,9 +460,10 @@ try {
         exit 0
     }
 
+    Initialize-Environment
+    Assert-DockerReady
     Stop-ApplicationProcesses
     Select-ApplicationPorts
-    Initialize-Environment
     Wait-ForInfrastructure
     Start-ApplicationServices
 
@@ -472,9 +484,10 @@ try {
     exit 0
 }
 catch {
-    Write-Error $_.Exception.Message
+    Write-Host ""
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
     if (-not $options.NoPause) {
-        Read-Host "Press Enter to close"
+        Read-Host "창을 닫으려면 Enter 키를 누르세요" | Out-Null
     }
     exit 1
 }

@@ -45,6 +45,11 @@
 
 보안 정책 문서의 JWT/역할 계획은 **의도된 정책**이며 구현된 API가 아니다.
 
+작업자·거래처 [배치 주의](assignment-cautions.md)도 동일한 loginId 기반 식별을 따른다.
+프로필의 사무소 소속 검사와 복합 FK는 추가됐지만 다른 loginId 제출 자체를 막는 인증 보장은 아니다.
+확인은 관계 UUID/updatedAt를 서버에서 재검사하며, 이미 읽은 활성 관계의 수정은 행 잠금으로 보호한다.
+관계 조회와 동시 신규 등록 사이의 모든 경합 또는 요청 ID 기반 exactly-once 기록은 검증·보장하지 않는다.
+
 ### 민감정보 암호화
 
 `JdbcProfileDao.upsertSensitiveProfile`은 전화, 이메일, 주소, 사업자번호, 계좌번호를 이름이 `*_encrypted`인 컬럼에 전달하지만 애플리케이션 암호화 호출이 없다. hash는 PostgreSQL `digest`로 별도 계산한다. 현재 코드만 보면 암호화 컬럼에 원문이 저장된다.

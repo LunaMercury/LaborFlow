@@ -16,6 +16,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    public record AssignmentCautionConflictResponse(String code, String message, Instant timestamp,
+        java.util.List<com.laborflow.core.cautions.dto.AssignmentCautionResponse> conflicts) { }
+
+    @ExceptionHandler(com.laborflow.core.cautions.application.AssignmentCautionConflictException.class)
+    public ResponseEntity<AssignmentCautionConflictResponse> handleAssignmentCautionConflict(
+        com.laborflow.core.cautions.application.AssignmentCautionConflictException exception
+    ) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new AssignmentCautionConflictResponse(
+            "ASSIGNMENT_CAUTION_CONFLICT", "배치 주의 관계를 확인해 주세요.", Instant.now(), exception.getConflicts()
+        ));
+    }
+
     @ExceptionHandler(WorkerSeparationConflictException.class)
     public ResponseEntity<WorkerSeparationConflictResponse> handleWorkerSeparationConflictException(
         WorkerSeparationConflictException exception

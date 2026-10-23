@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.laborflow.core.workforce.dao.WorkforceDao;
+import com.laborflow.core.cautions.application.AssignmentCautionService;
 import com.laborflow.core.workforce.dto.CreateWorkTypeRequest;
 import com.laborflow.core.workforce.dto.WorkTypeResponse;
 import com.laborflow.core.workforce.dto.WorkerSeparationRuleResponse;
@@ -22,7 +23,7 @@ class WorkforceServiceTest {
     @Test
     void returnsOnlyWorkTypesVisibleToTheCurrentAgency() {
         WorkforceDao workforceDao = mock(WorkforceDao.class);
-        WorkforceService service = new WorkforceService(workforceDao);
+        WorkforceService service = new WorkforceService(workforceDao, mock(AssignmentCautionService.class));
         UUID agencyOwnerUuid = UUID.randomUUID();
         List<WorkTypeResponse> visibleWorkTypes = List.of(
             new WorkTypeResponse("garlic_harvest", "마늘 수확"),
@@ -38,7 +39,7 @@ class WorkforceServiceTest {
     @Test
     void reusesAnExistingVisibleWorkTypeWithTheSameName() {
         WorkforceDao workforceDao = mock(WorkforceDao.class);
-        WorkforceService service = new WorkforceService(workforceDao);
+        WorkforceService service = new WorkforceService(workforceDao, mock(AssignmentCautionService.class));
         UUID agencyOwnerUuid = UUID.randomUUID();
         UUID accountUuid = UUID.randomUUID();
         WorkTypeResponse existing = new WorkTypeResponse("garlic_harvest", "마늘 심기");
@@ -61,7 +62,7 @@ class WorkforceServiceTest {
     @Test
     void createsAnAgencyOwnedWorkTypeWhenNoVisibleNameMatches() {
         WorkforceDao workforceDao = mock(WorkforceDao.class);
-        WorkforceService service = new WorkforceService(workforceDao);
+        WorkforceService service = new WorkforceService(workforceDao, mock(AssignmentCautionService.class));
         UUID agencyOwnerUuid = UUID.randomUUID();
         UUID accountUuid = UUID.randomUUID();
         WorkTypeResponse created = new WorkTypeResponse("custom_generated", "마늘심기 - 밭마늘");
@@ -84,7 +85,7 @@ class WorkforceServiceTest {
     @Test
     void rejectsBlankOrOversizedWorkTypeNamesWithoutSaving() {
         WorkforceDao workforceDao = mock(WorkforceDao.class);
-        WorkforceService service = new WorkforceService(workforceDao);
+        WorkforceService service = new WorkforceService(workforceDao, mock(AssignmentCautionService.class));
 
         assertThatThrownBy(() -> service.createWorkType("test", new CreateWorkTypeRequest("  ")))
             .isInstanceOf(IllegalArgumentException.class);
@@ -101,7 +102,7 @@ class WorkforceServiceTest {
     @Test
     void findsOnlyConflictsThatIncludeTheTargetAssignment() {
         WorkforceDao workforceDao = mock(WorkforceDao.class);
-        WorkforceService service = new WorkforceService(workforceDao);
+        WorkforceService service = new WorkforceService(workforceDao, mock(AssignmentCautionService.class));
         UUID agencyOwnerUuid = UUID.randomUUID();
         UUID targetWorkerUuid = UUID.randomUUID();
         UUID nearbyWorkerUuid = UUID.randomUUID();

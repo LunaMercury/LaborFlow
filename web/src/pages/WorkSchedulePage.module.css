@@ -2412,3 +2412,4 @@
     display: none;
   }
 }
+.assignmentCautionButton { display: flex; align-items: center; justify-content: center; min-height: 40px; min-width: 40px; padding: 4px; border: 0; background: transparent; color: var(--color-pages-journal-page-danger-button-text); cursor: pointer; }

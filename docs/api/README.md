@@ -21,6 +21,7 @@
 - [공통 계약과 오류](common.md): 기본 주소, 형식, 성공/오류, 현재 인증 상태, 프록시 차이
 - [작업자와 팀](workforce.md): 작업자, 작업 유형, 팀, 동시 배치 주의
 - [거래처와 현장](clients.md): 농장주/거래처와 거래처별 여러 현장
+- [작업자·거래처 배치 주의](assignment-cautions.md): 공유 관계와 확인 후 배치
 - [일정과 배치](schedule.md): 달력, 날짜별 배치, 익명 인원, 충돌 확인, 노쇼, 다일 범위
 - [근태](attendance.md): 조회, 수정, 예정대로 근무, 작업 메모
 - [일지](journals.md): 영업 현장 기록과 날짜별 작업 메모·실제 근태 조회
@@ -29,7 +30,7 @@
 
 ## 현재 등록 경로 목록
 
-backend-core Controller에 등록된 50개 경로를 기준으로 했다.
+기존 경로 목록에 2026-10-11의 배치 주의 경로를 추가했다. 추가 사항은 `dev`, 시작 커밋 `5b433f3` 이후 구현 기준이다.
 
 | 도메인 | 메서드와 경로 | 상세 문서 |
 |---|---|---|
@@ -41,6 +42,10 @@ backend-core Controller에 등록된 50개 경로를 기준으로 했다.
 | Clients | `POST /api/clients` | [clients.md](clients.md#api) |
 | Clients | `PATCH /api/clients/{profileUuid}` | [clients.md](clients.md#api) |
 | Clients | `DELETE /api/clients/{profileUuid}` | [clients.md](clients.md#api) |
+| Cautions | `GET /api/assignment-cautions` | [assignment-cautions.md](assignment-cautions.md) |
+| Cautions | `POST /api/assignment-cautions` | [assignment-cautions.md](assignment-cautions.md) |
+| Cautions | `PUT /api/assignment-cautions/{uuid}` | [assignment-cautions.md](assignment-cautions.md) |
+| Cautions | `DELETE /api/assignment-cautions/{uuid}` | [assignment-cautions.md](assignment-cautions.md) |
 | Workforce | `GET /api/workforce/workers` | [workforce.md](workforce.md#조회-api) |
 | Workforce | `GET /api/workforce/work-types` | [workforce.md](workforce.md#조회-api) |
 | Workforce | `POST /api/workforce/work-types` | [workforce.md](workforce.md#조회-api) |

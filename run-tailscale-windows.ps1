@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$ScriptArguments
@@ -84,6 +84,17 @@ function Initialize-Environment {
     if (-not $env:POSTGRES_USER) { $env:POSTGRES_USER = "admin" }
     if (-not $env:POSTGRES_PASSWORD) { $env:POSTGRES_PASSWORD = "admin" }
     if (-not $env:REDIS_PASSWORD) { $env:REDIS_PASSWORD = "admin" }
+}
+
+function Assert-DockerReady {
+    if (-not (Get-Command "docker.exe" -ErrorAction SilentlyContinue)) {
+        throw "Docker를 찾을 수 없습니다. Docker Desktop을 설치한 뒤 다시 시도해주세요."
+    }
+
+    & cmd.exe /d /c "docker info >nul 2>nul"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Docker가 실행 중이 아닙니다. Docker Desktop을 실행한 뒤 다시 시도해주세요."
+    }
 }
 
 function Test-TailscaleIpv4 {
@@ -564,7 +575,9 @@ try {
         exit 0
     }
 
+    Assert-DockerReady
     Stop-ApplicationProcesses
+
     $ports = Resolve-TailscaleServicePorts
     $script:webPort = [int]$ports.Web
     $script:corePort = [int]$ports.Core
@@ -593,6 +606,6 @@ try {
 catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
-    if (-not $options.NoPause) { Read-Host "Press Enter to close" | Out-Null }
+    if (-not $options.NoPause) { Read-Host "창을 닫으려면 Enter 키를 누르세요" | Out-Null }
     exit 1
 }

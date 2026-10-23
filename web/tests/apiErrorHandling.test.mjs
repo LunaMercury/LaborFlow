@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { createServer } from "vite";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 globalThis.window = {
   location: {
@@ -33,6 +35,142 @@ after(async () => {
 });
 
 const { buildImportedAssignments } = await server.ssrLoadModule("/src/components/assignmentHistory.ts");
+const { fetchAssignmentCautions, AssignmentCautionConflictError, saveAssignmentCaution, releaseAssignmentCaution, mergeCautionAcknowledgements } = await server.ssrLoadModule("/src/api/assignmentCautionsApi.ts");
+const { replaceNoShow, changeNoShowReplacement } = await server.ssrLoadModule("/src/api/scheduleApi.ts");
+const { AssignmentCautionEditor } = await server.ssrLoadModule("/src/components/AssignmentCautionEditor.tsx");
+const { buildWorkerCautionChanges } = await server.ssrLoadModule("/src/components/assignmentCautionDraft.ts");
+const { updateWorkerProfile } = await server.ssrLoadModule("/src/api/workforceApi.ts");
+
+const draftRule = { uuid: "rule-a", workerProfileUuid: "worker-a", clientProfileUuid: "client-a", workerName: "가상 작업자", clientName: "가상 거래처", requestedBy: "CLIENT", memo: "가상 메모" };
+
+test("an unchanged or reverted caution draft sends no changes and never mutates the original snapshot", () => {
+  const initial = [Object.freeze({ ...draftRule })];
+  assert.deepEqual(buildWorkerCautionChanges(initial, [{ ...draftRule, memo: " 가상 메모 " }]), []);
+  assert.deepEqual(buildWorkerCautionChanges(initial, [{ ...draftRule }]), []);
+  assert.equal(initial[0].memo, "가상 메모");
+});
+
+test("caution drafts describe only additions, changed values, and releases instead of replacing all relations", () => {
+  const changes = buildWorkerCautionChanges([draftRule], [
+    { ...draftRule, requestedBy: "BOTH", memo: "\n새 메모\n두 번째 줄 " },
+    { ...draftRule, uuid: "draft:client-b", clientProfileUuid: "client-b", memo: " " },
+  ]);
+  assert.deepEqual(changes, [
+    { uuid: "rule-a", clientProfileUuid: "client-a", requestedBy: "BOTH", memo: "새 메모\n두 번째 줄", released: false },
+    { uuid: null, clientProfileUuid: "client-b", requestedBy: "CLIENT", memo: null, released: false },
+  ]);
+  assert.deepEqual(buildWorkerCautionChanges([draftRule], []), [
+    { uuid: "rule-a", clientProfileUuid: "client-a", released: true },
+  ]);
+  assert.deepEqual(buildWorkerCautionChanges([], []), []);
+});
+
+test("deferred caution editing names the top save action and does not claim immediate persistence", () => {
+  const markup = renderToStaticMarkup(React.createElement(AssignmentCautionEditor, { loginId: "sample", workerProfileUuid: "worker-a", deferSave: true }));
+  assert.match(markup, /오른쪽 위 저장을 눌러야 반영됩니다/);
+  assert.match(markup, /목록에 추가/);
+  assert.doesNotMatch(markup, /즉시 반영됩니다/);
+});
+
+test("profile saving sends caution changes in the same PATCH and can retry its unchanged payload after failure", async () => {
+  const previous = globalThis.fetch;
+  const calls = [];
+  const payload = { name: "가상 작업자", phone: "01000000000", separationRules: [], assignmentCautionChanges: buildWorkerCautionChanges([draftRule], []) };
+  globalThis.fetch = async (url, init) => {
+    calls.push({ url: new URL(url), init });
+    return calls.length === 1 ? Response.json({ message: "가상 저장 실패" }, { status: 500 }) : Response.json({ workers: [] });
+  };
+  try {
+    await assert.rejects(updateWorkerProfile("sample", "worker-a", payload), new Error("가상 저장 실패"));
+    assert.deepEqual(await updateWorkerProfile("sample", "worker-a", payload), []);
+    assert.equal(calls.length, 2);
+    for (const call of calls) {
+      assert.equal(call.url.pathname, "/api/workforce/worker-profiles/worker-a");
+      assert.equal(call.init.method, "PATCH");
+      assert.deepEqual(JSON.parse(call.init.body), payload);
+    }
+  } finally { globalThis.fetch = previous; }
+});
+
+test("both caution editors use one named search-and-select input while retaining requester and memo fields", () => {
+  for (const [identity, counterpart] of [
+    [{ workerProfileUuid: "worker-sample" }, "거래처"],
+    [{ clientProfileUuid: "client-sample" }, "작업자"],
+  ]) {
+    const markup = renderToStaticMarkup(React.createElement(AssignmentCautionEditor, { loginId: "sample", ...identity }));
+    assert.equal((markup.match(/role="combobox"/g) || []).length, 1);
+    assert.match(markup, new RegExp(`상대 ${counterpart} \\*`));
+    assert.match(markup, /aria-autocomplete="list" aria-expanded="false"/);
+    assert.match(markup, /요청 주체/);
+    assert.match(markup, /사유 메모 \(선택\)/);
+    assert.equal((markup.match(/<select/g) || []).length, 1);
+    assert.doesNotMatch(markup, /상대 선택/);
+    assert.match(markup, /배치 주의 등록/);
+  }
+});
+
+test("caution checks are fresh read-only office/client queries, and failures never become an empty list", async () => {
+  const old = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init) => { calls.push({ url: new URL(url), init }); return Response.json([]); };
+  try {
+    assert.deepEqual(await fetchAssignmentCautions("sample office", { farmOwnerUuid: "farm-a" }), []);
+    assert.equal(calls[0].url.searchParams.get("loginId"), "sample office");
+    assert.equal(calls[0].url.searchParams.get("farmOwnerUuid"), "farm-a");
+    assert.deepEqual(calls[0].init, { cache: "no-store" });
+    globalThis.fetch = async () => Response.json({ message: "가상 조회 실패" }, { status: 500 });
+    await assert.rejects(fetchAssignmentCautions("sample office"), new Error("가상 조회 실패"));
+  } finally { globalThis.fetch = old; }
+});
+
+test("caution CRUD retains one relation contract and bodyless release; failures are retryable", async () => {
+  const oldFetch = globalThis.fetch;
+  const oldWindow = globalThis.window;
+  globalThis.window = { ...oldWindow, dispatchEvent() {} };
+  const calls = [];
+  const payload = { workerProfileUuid: "worker-a", clientProfileUuid: "client-a", requestedBy: "BOTH", memo: "가상 메모\n두 번째 줄" };
+  globalThis.fetch = async (url, init) => {
+    calls.push({ path: new URL(url).pathname, login: new URL(url).searchParams.get("loginId"), init });
+    return init.method === "DELETE" ? new Response(null, { status: 204 }) : Response.json({ uuid: "caution-a", ...payload });
+  };
+  try {
+    assert.equal((await saveAssignmentCaution("sample", payload)).uuid, "caution-a");
+    await saveAssignmentCaution("sample", payload, "caution-a");
+    assert.equal(await releaseAssignmentCaution("sample", "caution-a"), undefined);
+    assert.deepEqual(calls.map(c => c.init.method), ["POST", "PUT", "DELETE"]);
+    assert.deepEqual(calls.map(c => c.path), ["/api/assignment-cautions", "/api/assignment-cautions/caution-a", "/api/assignment-cautions/caution-a"]);
+    for (const call of calls) assert.equal(call.login, "sample");
+    assert.deepEqual(JSON.parse(calls[0].init.body), payload);
+    globalThis.fetch = async () => Response.json({ message: "가상 저장 실패" }, { status: 500 });
+    await assert.rejects(saveAssignmentCaution("sample", payload), new Error("가상 저장 실패"));
+    assert.equal(payload.memo, "가상 메모\n두 번째 줄");
+    globalThis.fetch = async () => Response.json({ uuid: "caution-a", ...payload });
+    assert.equal((await saveAssignmentCaution("sample", payload)).memo, payload.memo);
+  } finally { globalThis.fetch = oldFetch; globalThis.window = oldWindow; }
+});
+
+test("confirming another warning preserves earlier accepted versions but replaces a stale version", () => {
+  const original = [{ uuid: "a", updatedAt: "old" }, { uuid: "b", updatedAt: "same" }];
+  assert.deepEqual(mergeCautionAcknowledgements(original, [{ uuid: "a", updatedAt: "new" }, { uuid: "c", updatedAt: "fresh" }]),
+    [{ uuid: "b", updatedAt: "same" }, { uuid: "a", updatedAt: "new" }, { uuid: "c", updatedAt: "fresh" }]);
+  assert.equal(original[0].updatedAt, "old");
+});
+
+test("schedule and no-show writes preserve caution conflicts and exact confirmation versions", async () => {
+  const old = globalThis.fetch;
+  const conflicts = [{ uuid: "rule", updatedAt: "2026-10-11T01:02:03.123456Z", memo: null, requestedBy: "BOTH" }];
+  const calls = [];
+  globalThis.fetch = async (url, init) => { calls.push(JSON.parse(init.body)); return Response.json({ code: "ASSIGNMENT_CAUTION_CONFLICT", conflicts, message: "확인 필요" }, { status: 409 }); };
+  try {
+    for (const api of [updateScheduleTask, replaceNoShow, changeNoShowReplacement]) {
+      await assert.rejects(api("sample", "2026-10-11", "task", { acknowledgedCautions: [{ uuid: "rule", updatedAt: "2026-10-11T01:02:03.123456Z" }] }), error => {
+        assert.ok(error instanceof AssignmentCautionConflictError); assert.deepEqual(error.conflicts, conflicts); return true;
+      });
+    }
+    assert.equal(calls.length, 3);
+    for (const payload of calls) assert.deepEqual(payload.acknowledgedCautions, [{ uuid: "rule", updatedAt: "2026-10-11T01:02:03.123456Z" }]);
+  } finally { globalThis.fetch = old; }
+});
 
 test("assignment history requests are read-only and preserve office, target, date and cursor", async () => {
   const originalFetch = globalThis.fetch;

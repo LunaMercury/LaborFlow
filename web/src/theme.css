@@ -413,6 +413,17 @@
   --color-pages-clients-page-edit-client-button-border: #c8d4e0;
   --color-pages-clients-page-edit-client-button-text: #2f3f50;
   --color-pages-clients-page-apply-client-button-background: #fee2e2;
+  --color-map-demo-land: #f1f4ed;
+  --color-map-demo-grid: #dbe3d5;
+  --color-map-demo-water: #b8dce7;
+  --color-map-demo-road: #ffffff;
+  --color-map-demo-field: rgba(48, 132, 104, 0.24);
+  --color-map-demo-selected: rgba(48, 132, 104, 0.45);
+  --color-map-demo-outline: #39795f;
+  --color-map-demo-label: #ffffff;
+  --color-map-demo-pin-selected: #b45336;
+  --color-assignment-caution-release-background: #dc2626;
+  --color-assignment-caution-release-text: #ffffff;
   --color-pages-clients-page-apply-client-button-border: #dc2626;
   --color-pages-clients-page-apply-client-button-text: #991b1b;
   --color-pages-clients-page-cancel-client-button-background: #ffffff;

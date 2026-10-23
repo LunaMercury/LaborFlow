@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ScheduleDao {
+    void lockScheduleDays(UUID agencyOwnerUuid, LocalDate workDate);
+    void removeTransferredAssignments(UUID agencyOwnerUuid, UUID targetDayUuid, LocalDate workDate, List<UUID> workerProfileUuids);
     Optional<UUID> findAgencyOwnerUuidByLoginId(String loginId);
 
     Optional<UUID> findAccountUuidByLoginId(String loginId);

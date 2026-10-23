@@ -84,3 +84,8 @@ Authentication sessions are stored in `app_auth_session`.
 Refresh token plaintext must never be stored; only a SHA-256/HMAC-style hash is persisted.
 Standard sessions are limited to 12 hours, and remembered sessions are limited to 30 days.
 Refresh token rotation should create a new session row, link it with `replaced_by_session_uuid`, and revoke the previous row.
+
+## 작업자·거래처 배치 주의
+
+Migration 035와 [관계·확인 기록 상세](../docs/database/assignment-cautions.md)를 참고한다.
+애플리케이션 시작 시 Flyway가 신규 migration을 적용한다. 기존 migration의 체크섬을 변경하지 않는다.

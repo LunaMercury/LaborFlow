@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AssignmentCautionEditor } from "../components/AssignmentCautionEditor";
 import {
   createClient,
   deleteClient,
@@ -722,6 +723,7 @@ export function ClientsPage({ loginId }: ClientsPageProps) {
                           }
                         />
                       </label>
+                      <AssignmentCautionEditor key={`${loginId}:${selectedClient.profileUuid}`} loginId={loginId} clientProfileUuid={selectedClient.profileUuid} />
                       {inlineError ? (
                         <p className={styles.clientInlineError}>{inlineError}</p>
                       ) : null}

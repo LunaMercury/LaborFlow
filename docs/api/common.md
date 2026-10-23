@@ -104,6 +104,9 @@ DB 길이/제약 위반이 Service에서 미리 검사되지 않으면 Spring JD
 
 ## 근거 소스
 
+2026-10-11 추가: 작업자·거래처 주의는 409 `ASSIGNMENT_CAUTION_CONFLICT`와 관계 객체 배열 `conflicts`를 반환한다.
+기존 작업자 간 주의와 별도이며 [배치 주의 계약](assignment-cautions.md)을 참고한다.
+
 - `backend-core/src/main/java/com/laborflow/core/common/error/GlobalExceptionHandler.java`
 - `backend-core/src/main/java/com/laborflow/core/common/error/ApiErrorResponse.java`
 - `backend-core/src/main/java/com/laborflow/core/common/error/WorkerSeparationConflictResponse.java`

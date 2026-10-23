@@ -34,10 +34,12 @@ class ScheduleServiceTest {
     private final ScheduleDao scheduleDao = mock(ScheduleDao.class);
     private final ClientsService clientsService = mock(ClientsService.class);
     private final WorkforceService workforceService = mock(WorkforceService.class);
+    private final com.laborflow.core.cautions.application.AssignmentCautionService cautionService = mock(com.laborflow.core.cautions.application.AssignmentCautionService.class);
     private final ScheduleService service = new ScheduleService(
         scheduleDao,
         clientsService,
-        workforceService
+        workforceService,
+        cautionService
     );
 
     private final UUID agencyOwnerUuid = UUID.randomUUID();
@@ -351,6 +353,105 @@ class ScheduleServiceTest {
             org.mockito.ArgumentMatchers.any(),
             anyList()
         );
+    }
+
+    @Test
+    void cautionConflictPreventsAssignmentAndTaskWrites() {
+        when(scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)).thenReturn(Optional.of(savedTask()));
+        when(cautionService.validatePlacement("test", ownerUuid, List.of(workerAUuid, workerBUuid), List.of()))
+            .thenThrow(new com.laborflow.core.cautions.application.AssignmentCautionConflictException(List.of()));
+        assertThatThrownBy(() -> service.updateTask("test", scheduleDayUuid, workDate, request(List.of())))
+            .isInstanceOf(com.laborflow.core.cautions.application.AssignmentCautionConflictException.class);
+        verify(scheduleDao, never()).replaceAssignments(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), anyList());
+        verify(scheduleDao, never()).replaceTaskWorkTypes(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), anyList());
+    }
+
+    @Test
+    void transferCautionFailureLeavesBothOriginalAndTargetAssignmentsUntouched() {
+        when(scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)).thenReturn(Optional.of(savedTask()));
+        when(cautionService.validatePlacement("test", ownerUuid, List.of(workerAUuid, workerBUuid), List.of()))
+            .thenThrow(new com.laborflow.core.cautions.application.AssignmentCautionConflictException(List.of()));
+        assertThatThrownBy(() -> service.updateTask("test", scheduleDayUuid, workDate, transferRequest()))
+            .isInstanceOf(com.laborflow.core.cautions.application.AssignmentCautionConflictException.class);
+        verify(scheduleDao, never()).replaceAssignments(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), anyList());
+    }
+
+    @Test
+    void checkSaveTransfersTheWorkerWithoutChangingSourceDetailsOrHeadcount() {
+        UUID sourceUuid = UUID.fromString("70000000-0000-4000-8000-000000000001");
+        var source = taskWithAssignments(sourceUuid, List.of(assignment(workerAUuid)));
+        when(scheduleDao.findTasks(agencyOwnerUuid, workDate)).thenReturn(List.of(savedTask(), source));
+        when(scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)).thenReturn(Optional.of(savedTask()));
+        assertThat(service.updateTask("test", scheduleDayUuid, workDate, transferRequest()).id()).isEqualTo(scheduleDayUuid);
+        verify(scheduleDao).replaceAssignments(agencyOwnerUuid, scheduleDayUuid, transferRequest().assignments());
+        verify(scheduleDao).removeTransferredAssignments(agencyOwnerUuid, scheduleDayUuid, workDate, List.of(workerAUuid));
+        verify(scheduleDao, never()).replaceAssignments(org.mockito.ArgumentMatchers.eq(agencyOwnerUuid), org.mockito.ArgumentMatchers.eq(sourceUuid), anyList());
+        assertThat(source.title()).isEqualTo("마늘 뽑기");
+    }
+
+    @Test
+    void transferPreservesTheExistingWorkerSeparationGate() {
+        when(workforceService.findAssignmentSeparationConflicts("test", List.of(workerAUuid, workerBUuid), List.of())).thenReturn(List.of(separationConflict()));
+        assertThatThrownBy(() -> service.updateTask("test", scheduleDayUuid, workDate, transferRequest()))
+            .isInstanceOf(WorkerSeparationConflictException.class);
+        verify(scheduleDao, never()).replaceAssignments(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), anyList());
+    }
+
+    @Test void existingWorkersDoNotRequireRepeatCautionConfirmationForOtherEdits() {
+        when(scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate))
+            .thenReturn(Optional.of(taskWithAssignments(scheduleDayUuid, List.of(assignment(workerAUuid), assignment(workerBUuid)))));
+        service.updateTask("test", scheduleDayUuid, workDate, request(List.of()));
+        verify(cautionService).validatePlacement("test", ownerUuid, List.of(), List.of());
+    }
+
+    @Test void transferOfAWorkerMissingFromTheTargetIsRejectedWithoutWrites() {
+        var r = request(List.of());
+        var invalid = new UpdateScheduleTaskRequest(r.ownerUuid(), r.title(), r.clientWorkSiteUuid(), r.siteName(), r.address(),
+            r.siteMemo(), r.startTime(), r.endTime(), r.requiredMen(), r.requiredWomen(), r.memo(), r.workTypeCodes(), r.assignments(),
+            List.of(), List.of(), List.of(UUID.fromString("20000000-0000-4000-8000-000000000099")));
+        assertThatThrownBy(() -> service.updateTask("test", scheduleDayUuid, workDate, invalid)).isInstanceOf(IllegalArgumentException.class);
+        verify(scheduleDao, never()).replaceAssignments(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), anyList());
+    }
+
+    private UpdateScheduleTaskRequest transferRequest() {
+        var r = request(List.of());
+        return new UpdateScheduleTaskRequest(r.ownerUuid(), r.title(), r.clientWorkSiteUuid(), r.siteName(), r.address(), r.siteMemo(),
+            r.startTime(), r.endTime(), r.requiredMen(), r.requiredWomen(), r.memo(), r.workTypeCodes(), r.assignments(), List.of(), List.of(), List.of(workerAUuid));
+    }
+
+    @Test void noShowAndReplacementChangeCannotWriteBeforeCautionConfirmation() {
+        var original = UUID.fromString("60000000-0000-4000-8000-000000000001");
+        var account = UUID.fromString("10000000-0000-4000-8000-000000000001");
+        var request = new com.laborflow.core.schedule.dto.ReplaceNoShowRequest(original, workerAUuid);
+        when(scheduleDao.findAccountUuidByLoginId("test")).thenReturn(Optional.of(account));
+        when(scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, workDate)).thenReturn(Optional.of(savedTask()));
+        when(cautionService.validatePlacement("test", ownerUuid, List.of(workerAUuid), List.of()))
+            .thenThrow(new com.laborflow.core.cautions.application.AssignmentCautionConflictException(List.of()));
+        assertThatThrownBy(() -> service.replaceNoShow("test", scheduleDayUuid, workDate, request))
+            .isInstanceOf(com.laborflow.core.cautions.application.AssignmentCautionConflictException.class);
+        assertThatThrownBy(() -> service.changeNoShowReplacement("test", scheduleDayUuid, workDate, request))
+            .isInstanceOf(com.laborflow.core.cautions.application.AssignmentCautionConflictException.class);
+        verify(scheduleDao, never()).replaceNoShow(agencyOwnerUuid, account, scheduleDayUuid, original, workerAUuid);
+        verify(scheduleDao, never()).changeNoShowReplacement(agencyOwnerUuid, account, scheduleDayUuid, original, workerAUuid);
+    }
+
+    @Test void cautionAcknowledgementDoesNotBypassForeignScheduleOwnership() {
+        when(scheduleDao.scheduleDayBelongsToAgencyOwner(agencyOwnerUuid, scheduleDayUuid)).thenReturn(false);
+        assertThatThrownBy(() -> service.updateTask("test", scheduleDayUuid, workDate, transferRequest()))
+            .isInstanceOf(IllegalArgumentException.class);
+        verify(scheduleDao, never()).replaceAssignments(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), anyList());
+        org.mockito.Mockito.verifyNoInteractions(cautionService);
+    }
+
+    private com.laborflow.core.schedule.dto.ScheduleAssignmentResponse assignment(UUID worker) {
+        return new com.laborflow.core.schedule.dto.ScheduleAssignmentResponse(UUID.randomUUID(), null, worker, "registered", "", "", "men", 1,
+            "07:00", "17:00", "planned", "pending", null, null, null, null);
+    }
+
+    private ScheduleTaskResponse taskWithAssignments(UUID id, List<com.laborflow.core.schedule.dto.ScheduleAssignmentResponse> assignments) {
+        var t = savedTask();
+        return new ScheduleTaskResponse(id, t.workSiteId(), t.clientWorkSiteUuid(), t.ownerUuid(), t.title(), t.ownerName(), t.siteName(),
+            t.address(), t.siteMemo(), t.timeRange(), t.startTime(), t.endTime(), t.requiredMen(), t.requiredWomen(), t.workTypeCodes(), t.memo(), assignments);
     }
 
     private UpdateScheduleTaskRequest request(List<UUID> acknowledgedRuleUuids) {

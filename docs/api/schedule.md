@@ -340,3 +340,9 @@
 - 성공: `200`, 빈 본문. 반복 호출은 날짜를 찾지 못해 `400`.
 
 근거: `ScheduleController.rescheduleTaskRange/updateTaskRange/deleteTaskRange`, `ScheduleService`, `JdbcScheduleDao.rescheduleTaskRange/deleteTaskRange`, `ScheduleCalendarPage`, `WorkSchedulePage`, 대응 `scheduleApi` 함수.
+
+## 거래처 배치 주의 추가 (2026-10-11)
+
+배치 PUT·노쇼 대체의 `acknowledgedCautions`, 409 `ASSIGNMENT_CAUTION_CONFLICT`,
+배치 PUT의 `movedWorkerProfileUuids`는 [배치 주의 계약](assignment-cautions.md)을 참고한다.
+기존 작업자 간 주의와 별도이며 단순 일정 내용 수정에 새 경고를 적용하지 않는다.

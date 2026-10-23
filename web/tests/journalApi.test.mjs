@@ -29,6 +29,45 @@ const {
 } = await server.ssrLoadModule("/src/api/journalApi.ts");
 const { SalesJournalPage } = await server.ssrLoadModule("/src/pages/SalesJournalPage.tsx");
 const { WorkJournalPage } = await server.ssrLoadModule("/src/pages/WorkJournalPage.tsx");
+const { demoData, filterJournals, shortMemo, labelIds } = await server.ssrLoadModule('/src/pages/journalMapDemoData.ts');
+const { default: JournalMapDemo } = await server.ssrLoadModule('/src/pages/JournalMapDemo.tsx');
+
+test('map fixtures separate fields from daily results, include missing geometry, and generate dense examples', () => {
+  const basic = demoData(false), dense = demoData(true);
+  assert.equal(basic.fields.length, 5); assert.equal(basic.pins.length, 5);
+  assert.equal(dense.pins.length, 30);
+  assert.equal(basic.work.filter(row=>row.fieldId==='field-0').length, 2);
+  assert.ok(basic.work.some(row=>!row.fieldId));
+  assert.ok(basic.sales.some(row=>!basic.pins.some(pin=>pin.journalId===row.id)));
+  assert.ok(basic.sales.some(row=>basic.pins.filter(pin=>pin.journalId===row.id).length>1));
+  basic.pins.pop(); assert.equal(demoData(false).pins.length, 5);
+});
+test('map and list filtering share dates and body search, retaining unlocated records', () => {
+  const data = demoData(false);
+  assert.deepEqual(filterJournals(data.work,'2026-10-20','2026-10-20','영역 없는').map(r=>r.id),['work-no-area']);
+  assert.equal(filterJournals(data.sales,'2026-10-21','2026-10-21','장소').length,1);
+  assert.equal(filterJournals(data.work,'2026-10-23','2026-10-15','').length,0);
+});
+test('short labels limit Korean characters without newlines and dense labels prioritize selection', () => {
+  assert.equal(shortMemo('가나다라마바사아자차카타\n'), '가나다라마바사아자차');
+  assert.equal(shortMemo(''), '');
+  const pins=demoData(true).pins;
+  const ids=labelIds(pins,'pin-29',.7);
+  assert.ok(ids.has('pin-29')); assert.ok(ids.size<pins.length);
+});
+test('both development map pages render only sample data without calling fetch', () => {
+  const previous=globalThis.fetch; let calls=0;
+  globalThis.fetch=()=>{calls++;throw new Error('Demo must not call API');};
+  try {
+    for (const path of ['work','sales']) {
+      window.location.pathname=`/dev/journal-map/${path}`;
+      const html=renderToStaticMarkup(React.createElement(JournalMapDemo));
+      assert.match(html,/지도 시안 · 예시 데이터 · 서버에 저장되지 않음/);
+      assert.match(html,/이동 가능한 가상 지도 캔버스/);
+    }
+    assert.equal(calls,0);
+  } finally {globalThis.fetch=previous;}
+});
 
 after(async () => {
   await server.close();

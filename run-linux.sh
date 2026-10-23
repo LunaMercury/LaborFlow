@@ -72,6 +72,13 @@ require_command() {
   fi
 }
 
+require_docker_running() {
+  if ! docker info >/dev/null 2>&1; then
+    echo "Docker is not running. Start Docker and try again." >&2
+    exit 1
+  fi
+}
+
 compose() {
   if docker compose version >/dev/null 2>&1; then
     docker compose "$@"
@@ -127,6 +134,7 @@ echo "=========================================="
 require_command docker
 require_command npm
 require_command cargo
+require_docker_running
 
 if [[ -x "stop-linux.sh" ]]; then
   ./stop-linux.sh --keep-docker --quiet || true

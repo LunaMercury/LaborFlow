@@ -8,13 +8,14 @@
 - 브랜치: `dev`
 - 구현 시작 기준 커밋: `4970ccebd7aba17b7c3943ed4d067f64f7190a75`
 - 작업 상태: 위 커밋에서 시작한 현재 일지 구현과 마이그레이션을 반영했으며 운영 DB 적용 여부는 확인하지 않음
-- 스키마 기준: `database/migrations/001_...sql`부터 `034_...sql`까지 순서대로 적용한 최종 상태
+- 스키마 기준: `database/migrations/001_...sql`부터 `035_...sql`까지 순서대로 적용한 최종 상태. 배치 주의 추가는 2026-10-11, 시작 커밋 `5b433f3` 이후 구현이다.
 - 애플리케이션 기준: backend-core의 Service, DAO, 트랜잭션 선언과 기존 API 문서 대조
 - 운영 DB 확인: 수행하지 않음. `flyway_schema_history`, 실제 테이블·인덱스·데이터는 조회하지 않았다.
 
 ## 문서 구성
 
-- [최종 스키마](schema.md): 41개 테이블의 역할, 컬럼, 제약, 인덱스, 읽기·쓰기 코드
+- [최종 스키마](schema.md): 기존 테이블의 역할, 컬럼, 제약, 인덱스, 읽기·쓰기 코드
+- [작업자·거래처 배치 주의](assignment-cautions.md): migration 035의 관계와 확인 기록 2개 테이블
 - [관계와 업무 흐름](relationships-and-flows.md): Mermaid 관계도와 등록·일정·배정·근태·노쇼 흐름
 - [데이터 경계와 확인 사항](boundaries-and-gaps.md): 삭제, 이력, 개인정보, 사무소 범위, 구현 불일치와 후속 질문
 - [마이그레이션 운영 안내](../../database/README.md): Flyway 패키징과 적용 방법

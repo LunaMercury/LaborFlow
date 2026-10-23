@@ -295,3 +295,8 @@
 - job 제약/인덱스: source `AUDIO_FILE|MOBILE_CALL_RECORD`, target `FARM_OWNER|WORKER|WORK_SCHEDULE`, status `PENDING|PROCESSING|COMPLETED|FAILED|APPLIED|DISCARDED|EXPIRED`, hash와 0..1 confidence; agency/status 및 expiry 부분 인덱스; updated trigger. `matched_entity_uuid`는 다형 참조라 실제 FK가 없다.
 - result: `job_uuid uuid PK/FK CASCADE`, `transcript_encrypted text`, `summary_encrypted text`, `extracted_payload_json jsonb NN DEFAULT '{}'`, `model_name varchar(120)`, `analyzed_at timestamptz`, timestamps, `deleted_at`; updated trigger.
 - 코드: 현재 backend-core DAO/API 연결이 확인되지 않는다. 기존 제품 계획의 분석→초안→사용자 확인 흐름을 위한 DB 기반이다.
+
+## Migration 035 추가 (2026-10-11)
+
+`worker_client_assignment_caution`, `assignment_caution_acknowledgement`는 [추가 스키마 문서](assignment-cautions.md)를 참고한다.
+거래처 프로필의 `(agency_owner_uuid, uuid)` UNIQUE도 추가된다. 기존 테이블 목록에 더해지는 현재 사용 중 구조다.

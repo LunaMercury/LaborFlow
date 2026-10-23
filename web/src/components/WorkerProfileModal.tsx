@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { AssignmentCautionEditor, type AssignmentCautionEditorHandle } from "./AssignmentCautionEditor";
+import { notifyCautionsChanged } from "../api/assignmentCautionsApi";
 import {
   createWorker,
   createWorkerFromGuestAssignment,
@@ -160,6 +162,8 @@ export function WorkerProfileModal({
     Record<string, number>
   >(worker?.workTypeRatings ?? {});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const cautionDraftRef = useRef<AssignmentCautionEditorHandle>(null);
   const [separationRules, setSeparationRules] = useState<SeparationRuleDraft[]>([]);
   const [separationSearch, setSeparationSearch] = useState("");
   const [isLoadingSeparationRules, setIsLoadingSeparationRules] = useState(isEditMode);
@@ -262,6 +266,7 @@ export function WorkerProfileModal({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submittingRef.current) return;
 
     const normalizedName = workerName.trim();
     const normalizedNickname = localNickname.trim();
@@ -294,8 +299,15 @@ export function WorkerProfileModal({
       return;
     }
 
+    submittingRef.current = true;
     setIsSubmitting(true);
     try {
+      const assignmentCautionChanges = isEditMode && worker?.profileUuid
+        ? cautionDraftRef.current?.getChanges()
+        : undefined;
+      if (isEditMode && worker?.profileUuid && !assignmentCautionChanges) {
+        throw new Error("배치 주의 거래처를 불러온 뒤 다시 저장해 주세요.");
+      }
       const payload = {
         accountHolderName: accountHolderName.trim(),
         accountNumber: accountNumberDigits,
@@ -324,6 +336,7 @@ export function WorkerProfileModal({
                 otherWorkerProfileUuid: rule.otherWorkerProfileUuid,
                 reason: rule.reason.trim(),
               })),
+              assignmentCautionChanges,
             })
           : sourceAssignmentUuid
             ? await createWorkerFromGuestAssignment(
@@ -341,6 +354,7 @@ export function WorkerProfileModal({
                 workerName: normalizedName,
               });
 
+      if (assignmentCautionChanges?.length) notifyCautionsChanged();
       onSaved(workers);
       onClose();
     } catch (error) {
@@ -350,6 +364,7 @@ export function WorkerProfileModal({
           : "작업자 정보를 저장하지 못했습니다.",
       );
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -806,6 +821,10 @@ export function WorkerProfileModal({
                   </>
                 )}
               </section>
+            ) : null}
+            {isEditMode && worker?.profileUuid ? (
+              <AssignmentCautionEditor key={`${loginId}:${worker.profileUuid}`} loginId={loginId} workerProfileUuid={worker.profileUuid}
+                deferSave disabled={isSubmitting} draftRef={cautionDraftRef} />
             ) : null}
           </form>
         </div>

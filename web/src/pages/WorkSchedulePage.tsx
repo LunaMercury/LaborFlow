@@ -39,6 +39,9 @@ import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
 import { StatusSnackbar } from "../components/StatusSnackbar";
 import { AssignmentHistoryModal } from "../components/AssignmentHistoryModal";
 import { buildImportedAssignments } from "../components/assignmentHistory";
+import { AssignmentCautionDialog } from "../components/AssignmentCautionDialog";
+import { AssignmentCautionConflictError, fetchAssignmentCautions, subscribeCautionsChanged, mergeCautionAcknowledgements,
+  type AssignmentCaution, type CautionAcknowledgement } from "../api/assignmentCautionsApi";
 import type { WorkerRow } from "../data/workerRows";
 import {
   workTypeOptions as fallbackWorkTypeOptions,
@@ -821,6 +824,15 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
   const [separationWarningDraft, setSeparationWarningDraft] =
     useState<SeparationWarningDraft | null>(null);
   const [isReplacingNoShow, setIsReplacingNoShow] = useState(false);
+  const [assignmentCautions, setAssignmentCautions] = useState<AssignmentCaution[]>([]);
+  const [cautionDialog, setCautionDialog] = useState<{ cautions: AssignmentCaution[]; confirm?: (acks: CautionAcknowledgement[]) => void } | null>(null);
+  const [checkingCautions, setCheckingCautions] = useState(false);
+  const cautionGateBusy = useRef(false);
+  const placementSaveBusy = useRef(false);
+  const stagedWorkerMoves = useRef<Record<string, string[]>>({});
+  const cautionConfirmations = useRef<Record<string, CautionAcknowledgement[]>>({});
+  const cautionContext = useRef("");
+  cautionContext.current = `${loginId}:${selectedDate}`;
   const [editingTaskMemoId, setEditingTaskMemoId] = useState<string | null>(
     null,
   );
@@ -1431,14 +1443,83 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     setEditingTaskMemoId(null);
   };
 
+  useEffect(() => {
+    let active = true;
+    let version = 0;
+    const refresh = async () => {
+      const current = ++version;
+      try {
+        const cautions = await fetchAssignmentCautions(loginId);
+        if (active && current === version) setAssignmentCautions(cautions);
+      } catch (error) {
+        if (active && current === version) setStatusMessage(error instanceof Error ? error.message : "배치 주의를 불러오지 못했습니다.");
+      }
+    };
+    cautionConfirmations.current = {};
+    stagedWorkerMoves.current = {};
+    setCautionDialog(null);
+    cautionGateBusy.current = false;
+    setAssignmentCautions([]);
+    void refresh();
+    const unsubscribe = subscribeCautionsChanged(() => { cautionConfirmations.current = {}; void refresh(); });
+    return () => { active = false; unsubscribe(); };
+  }, [loginId, selectedDate]);
+
+  const closeCautionDialog = () => {
+    if (placementSaveBusy.current) return;
+    setCautionDialog(null); cautionGateBusy.current = false;
+  };
+
+  useEffect(() => {
+    if (!separationWarningDraft) return;
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setSeparationWarningDraft(null);
+    };
+    document.addEventListener("keydown", cancel);
+    return () => document.removeEventListener("keydown", cancel);
+  }, [separationWarningDraft]);
+
+  const reviewCautions = async (task: ScheduleTask, workerIds: string[], proceed: (acks: CautionAcknowledgement[]) => void) => {
+    if (cautionGateBusy.current || placementSaveBusy.current || separationWarningDraft) return;
+    const context = cautionContext.current;
+    cautionGateBusy.current = true; setCheckingCautions(true);
+    try {
+      const current = await fetchAssignmentCautions(loginId, { farmOwnerUuid: task.ownerUuid });
+      if (context !== cautionContext.current) return;
+      setAssignmentCautions(previous => [...previous.filter(c => c.farmOwnerUuid !== task.ownerUuid), ...current]);
+      const conflicts = current.filter(c => workerIds.includes(c.workerProfileUuid));
+      if (conflicts.length) {
+        setCautionDialog({ cautions: conflicts, confirm: proceed });
+      } else {
+        cautionGateBusy.current = false; proceed([]);
+      }
+    } catch (error) {
+      if (context !== cautionContext.current) return;
+      cautionGateBusy.current = false;
+      setStatusMessage(`${error instanceof Error ? error.message : "배치 주의 조회 실패"} 기존 배치는 유지됩니다. 다시 드롭하거나 저장을 눌러 재시도해 주세요.`);
+    } finally { setCheckingCautions(false); }
+  };
+
   const applyTaskDraft = async (
     task: ScheduleTask,
     acknowledgedSeparationRuleUuids: string[] = [],
+    acknowledgedCautions: CautionAcknowledgement[] = cautionConfirmations.current[task.id] ?? [],
   ) => {
+    if (placementSaveBusy.current || cautionGateBusy.current) return;
+    const context = cautionContext.current;
+    const outgoing = Object.entries(stagedWorkerMoves.current).some(([target, ids]) => target !== task.id && ids.some(id =>
+      (assignedWorkerIdsByTaskId[target]?.men.includes(id) || assignedWorkerIdsByTaskId[target]?.women.includes(id)) &&
+      task.assignments.some(a => a.workerProfileUuid === id && a.assignmentStatus !== "replaced")));
+    if (outgoing) { setStatusMessage("옮긴 작업자가 있는 대상 작업부터 저장해 주세요. 기존 배치는 아직 DB에 유지됩니다."); return; }
+    placementSaveBusy.current = true;
     const taskAssignments =
       assignedWorkerIdsByTaskId[task.id] ?? createEmptyTaskAssignments();
     const requiredCounts = getRequiredCounts(task);
     const detailDraft = getTaskDetailDraft(task);
+    const movedWorkerProfileUuids = (stagedWorkerMoves.current[task.id] ?? []).filter(id => taskAssignments.men.includes(id) || taskAssignments.women.includes(id));
+    const removeTransferred = (source: ScheduleTask) => ({ ...source, assignments: source.assignments.filter(a =>
+      a.assignmentStatus === "replaced" || !a.workerProfileUuid || !movedWorkerProfileUuids.includes(a.workerProfileUuid)) });
 
     setSavingTaskId(task.id);
     setStatusMessage("");
@@ -1450,6 +1531,8 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
         task.id,
         {
           acknowledgedSeparationRuleUuids,
+          acknowledgedCautions,
+          movedWorkerProfileUuids,
           address: detailDraft.address,
           assignments: toScheduleAssignments(taskAssignments),
           clientWorkSiteUuid: task.clientWorkSiteUuid,
@@ -1466,14 +1549,15 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
         },
       );
 
+      if (context !== cautionContext.current) return;
       setTasks((currentTasks) =>
         currentTasks.map((currentTask) =>
-          currentTask.id === savedTask.id ? savedTask : currentTask,
+          currentTask.id === savedTask.id ? savedTask : removeTransferred(currentTask),
         ),
       );
       setPersistedTasks((currentTasks) =>
         currentTasks.map((currentTask) =>
-          currentTask.id === savedTask.id ? savedTask : currentTask,
+          currentTask.id === savedTask.id ? savedTask : removeTransferred(currentTask),
         ),
       );
       setAssignedWorkerIdsByTaskId((currentAssignments) => ({
@@ -1496,7 +1580,15 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
         currentTaskId === savedTask.id ? null : currentTaskId,
       );
       setStatusMessage("작업자 배치가 저장되었습니다.");
+      delete cautionConfirmations.current[task.id];
+      delete stagedWorkerMoves.current[task.id];
     } catch (error) {
+      if (context !== cautionContext.current) return;
+      if (error instanceof AssignmentCautionConflictError) {
+        cautionGateBusy.current = true;
+        setCautionDialog({ cautions: error.conflicts, confirm: acks => { void applyTaskDraft(task, acknowledgedSeparationRuleUuids, mergeCautionAcknowledgements(acknowledgedCautions, acks)); } });
+        setStatusMessage(""); return;
+      }
       if (error instanceof WorkerSeparationConflictError) {
         setSeparationWarningDraft({
           conflicts: error.conflicts,
@@ -1512,20 +1604,36 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
           : "작업자 배치를 저장하지 못했습니다.",
       );
     } finally {
+      placementSaveBusy.current = false;
       setSavingTaskId(null);
     }
   };
 
   const resetTaskDraft = (taskId: string) => {
+    const movedIds = stagedWorkerMoves.current[taskId] ?? [];
+    delete cautionConfirmations.current[taskId];
+    delete stagedWorkerMoves.current[taskId];
     const persistedTask = persistedTasks.find((task) => task.id === taskId);
     if (!persistedTask) {
       return;
     }
 
-    setAssignedWorkerIdsByTaskId((currentAssignments) => ({
-      ...currentAssignments,
-      [taskId]: createAssignmentDrafts([persistedTask])[taskId],
-    }));
+    setAssignedWorkerIdsByTaskId((currentAssignments) => {
+      const restored = { ...currentAssignments, [taskId]: createAssignmentDrafts([persistedTask])[taskId] };
+      // Restore only workers from this cancelled move, leaving unrelated drafts intact.
+      for (const source of persistedTasks.filter(task => task.id !== taskId)) {
+        const original = createAssignmentDrafts([source])[source.id];
+        for (const workerId of movedIds) {
+          const draft = restored[source.id] ?? createEmptyTaskAssignments();
+          const assignedElsewhere = Object.entries(restored).some(([id, value]) => id !== source.id && (value.men.includes(workerId) || value.women.includes(workerId)));
+          if (assignedElsewhere) continue;
+          const area = original.men.includes(workerId) ? "men" : original.women.includes(workerId) ? "women" : null;
+          if (!area || draft[area].includes(workerId)) continue;
+          restored[source.id] = { ...draft, [area]: [...draft[area], workerId], workerCounts: { ...draft.workerCounts, [workerId]: original.workerCounts[workerId] } };
+        }
+      }
+      return restored;
+    });
     setRequiredCountsByTaskId((currentCounts) => ({
       ...currentCounts,
       [taskId]: createRequiredCountDrafts([persistedTask])[taskId],
@@ -1781,7 +1889,8 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     }
   };
 
-  const saveNoShowReplacement = async () => {
+  const saveNoShowReplacement = async (acknowledgedCautions: CautionAcknowledgement[] = []) => {
+    if (placementSaveBusy.current || cautionGateBusy.current) return;
     if (
       !noShowReplacementDraft ||
       !noShowReplacementDraft.replacementWorkerId
@@ -1799,8 +1908,10 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     }
 
     setIsReplacingNoShow(true);
+    placementSaveBusy.current = true;
     try {
       const request = {
+        acknowledgedCautions,
         originalAssignmentUuid:
           noShowReplacementDraft.originalAssignmentUuid,
         replacementWorkerProfileUuid:
@@ -1843,12 +1954,18 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
           : "노쇼를 기록하고 대체 작업자를 배정했습니다.",
       );
     } catch (error) {
+      if (error instanceof AssignmentCautionConflictError) {
+        cautionGateBusy.current = true;
+        setCautionDialog({ cautions: error.conflicts, confirm: acks => { void saveNoShowReplacement(mergeCautionAcknowledgements(acknowledgedCautions, acks)); } });
+        setStatusMessage(""); return;
+      }
       setStatusMessage(
         error instanceof Error
           ? error.message
           : "노쇼 대체 인원을 저장하지 못했습니다.",
       );
     } finally {
+      placementSaveBusy.current = false;
       setIsReplacingNoShow(false);
     }
   };
@@ -1927,7 +2044,7 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
 
   const importHistoricalAssignments = (source: ScheduleTask, sourceDate: string) => {
     const task = assignmentHistoryTask;
-    if (!task) return false;
+    if (!task || cautionGateBusy.current || placementSaveBusy.current) return false;
     const assignedToOtherTasks = new Set(
       Object.entries(assignedWorkerIdsByTaskId)
         .filter(([taskId]) => taskId !== task.id)
@@ -1947,15 +2064,18 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
       && !window.confirm("현재 카드의 등록 작업자 배치를 선택한 날짜의 배치로 바꾸시겠습니까? 미등록 인원은 유지됩니다.")) {
       return false;
     }
-    setAssignedWorkerIdsByTaskId((currentAssignments) => ({
-      ...currentAssignments,
-      [task.id]: imported.assignments,
-    }));
-    setStatusMessage(
-      imported.sourceCount === imported.importedCount
-        ? `${sourceDate} 배치를 불러왔습니다. 체크 버튼을 눌러야 저장됩니다.`
-        : `${sourceDate} 배치를 불러왔습니다. 다른 작업에 배정되었거나 삭제된 작업자는 제외했습니다. 체크 버튼을 눌러야 저장됩니다.`,
-    );
+    void reviewCautions(task, [...imported.assignments.men, ...imported.assignments.women], acks => {
+      cautionConfirmations.current[task.id] = acks;
+      setAssignedWorkerIdsByTaskId((currentAssignments) => ({
+        ...currentAssignments,
+        [task.id]: imported.assignments,
+      }));
+      setStatusMessage(
+        imported.sourceCount === imported.importedCount
+          ? `${sourceDate} 배치를 불러왔습니다. 체크 버튼을 눌러야 저장됩니다.`
+          : `${sourceDate} 배치를 불러왔습니다. 다른 작업에 배정되었거나 삭제된 작업자는 제외했습니다. 체크 버튼을 눌러야 저장됩니다.`,
+      );
+    });
     return true;
   };
 
@@ -2218,7 +2338,7 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     });
   };
 
-  const handleWorkerDrop = (
+  const continueWorkerDrop = (
     taskId: string,
     targetArea: AssignmentArea,
     workerIds: string[],
@@ -2252,6 +2372,17 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     }
 
     applyWorkerDrop(taskId, targetArea, workerIds);
+  };
+
+  const handleWorkerDrop = (taskId: string, targetArea: AssignmentArea, workerIds: string[]) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    void reviewCautions(task, workerIds, acks => {
+      stagedWorkerMoves.current[taskId] = [...new Set([...(stagedWorkerMoves.current[taskId] ?? []), ...workerIds])];
+      const existing = cautionConfirmations.current[taskId] ?? [];
+      cautionConfirmations.current[taskId] = [...existing.filter(a => !acks.some(next => next.uuid === a.uuid)), ...acks];
+      continueWorkerDrop(taskId, targetArea, workerIds);
+    });
   };
 
   const confirmSeparationWarning = () => {
@@ -2349,6 +2480,7 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     };
 
     const handlePointerEnd = (event: PointerEvent) => {
+      if (event.type === "pointercancel") { setDraggingWorker(null); return; }
       const movement = Math.hypot(
         event.clientX - draggingWorker.initialClientX,
         event.clientY - draggingWorker.initialClientY,
@@ -2402,12 +2534,13 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
       document.removeEventListener("pointerup", handlePointerEnd);
       document.removeEventListener("pointercancel", handlePointerEnd);
     };
-  }, [assignedWorkerIdsByTaskId, draggingWorker, separationRules]);
+  }, [assignedWorkerIdsByTaskId, draggingWorker, separationRules, separationWarningDraft, tasks]);
 
   const startWorkerDrag = (
     workerId: string,
     event: ReactPointerEvent<HTMLElement>,
   ) => {
+    if (cautionGateBusy.current || placementSaveBusy.current || separationWarningDraft) return;
     if (event.pointerType === "mouse" && event.button !== 0) {
       return;
     }
@@ -2431,6 +2564,7 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     team: WorkerTeamGroup,
     event: ReactPointerEvent<HTMLElement>,
   ) => {
+    if (cautionGateBusy.current || placementSaveBusy.current || separationWarningDraft) return;
     if (event.pointerType === "mouse" && event.button !== 0) {
       return;
     }
@@ -3233,6 +3367,18 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
                           );
                         const assignmentAction = (
                           <div className={styles.assignedWorkerActions}>
+                            {assignmentCautions.some(c => c.workerProfileUuid === workerId && c.farmOwnerUuid === task.ownerUuid) ? (
+                              <button aria-label={`${getWorkerDisplayName(worker)} 배치 주의 보기`} title="배치 주의" type="button"
+                                className={styles.assignmentCautionButton}
+                                onPointerDown={event => event.stopPropagation()}
+                                onClick={() => {
+                                  if (cautionGateBusy.current || placementSaveBusy.current) return;
+                                  cautionGateBusy.current = true;
+                                  setCautionDialog({ cautions: assignmentCautions.filter(c => c.workerProfileUuid === workerId && c.farmOwnerUuid === task.ownerUuid) });
+                                }}>
+                                <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3 2 21h20L12 3Z" /><path d="M12 9v5m0 3v1" /></svg>
+                              </button>
+                            ) : null}
                             {assignmentCountAction}
                             {persistedAssignment?.assignmentUuid ? (
                               <>
@@ -3864,6 +4010,14 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
             onApply={importHistoricalAssignments}
           />
         ) : null}
+        {checkingCautions ? <p role="status">배치 주의 관계를 확인하는 중입니다.</p> : null}
+        {cautionDialog ? <AssignmentCautionDialog cautions={cautionDialog.cautions} onClose={closeCautionDialog}
+          onConfirm={cautionDialog.confirm ? () => {
+            const pending = cautionDialog;
+            if (!cautionGateBusy.current || placementSaveBusy.current) return;
+            cautionGateBusy.current = false; setCautionDialog(null);
+            pending.confirm?.(pending.cautions.map(({ uuid, updatedAt }) => ({ uuid, updatedAt })));
+          } : undefined} /> : null}
         {separationWarningDraft ? (
           <div
             className={styles.noShowModalBackdrop}

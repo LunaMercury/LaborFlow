@@ -2,6 +2,7 @@ import type { WorkTypeOption } from "../data/workTypeOptions";
 import type { WorkerRow } from "../data/workerRows";
 import { getApiBaseUrl } from "./apiBaseUrl";
 import { parseErrorMessage } from "./parseErrorMessage";
+import type { WorkerAssignmentCautionChange } from "./assignmentCautionsApi";
 
 const apiBaseUrl = getApiBaseUrl();
 
@@ -48,6 +49,7 @@ export type UpdateWorkerProfilePayload = {
   workTypeCodes: string[];
   workTypeRatings: Record<string, number>;
   separationRules: WorkerSeparationRulePayload[];
+  assignmentCautionChanges?: WorkerAssignmentCautionChange[];
 };
 
 export type WorkerSeparationRulePayload = {

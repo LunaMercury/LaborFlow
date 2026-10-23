@@ -22,6 +22,33 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class JdbcScheduleDao implements ScheduleDao {
+    @Override
+    public void lockScheduleDays(UUID agencyOwnerUuid, LocalDate workDate) {
+        jdbcTemplate.queryForList("""
+            SELECT d.uuid FROM public.work_schedule_day d
+            JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
+            WHERE s.agency_owner_uuid = ? AND d.work_date = ? AND s.deleted_at IS NULL AND d.deleted_at IS NULL
+            ORDER BY d.uuid FOR UPDATE OF d
+            """, UUID.class, agencyOwnerUuid, workDate);
+    }
+
+    @Override
+    public void removeTransferredAssignments(UUID office, UUID targetDay, LocalDate date, List<UUID> workers) {
+        if (workers.isEmpty()) return;
+        String placeholders = String.join(",", workers.stream().map(ignored -> "?").toList());
+        var args = new ArrayList<Object>();
+        args.add(office); args.add(targetDay); args.add(date); args.addAll(workers);
+        jdbcTemplate.update("""
+            UPDATE public.work_schedule_assignment a
+            SET deleted_at = now(), updated_at = now()
+            FROM public.work_schedule_day d, public.farm_work_site s
+            WHERE a.schedule_day_uuid = d.uuid AND d.work_site_uuid = s.uuid
+              AND a.agency_owner_uuid = ? AND s.agency_owner_uuid = a.agency_owner_uuid
+              AND d.uuid <> ? AND d.work_date = ? AND d.deleted_at IS NULL AND s.deleted_at IS NULL
+              AND a.participant_type = 'REGISTERED' AND a.status <> 'REPLACED' AND a.deleted_at IS NULL
+              AND a.worker_profile_uuid IN (%s)
+            """.formatted(placeholders), args.toArray());
+    }
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private final JdbcTemplate jdbcTemplate;
