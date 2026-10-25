@@ -4,6 +4,7 @@ import { Header } from "./components/Header";
 import { servicePages } from "./data/servicePages";
 import { ClientsPage } from "./pages/ClientsPage";
 import { AttendancePage } from "./pages/AttendancePage";
+import { FinancePage } from "./pages/FinancePage";
 import { FormsPage } from "./pages/FormsPage";
 import { HomePage } from "./pages/HomePage";
 import { SalesJournalPage } from "./pages/SalesJournalPage";
@@ -81,6 +82,7 @@ export default function App() {
   const isWorkersPage = currentPath === "/workers";
   const isClientsPage = currentPath === "/clients";
   const isAttendancePage = currentPath === "/attendance";
+  const isFinancePage = currentPath === "/finance";
   const isTeamsPage = currentPath === "/teams" || currentPath === "/team";
   const isSchedulePage = currentPath === "/schedule";
   const isWorkSchedulePage = currentPath === "/work-schedule";
@@ -95,6 +97,7 @@ export default function App() {
       isWorkersPage ||
       isClientsPage ||
       isAttendancePage ||
+      isFinancePage ||
       isTeamsPage ||
       isSchedulePage ||
       isWorkSchedulePage ||
@@ -127,6 +130,8 @@ export default function App() {
           loginId={readDemoSession()?.loginId ?? "test"}
           onNavigate={navigateTo}
         />
+      ) : isLoggedIn && isFinancePage ? (
+        <FinancePage loginId={readDemoSession()?.loginId ?? "test"} onNavigate={navigateTo} />
       ) : isLoggedIn && isTeamsPage ? (
         <TeamsPage loginId={readDemoSession()?.loginId ?? "test"} />
       ) : isLoggedIn && isSchedulePage ? (

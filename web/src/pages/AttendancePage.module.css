@@ -9,6 +9,18 @@
   width: 100%;
 }
 
+.noShowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.noShowWarning {
+  color: var(--color-pages-journal-page-error-text);
+  font-weight: 700;
+}
+
 .attendanceHeader {
   align-items: flex-end;
   display: flex;

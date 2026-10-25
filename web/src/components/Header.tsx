@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "../App.module.css";
 import { menuItems, profileMenuItems } from "../data/navigation";
 
@@ -12,6 +12,32 @@ type HeaderProps = {
 export function Header({ currentPath, isLoggedIn, onLogout, onNavigate }: HeaderProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [openMenuPath, setOpenMenuPath] = useState<string | null>(null);
+  const [dropdownLeft, setDropdownLeft] = useState(0);
+  const menuBarRef = useRef<HTMLElement>(null);
+  const menuDropdownRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const openMenu = menuItems.find((item) => item.path === openMenuPath);
+
+  useEffect(() => {
+    const closeDropdown = () => setOpenMenuPath(null);
+    window.addEventListener("resize", closeDropdown);
+    return () => window.removeEventListener("resize", closeDropdown);
+  }, []);
+
+  const showMenu = (path: string, wrapper: HTMLDivElement) => {
+    const item = menuItems.find((menu) => menu.path === path);
+    if (!item?.children) {
+      setOpenMenuPath(null);
+      return;
+    }
+    const bar = menuBarRef.current?.getBoundingClientRect();
+    const trigger = wrapper.getBoundingClientRect();
+    if (!bar) return;
+    menuTriggerRef.current = wrapper.querySelector("button");
+    const center = trigger.left - bar.left + trigger.width / 2;
+    setDropdownLeft(Math.max(80, Math.min(bar.width - 80, center)));
+    setOpenMenuPath(path);
+  };
 
   const handleNavigate = (path: string) => {
     setIsProfileMenuOpen(false);
@@ -92,70 +118,86 @@ export function Header({ currentPath, isLoggedIn, onLogout, onNavigate }: Header
         )}
       </header>
 
-      <nav className={styles.menuBar} aria-label="주요 메뉴">
-        {menuItems.map((menuItem) => {
-          const isActive =
-            currentPath === menuItem.path ||
-            menuItem.children?.some((child) => child.path === currentPath);
+      <nav
+        className={styles.menuBar}
+        aria-label="주요 메뉴"
+        ref={menuBarRef}
+        onMouseLeave={() => setOpenMenuPath(null)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setOpenMenuPath(null);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && openMenuPath) {
+            event.preventDefault();
+            menuTriggerRef.current?.focus();
+            setOpenMenuPath(null);
+          }
+        }}
+      >
+        <div className={styles.menuScroll} onScroll={() => setOpenMenuPath(null)}>
+          {menuItems.map((menuItem) => {
+            const isActive =
+              currentPath === menuItem.path ||
+              menuItem.children?.some((child) => child.path === currentPath);
 
-          return (
-            <div
-              className={styles.menuItemWrapper}
-              key={menuItem.path}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) {
-                  setOpenMenuPath(null);
-                }
-              }}
-              onFocus={() => {
-                if (menuItem.children) {
-                  setOpenMenuPath(menuItem.path);
-                }
-              }}
-              onMouseEnter={() => {
-                if (menuItem.children) {
-                  setOpenMenuPath(menuItem.path);
-                }
-              }}
-              onMouseLeave={() => setOpenMenuPath(null)}
-            >
-              <button
-                aria-current={isActive ? "page" : undefined}
-                aria-haspopup={menuItem.children ? "menu" : undefined}
-                className={`${styles.menuButton} ${
-                  isActive ? styles.activeMenuButton : ""
-                }`}
-                type="button"
-                onClick={() => handleNavigate(menuItem.path)}
+            return (
+              <div
+                className={styles.menuItemWrapper}
+                key={menuItem.path}
+                onFocus={(event) => showMenu(menuItem.path, event.currentTarget)}
+                onMouseEnter={(event) => showMenu(menuItem.path, event.currentTarget)}
               >
-                {menuItem.label}
-              </button>
-
-              {menuItem.children ? (
-                <div
-                  className={`${styles.menuDropdown} ${
-                    openMenuPath === menuItem.path ? styles.openMenuDropdown : ""
+                <button
+                  aria-current={isActive ? "page" : undefined}
+                  aria-haspopup={menuItem.children ? "menu" : undefined}
+                  aria-expanded={menuItem.children ? openMenuPath === menuItem.path : undefined}
+                  aria-controls={menuItem.children ? "primary-menu-dropdown" : undefined}
+                  className={`${styles.menuButton} ${
+                    isActive ? styles.activeMenuButton : ""
                   }`}
-                  role="menu"
+                  type="button"
+                  onClick={() => handleNavigate(menuItem.path)}
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowDown" && menuItem.children) {
+                      event.preventDefault();
+                      showMenu(menuItem.path, event.currentTarget.parentElement as HTMLDivElement);
+                      requestAnimationFrame(() => {
+                        menuDropdownRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+                      });
+                    }
+                  }}
                 >
-                  {menuItem.children.map((child) => (
-                    <button
-                      className={`${styles.menuDropdownItem} ${
-                        currentPath === child.path ? styles.activeMenuDropdownItem : ""
-                      }`}
-                      key={child.path}
-                      role="menuitem"
-                      type="button"
-                      onClick={() => handleNavigate(child.path)}
-                    >
-                      {child.label}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
+                  {menuItem.label}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        {/* Flyouts stay outside the scroller to avoid overflow clipping. */}
+        {openMenu?.children ? (
+          <div
+            className={`${styles.menuDropdown} ${styles.openMenuDropdown}`}
+            id="primary-menu-dropdown"
+            ref={menuDropdownRef}
+            role="menu"
+            aria-label={`${openMenu.label} 하위 메뉴`}
+            style={{ left: dropdownLeft }}
+          >
+            {openMenu.children.map((child) => (
+              <button
+                className={`${styles.menuDropdownItem} ${
+                  currentPath === child.path ? styles.activeMenuDropdownItem : ""
+                }`}
+                key={child.path}
+                role="menuitem"
+                type="button"
+                onClick={() => handleNavigate(child.path)}
+              >
+                {child.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </nav>
     </>
   );

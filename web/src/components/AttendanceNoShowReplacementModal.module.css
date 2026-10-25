@@ -1,0 +1,92 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.summary {
+  color: var(--color-pages-work-schedule-page-no-show-modal-header-text);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.error {
+  border: 1px solid var(--color-pages-work-schedule-page-no-show-conflict-warning-border);
+  background: var(--color-pages-work-schedule-page-no-show-conflict-warning-background);
+  color: var(--color-pages-journal-page-error-text);
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.candidates { display: flex; flex-direction: column; }
+
+.candidate {
+  align-items: start;
+  border-bottom: 1px solid var(--color-pages-work-schedule-page-no-show-candidate-list-border);
+  color: var(--color-pages-work-schedule-page-no-show-candidate-list-text);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  min-height: 44px;
+  padding: 12px 8px;
+}
+
+.candidate:has(input:checked), .candidate:hover {
+  background: var(--color-pages-work-schedule-page-no-show-candidate-list-no-show-candidate-selected-hover-background);
+}
+
+.candidate:has(input:focus-visible) {
+  outline: 2px solid var(--color-app-active-menu-dropdown-item-text);
+  outline-offset: -2px;
+}
+
+.candidate input, .conflictWarning input {
+  accent-color: var(--color-app-active-menu-dropdown-item-text);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.candidateDetails { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.candidateDetails strong { font-size: 14px; }
+.candidateDetails small { font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+
+.currentAssignment {
+  color: var(--color-pages-journal-page-error-text);
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.conflictWarning {
+  align-items: start;
+  background: var(--color-pages-work-schedule-page-no-show-conflict-warning-background);
+  border: 1px solid var(--color-pages-work-schedule-page-no-show-conflict-warning-border);
+  color: var(--color-pages-work-schedule-page-no-show-conflict-warning-text);
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+  line-height: 1.6;
+  padding: 12px;
+}
+
+.timeConflict { color: var(--color-pages-work-schedule-page-no-show-candidate-list-no-show-time-conflict-text); }
+.actions { display: flex; flex-shrink: 0; gap: 8px; justify-content: flex-end; }
+.actions .saveButton {
+  background: var(--color-pages-work-schedule-page-no-show-modal-header-no-show-confirm-button-background);
+  color: var(--color-pages-work-schedule-page-no-show-modal-header-no-show-confirm-button-text);
+}
+
+@media (max-width: 480px) {
+  .body { padding: 12px; }
+}

@@ -1,0 +1,77 @@
+.body {
+  font-size: 13px;
+  min-height: 0;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.facts > div {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.facts dt {
+  color: var(--color-pages-work-schedule-page-no-show-modal-header-text);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.notice {
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+.error {
+  background: var(--color-components-worker-profile-modal-separation-error-state-background);
+  border: 1px solid var(--color-components-worker-profile-modal-separation-error-state-border);
+  border-radius: 6px;
+  color: var(--color-components-worker-profile-modal-separation-error-text-text);
+  line-height: 1.6;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+}
+
+.error:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.noteField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.noteField textarea {
+  background: var(--color-pages-journal-page-input-background);
+  border: 1px solid var(--color-pages-journal-page-input-border);
+  border-radius: 6px;
+  box-sizing: border-box;
+  color: var(--color-pages-journal-page-input-text);
+  font: inherit;
+  min-width: 0;
+  padding: 10px;
+  resize: vertical;
+  width: 100%;
+}
+
+.noteField textarea:focus-visible {
+  outline: 2px solid var(--color-pages-journal-page-input-focus-border);
+  outline-offset: 2px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}

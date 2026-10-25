@@ -26,6 +26,8 @@ export type AttendanceRecord = {
   attendanceUuid: string | null;
   breakMinutes: number;
   confirmed: boolean;
+  noShowIncidentUuid?: string | null;
+  noShowIncidentStatus?: "OPEN" | "REPLACED" | null;
   displayName: string;
   ownerName: string;
   participantType: "registered" | "guest";

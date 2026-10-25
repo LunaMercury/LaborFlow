@@ -16,6 +16,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(com.laborflow.core.noshow.application.NoShowException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoShow(com.laborflow.core.noshow.application.NoShowException exception) {
+        return ResponseEntity.badRequest().body(new ApiErrorResponse("NO_SHOW_VALIDATION", exception.getMessage(), Instant.now()));
+    }
+
     public record AssignmentCautionConflictResponse(String code, String message, Instant timestamp,
         java.util.List<com.laborflow.core.cautions.dto.AssignmentCautionResponse> conflicts) { }
 

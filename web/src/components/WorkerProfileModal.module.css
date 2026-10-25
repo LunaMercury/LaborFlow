@@ -187,6 +187,20 @@
   justify-content: space-between;
 }
 
+.noShowHistoryRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.noShowHistoryRow > span {
+  color: var(--color-components-worker-profile-modal-availability-header-availability-memo-field-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .workerRiskSetting {
   align-items: center;
   background: var(--color-components-worker-profile-modal-worker-risk-setting-background);

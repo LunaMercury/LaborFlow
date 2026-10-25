@@ -5,7 +5,7 @@
 ## 현재 흐름
 
 1. `/work-schedule`에서 날짜별 등록/익명 작업자를 배치한다.
-2. 당일 또는 과거 작업을 “예정대로 근무”로 일괄 처리하거나 `/attendance`에서 행별 실제 상태/시간을 수정한다.
+2. `/attendance`에서 당일 또는 과거 날짜를 “모두 예정대로” 처리하거나 행별 실제 상태/시간을 수정한다. 작업자 배치 화면에서는 근무를 확정하지 않는다.
 3. 저장할 때 `worker_attendance_record`와 변경 이력이 갱신되고 작업자 최근 근무 요약을 다시 계산한다.
 
 근태 조회는 배정 행뿐 아니라 날짜의 일정 목록을 별도로 반환한다. 따라서 배정이 하나도 없는 일정도 `tasks`에 나타나며 `records`는 빈 배열일 수 있다.
@@ -72,11 +72,15 @@
 
 `participantType`은 `registered | guest`, `area`는 `men | women`이다. 등록 작업자의 `workerProfileUuid`와 저장 전 `attendanceUuid`는 null일 수 있다. 시간은 `HH:mm` 또는 빈 문자열이다.
 
+2026-10-25 추가: `noShowIncidentUuid`와 `noShowIncidentStatus`가 있다(활성 사건이 없으면 null).
+status 자체는 기존 값이며, 활성 사건의 ABSENT를 화면에서 `노쇼`로 구분한다. 화면의 `NO_SHOW`를 일반 PATCH status로 전송하지 않고 [노쇼 기록 API](no-show.md)를 사용한다.
+
 ## 예정대로 근무
 
 ### `POST /api/attendance/confirm-planned`
 
-- 목적/화면: `/work-schedule` 작업 카드의 “예정대로 근무”. 프론트 타입은 네 범위를 모두 지원한다.
+- 목적/화면: `/attendance` 상단의 “모두 예정대로”. 현재 화면은 `DATE` 범위만 호출하며 프론트 타입과 서버의 기존 네 범위 계약은 유지한다.
+- 화면에서는 예정시간·휴게 60분으로 저장한다는 확인 후 실행한다. 미저장 근태/메모가 있으면 먼저 저장하도록 안내하며 일괄 실행으로 입력을 지우지 않는다.
 - 쿼리: `loginId` string 필수, null/공백 거부.
 - 본문:
 
@@ -105,7 +109,7 @@
 - 존재하지 않는 배정과 다른 사무소 배정은 모두 SQL 범위에서 제외되어 현재 `200`/0건으로 구분되지 않는다. 이 동작은 타 사무소 소속 여부를 노출하지 않는다.
 - 반복 호출: 이미 확정된 행은 다시 바뀌지 않아 대체로 0건이다. 작업자 활동 요약 새로고침은 매번 수행된다.
 - 알려진 의심 동작: 근태 INSERT/UPDATE 후 배정 상태 갱신 SQL이 이미 확정된 근태를 제외하므로, 새로 확정된 배정의 `work_schedule_assignment.status`가 `WORKED`로 바뀌지 않을 가능성이 있다. [gaps.md](gaps.md#확인된-구현-위험) 참고.
-- 근거: `AttendanceController.confirmPlanned`, `AttendanceService.confirmPlanned`, `JdbcAttendanceDao.confirmPlanned/refreshWorkerActivitySummary`, `confirmPlannedAttendance`, `WorkSchedulePage`.
+- 근거: `AttendanceController.confirmPlanned`, `AttendanceService.confirmPlanned`, `JdbcAttendanceDao.confirmPlanned/refreshWorkerActivitySummary`, `confirmPlannedAttendance`, `AttendancePage.handleConfirmAll`.
 
 ## 근태 수정
 
@@ -140,6 +144,7 @@
 - 성공: `200`, 저장 후 해당 `AttendanceRecordResponse`.
 - 저장/부수 효과: 근태 upsert, 배정 상태를 WORKED/ABSENT/CANCELLED 또는 DRAFT일 때 PLANNED로 동기화, 근태 revision 자동 기록, 작업자 활동 요약 재계산.
 - 존재하지 않거나 다른 사무소 배정: 같은 `400 BAD_REQUEST`로 처리되어 소속 여부가 노출되지 않는다. 저장은 수행되지 않는다.
+- 활성 노쇼 incident가 있으면 일반 근태 수정은 `400 NO_SHOW_VALIDATION`으로 거부한다. 노쇼 이력에서 먼저 취소해야 한다.
 - 재시도: 같은 값이어도 `updated_at`, 확인 시각, revision이 추가될 수 있어 엄격한 멱등성은 없다.
 - 근거: `AttendanceController.updateRecord`, `AttendanceService.updateRecord`, `JdbcAttendanceDao.findAssignmentContext/upsertRecord`, `updateAttendanceRecord`, `AttendancePage`.
 
@@ -172,3 +177,6 @@
 | `UNKNOWN` | 시간 근거가 없거나 결근/취소 |
 
 단가와 정산 기간은 DB에 구조가 있지만 이 API 응답/수정에는 포함되지 않는다. [gaps.md](gaps.md#db에만-있는-영역)를 참고한다.
+
+노쇼 상태 선택·기록, 대체자 선택/변경은 근태 화면에서 처리한다. 작업자 정보 수정의 활성화 영역에서 [노쇼 이력 관리](no-show.md)를 열 수 있다.
+취소는 우천 등으로 작업/배정이 취소된 경우를 표현하므로 유지한다. 노쇼 취소는 incident의 철회로, 근태 CANCELLED와 의미가 다르다.

@@ -101,6 +101,10 @@ public class AttendanceService {
         ).orElseThrow(() -> new IllegalArgumentException("Attendance assignment was not found."));
         String status = normalizeAttendanceStatus(request.status());
 
+        if (attendanceDao.hasActiveNoShow(account.agencyOwnerUuid(), assignmentUuid)) {
+            throw new com.laborflow.core.noshow.application.NoShowException("노쇼 이력 관리에서 노쇼를 취소한 뒤 근태를 수정해 주세요.");
+        }
+
         if (assignment.workDate().isAfter(LocalDate.now(BUSINESS_TIME_ZONE))) {
             throw new IllegalArgumentException("Future attendance cannot be confirmed.");
         }

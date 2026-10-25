@@ -273,7 +273,8 @@
 
 ## 노쇼 대체
 
-세 API 모두 등록 작업자의 원배정과 현재 사무소의 대체 작업자 프로필을 사용한다.
+노쇼 생성·이력 관리의 주 화면은 [근태/작업자 정보](no-show.md)로 이동했다. 기존 세 API의 경로는 호환성을 위해 유지한다.
+POST는 등록 작업자의 원배정, PUT/DELETE는 등록·익명의 활성 노쇼 사건을 다룬다. 대체자는 현재 사무소의 등록 작업자 프로필이다.
 
 ```json
 {
@@ -291,13 +292,13 @@
 
 ### `PUT /api/schedule/tasks/{scheduleDayUuid}/no-show-replacement`
 
-- 활성 `REPLACED` incident가 있어야 한다.
+- 활성 `OPEN` 또는 `REPLACED` incident가 있어야 한다. OPEN은 최초 대체자를 연결하며 원래 노쇼 전 스냅샷은 유지한다.
 - 새 대체자가 같으면 no-op. 다르면 새 대체 배정을 연결/생성하고, 이전에 API가 생성했던 대체 배정은 제거하며 incident/revision을 갱신한다.
 - 성공: `200`, 갱신된 일정.
 
 ### `DELETE /api/schedule/tasks/{scheduleDayUuid}/no-show-replacement/{originalAssignmentUuid}`
 
-- 활성 교체 incident가 있어야 한다.
+- 활성 OPEN/REPLACED incident가 있어야 한다. 새 이력 관리 화면은 취소 사유를 보존하는 [신규 취소 API](no-show.md#노쇼-취소)를 사용한다.
 - API가 만든 대체 배정을 제거하고 원배정 상태 및 노쇼 전 근태 JSON을 복원한다. incident는 `CANCELLED`로 상태 전환하고 revision을 남긴다.
 - 성공: `200`, 갱신된 일정. 반복 호출은 활성 incident를 찾지 못해 `400`.
 
@@ -306,7 +307,7 @@
 - 대체자가 같은 시간 다른 현장에 이미 배정되었는지 서버가 거부하거나 경고하는 검증은 이 API에 없다. 현재 후보의 “현재 배정” 표시는 프론트 정보다.
 - 동시 배치 주의 규칙도 노쇼 대체 API에는 적용되지 않는다.
 
-근거: `ScheduleController.replaceNoShow/changeNoShowReplacement/cancelNoShow`, `ScheduleService`, `JdbcScheduleDao.replaceNoShow/changeNoShowReplacement/cancelNoShow`, `WorkSchedulePage`, 대응 `scheduleApi` 함수.
+근거: `ScheduleController.replaceNoShow/changeNoShowReplacement/cancelNoShow`, `ScheduleService`, `JdbcScheduleDao.replaceNoShow/changeNoShowReplacement/cancelNoShow`, `AttendanceNoShowReplacementModal`, 대응 `scheduleApi` 함수.
 
 ## 다일 일정 범위
 

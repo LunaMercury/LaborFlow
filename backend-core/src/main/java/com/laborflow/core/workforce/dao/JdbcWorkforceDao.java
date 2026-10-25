@@ -77,8 +77,11 @@ public class JdbcWorkforceDao implements WorkforceDao {
             LEFT JOIN LATERAL (
                 SELECT count(*)::integer AS no_show_count
                 FROM public.worker_no_show_incident incident
+                JOIN public.work_schedule_assignment original
+                    ON original.uuid=incident.original_assignment_uuid
+                    AND original.agency_owner_uuid=incident.agency_owner_uuid
                 WHERE incident.agency_owner_uuid = p.agency_owner_uuid
-                    AND incident.worker_profile_uuid = p.uuid
+                    AND COALESCE(incident.worker_profile_uuid,original.worker_profile_uuid) = p.uuid
                     AND incident.status <> 'CANCELLED'
                     AND incident.deleted_at IS NULL
             ) no_show ON true

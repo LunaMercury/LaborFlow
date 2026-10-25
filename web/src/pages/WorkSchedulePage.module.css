@@ -16,10 +16,14 @@
 
 .scheduleDateBar {
   align-items: center;
-  background: var(--color-pages-work-schedule-page-schedule-date-bar-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-date-bar-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-date-bar-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-date-bar-border);
   border-radius: 8px;
-  box-shadow: 0 12px 26px var(--color-pages-work-schedule-page-schedule-date-bar-shadow-color);
+  box-shadow: 0 12px 26px
+    var(--color-pages-work-schedule-page-schedule-date-bar-shadow-color);
   display: flex;
   gap: 12px;
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
@@ -64,8 +68,11 @@
 .scheduleDateMoveButton {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-date-move-button-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-date-move-button-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-date-move-button-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-date-move-button-border);
   border-radius: 8px;
   color: var(--color-pages-work-schedule-page-schedule-date-move-button-text);
   display: flex;
@@ -78,57 +85,14 @@
 }
 
 .scheduleDateMoveButton:hover {
-  background: var(--color-pages-work-schedule-page-schedule-date-move-button-hover-background);
-  border-color: var(--color-pages-work-schedule-page-schedule-date-move-button-hover-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-date-move-button-hover-background
+  );
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-date-move-button-hover-border
+  );
   cursor: pointer;
 }
-
-.attendanceBulkActions {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-  margin-right: auto;
-}
-
-.attendanceBulkActions button,
-.scheduleAttendanceConfirmButton,
-.assignmentAttendanceButton {
-  align-items: center;
-  appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-attendance-confirm-button-assignment-attendance-button-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-attendance-confirm-button-assignment-attendance-button-border);
-  border-radius: 6px;
-  color: var(--color-pages-work-schedule-page-schedule-attendance-confirm-button-assignment-attendance-button-text);
-  display: flex;
-  font-size: 12px;
-  font-weight: 800;
-  justify-content: center;
-  min-height: 30px;
-  padding: 0 10px;
-  white-space: nowrap;
-}
-
-.assignmentNoShowButton {
-  background: var(--color-pages-work-schedule-page-assignment-no-show-button-background);
-  border: 1px solid var(--color-pages-work-schedule-page-assignment-no-show-button-border);
-  border-radius: 999px;
-  color: var(--color-pages-work-schedule-page-assignment-no-show-button-text);
-  font-size: 10px;
-  font-weight: 900;
-  min-height: 22px;
-  padding: 0 7px;
-}
-
-.assignmentNoShowButton:hover:not(:disabled) {
-  cursor: pointer;
-  filter: brightness(0.97);
-}
-
-.assignmentNoShowButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
 .workerNoShowRisk {
   color: var(--color-pages-work-schedule-page-worker-no-show-risk-text);
   font-size: 10px;
@@ -142,8 +106,11 @@
 
 .noShowWorkerToken {
   align-items: center;
-  background: var(--color-pages-work-schedule-page-no-show-worker-token-background);
-  border: 1px solid var(--color-pages-work-schedule-page-no-show-worker-token-border);
+  background: var(
+    --color-pages-work-schedule-page-no-show-worker-token-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-no-show-worker-token-border);
   border-radius: 8px;
   display: flex;
   gap: 10px;
@@ -185,40 +152,11 @@
   font-size: 11px;
   font-weight: 900;
 }
-
-.noShowRecordActions {
-  align-items: flex-end;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  gap: 4px;
-}
-
-.noShowRecordActions button {
-  background: var(--color-pages-work-schedule-page-no-show-record-actions-background);
-  border: 1px solid var(--color-pages-work-schedule-page-no-show-record-actions-border);
-  border-radius: 6px;
-  color: var(--color-pages-work-schedule-page-no-show-record-actions-text);
-  font-size: 10px;
-  font-weight: 900;
-  min-height: 24px;
-  padding: 0 7px;
-}
-
-.noShowRecordActions button:hover {
-  cursor: pointer;
-  filter: brightness(0.97);
-}
-
-.noShowRecordActions .noShowCancelButton {
-  background: var(--color-pages-work-schedule-page-no-show-record-actions-no-show-cancel-button-background);
-  border-color: var(--color-pages-work-schedule-page-no-show-record-actions-no-show-cancel-button-border);
-  color: var(--color-pages-work-schedule-page-no-show-record-actions-no-show-cancel-button-text);
-}
-
-.noShowModalBackdrop {
+.separationWarningBackdrop {
   align-items: center;
-  background: var(--color-pages-work-schedule-page-no-show-modal-backdrop-background);
+  background: var(
+    --color-pages-work-schedule-page-no-show-modal-backdrop-background
+  );
   display: flex;
   inset: 0;
   justify-content: center;
@@ -227,11 +165,12 @@
   z-index: 2200;
 }
 
-.noShowModal {
+.separationWarningModal {
   background: var(--color-pages-work-schedule-page-no-show-modal-background);
   border: 1px solid var(--color-pages-work-schedule-page-no-show-modal-border);
   border-radius: 8px;
-  box-shadow: 0 24px 52px var(--color-pages-work-schedule-page-no-show-modal-shadow-color);
+  box-shadow: 0 24px 52px
+    var(--color-pages-work-schedule-page-no-show-modal-shadow-color);
   display: flex;
   flex-direction: column;
   max-height: min(720px, calc(100vh - 48px));
@@ -239,34 +178,37 @@
   width: min(620px, 100%);
 }
 
-.noShowModalHeader {
+.separationWarningHeader {
   align-items: center;
-  border-bottom: 1px solid var(--color-pages-work-schedule-page-no-show-modal-header-border);
+  border-bottom: 1px solid
+    var(--color-pages-work-schedule-page-no-show-modal-header-border);
   display: flex;
   gap: 16px;
   justify-content: space-between;
   padding: 14px 16px;
 }
 
-.noShowModalHeader h2 {
+.separationWarningHeader h2 {
   font-size: 19px;
   margin: 0;
 }
 
-.noShowModalHeader p {
+.separationWarningHeader p {
   color: var(--color-pages-work-schedule-page-no-show-modal-header-text);
   font-size: 12px;
   margin: 5px 0 0;
 }
 
-.noShowModalHeader > div:last-child {
+.separationWarningHeader > div:last-child {
   align-items: center;
   display: flex;
   gap: 8px;
 }
 
-.noShowModalHeader button {
-  background: var(--color-pages-work-schedule-page-no-show-modal-header-background);
+.separationWarningHeader button {
+  background: var(
+    --color-pages-work-schedule-page-no-show-modal-header-background
+  );
   border: 0;
   border-radius: 6px;
   color: var(--color-pages-work-schedule-page-no-show-modal-header-text-2);
@@ -276,24 +218,18 @@
   padding: 0 12px;
 }
 
-.noShowModalHeader button:hover:not(:disabled) {
+.separationWarningHeader button:hover:not(:disabled) {
   cursor: pointer;
 }
 
-.noShowModalHeader .noShowConfirmButton {
-  background: var(--color-pages-work-schedule-page-no-show-modal-header-no-show-confirm-button-background);
-  color: var(--color-pages-work-schedule-page-no-show-modal-header-no-show-confirm-button-text);
+.separationWarningHeader .separationWarningConfirmButton {
+  background: var(
+    --color-pages-work-schedule-page-no-show-modal-header-no-show-confirm-button-background
+  );
+  color: var(
+    --color-pages-work-schedule-page-no-show-modal-header-no-show-confirm-button-text
+  );
 }
-
-.noShowModalHeader .noShowCancelConfirmButton {
-  background: var(--color-pages-work-schedule-page-no-show-modal-header-no-show-cancel-confirm-button-background);
-  color: var(--color-pages-work-schedule-page-no-show-modal-header-no-show-cancel-confirm-button-text);
-}
-
-.noShowCancelModal {
-  width: min(560px, 100%);
-}
-
 .separationWarningList {
   align-items: stretch;
   display: flex;
@@ -305,8 +241,11 @@
 }
 
 .separationWarningList article {
-  background: var(--color-pages-work-schedule-page-separation-warning-list-background);
-  border: 1px solid var(--color-pages-work-schedule-page-separation-warning-list-border);
+  background: var(
+    --color-pages-work-schedule-page-separation-warning-list-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-separation-warning-list-border);
   border-radius: 7px;
   padding: 10px 12px;
 }
@@ -330,100 +269,16 @@
   font-weight: 700;
   line-height: 1.5;
 }
-
-.noShowConflictWarning {
-  align-items: center;
-  background: var(--color-pages-work-schedule-page-no-show-conflict-warning-background);
-  border-bottom: 1px solid var(--color-pages-work-schedule-page-no-show-conflict-warning-border);
-  color: var(--color-pages-work-schedule-page-no-show-conflict-warning-text);
-  display: flex;
-  font-size: 12px;
-  font-weight: 900;
-  gap: 9px;
-  padding: 10px 14px;
-}
-
-.noShowConflictWarning input {
-  accent-color: var(--color-pages-work-schedule-page-no-show-conflict-warning-accent);
-  flex: 0 0 auto;
-  height: 16px;
-  width: 16px;
-}
-
-.noShowModalHeader button:disabled {
+.separationWarningHeader button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
 }
 
-.noShowCandidateList {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  overflow-y: auto;
-  padding: 12px;
-}
-
-.noShowCandidateList > button {
-  align-items: flex-start;
-  background: var(--color-pages-work-schedule-page-no-show-candidate-list-background);
-  border: 1px solid var(--color-pages-work-schedule-page-no-show-candidate-list-border);
-  border-radius: 7px;
-  color: var(--color-pages-work-schedule-page-no-show-candidate-list-text);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 12px;
-  text-align: left;
-}
-
-.noShowCandidateList > button:hover,
-.noShowCandidateList > .noShowCandidateSelected {
-  background: var(--color-pages-work-schedule-page-no-show-candidate-list-no-show-candidate-selected-hover-background);
-  border-color: var(--color-pages-work-schedule-page-no-show-candidate-list-no-show-candidate-selected-hover-border);
-  cursor: pointer;
-}
-
-.noShowCandidateList span,
-.noShowCandidateList small {
-  color: var(--color-pages-work-schedule-page-no-show-candidate-list-no-show-candidate-list-text);
-  font-size: 11px;
-}
-
-.noShowCandidateList .noShowCurrentAssignment,
-.noShowCandidateList .noShowTimeConflict {
-  color: var(--color-pages-work-schedule-page-no-show-candidate-list-no-show-time-conflict-text);
-  font-weight: 900;
-}
-
-.noShowCandidateList .noShowTimeConflict {
-  background: var(--color-pages-work-schedule-page-no-show-candidate-list-no-show-time-conflict-background);
-  border-radius: 4px;
-  padding: 3px 5px;
-}
-
-.noShowCandidateEmpty {
-  color: var(--color-pages-work-schedule-page-no-show-candidate-empty-text);
-  margin: 24px 0;
-  text-align: center;
-}
-
-.attendanceBulkActions button:hover,
-.scheduleAttendanceConfirmButton:hover,
-.assignmentAttendanceButton:hover {
-  background: var(--color-pages-work-schedule-page-schedule-attendance-confirm-button-assignment-attendance-button-hover-hover-hover-background);
-  cursor: pointer;
-}
-
-.attendanceBulkActions button:disabled,
-.scheduleAttendanceConfirmButton:disabled,
-.assignmentAttendanceButton:disabled {
-  cursor: default;
-  opacity: 0.5;
-}
-
 .scheduleDateField span,
 .scheduleFilterField span {
-  color: var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-text
+  );
   font-size: 13px;
   font-weight: 900;
   display: flex;
@@ -437,10 +292,17 @@
 
 .scheduleDateField input,
 .scheduleFilterField input {
-  background: var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-background
+  );
+  border: 1px solid
+    var(
+      --color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-border
+    );
   border-radius: 8px;
-  color: var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-text-2);
+  color: var(
+    --color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-text-2
+  );
   min-height: 35px;
   padding: 0 12px;
   width: 100%;
@@ -448,8 +310,13 @@
 
 .scheduleDateField input:focus,
 .scheduleFilterField input:focus {
-  border-color: var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-focus-focus-border);
-  box-shadow: 0 0 0 3px var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-focus-focus-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-focus-focus-border
+  );
+  box-shadow: 0 0 0 3px
+    var(
+      --color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-focus-focus-shadow-color
+    );
   outline: 0;
 }
 
@@ -476,13 +343,17 @@
 }
 
 .activeWorkerReturnZone {
-  border-color: var(--color-pages-work-schedule-page-active-worker-return-zone-border);
-  box-shadow: 0 0 0 3px var(--color-pages-work-schedule-page-active-worker-return-zone-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-active-worker-return-zone-border
+  );
+  box-shadow: 0 0 0 3px
+    var(--color-pages-work-schedule-page-active-worker-return-zone-shadow-color);
 }
 
 .scheduleColumnHeader {
   align-items: flex-start;
-  border-bottom: 1px solid var(--color-pages-work-schedule-page-schedule-column-header-border);
+  border-bottom: 1px solid
+    var(--color-pages-work-schedule-page-schedule-column-header-border);
   display: flex;
   justify-content: space-between;
   min-height: 74px;
@@ -507,8 +378,11 @@
 }
 
 .schedulePageLinkButton {
-  background: var(--color-pages-work-schedule-page-schedule-date-move-button-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-date-move-button-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-date-move-button-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-date-move-button-border);
   border-radius: 6px;
   color: var(--color-pages-work-schedule-page-schedule-date-move-button-text);
   font: inherit;
@@ -520,14 +394,20 @@
 }
 
 .schedulePageLinkButton:hover {
-  background: var(--color-pages-work-schedule-page-schedule-date-move-button-hover-background);
-  border-color: var(--color-pages-work-schedule-page-schedule-date-move-button-hover-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-date-move-button-hover-background
+  );
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-date-move-button-hover-border
+  );
   cursor: pointer;
 }
 
 .scheduleCountBadge {
   align-items: center;
-  background: var(--color-pages-work-schedule-page-schedule-count-badge-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-count-badge-background
+  );
   border-radius: 999px;
   color: var(--color-pages-work-schedule-page-schedule-count-badge-text);
   display: flex;
@@ -570,8 +450,11 @@
 }
 
 .scheduleFilterBox input {
-  background: var(--color-pages-work-schedule-page-schedule-filter-box-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-filter-box-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-filter-box-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-filter-box-border);
   border-radius: 8px;
   color: var(--color-pages-work-schedule-page-schedule-filter-box-text);
   font-size: 14px;
@@ -581,15 +464,20 @@
 }
 
 .scheduleFilterBox input:focus {
-  border-color: var(--color-pages-work-schedule-page-schedule-filter-box-focus-border);
-  box-shadow: 0 0 0 3px var(--color-pages-work-schedule-page-schedule-filter-box-focus-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-filter-box-focus-border
+  );
+  box-shadow: 0 0 0 3px
+    var(--color-pages-work-schedule-page-schedule-filter-box-focus-shadow-color);
   outline: 0;
 }
 
 .scheduleFilterBox button {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-filter-box-background-2);
+  background: var(
+    --color-pages-work-schedule-page-schedule-filter-box-background-2
+  );
   border: 0;
   border-radius: 999px;
   color: var(--color-pages-work-schedule-page-schedule-filter-box-text-2);
@@ -609,10 +497,16 @@
 
 .scheduleWorkFilterDropdown {
   align-items: stretch;
-  background: var(--color-pages-work-schedule-page-schedule-work-filter-dropdown-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-work-filter-dropdown-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-work-filter-dropdown-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-work-filter-dropdown-border);
   border-radius: 8px;
-  box-shadow: 0 18px 38px var(--color-pages-work-schedule-page-schedule-work-filter-dropdown-shadow-color);
+  box-shadow: 0 18px 38px
+    var(
+      --color-pages-work-schedule-page-schedule-work-filter-dropdown-shadow-color
+    );
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -629,10 +523,14 @@
 .scheduleFilterBox .scheduleWorkFilterOption {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-filter-box-schedule-work-filter-option-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-filter-box-schedule-work-filter-option-background
+  );
   border: 0;
   border-radius: 6px;
-  color: var(--color-pages-work-schedule-page-schedule-filter-box-schedule-work-filter-option-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-filter-box-schedule-work-filter-option-text
+  );
   display: flex;
   font-size: 13px;
   font-weight: 900;
@@ -647,7 +545,9 @@
 }
 
 .scheduleFilterBox .scheduleWorkFilterOption:hover {
-  background: var(--color-pages-work-schedule-page-schedule-filter-box-schedule-work-filter-option-hover-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-filter-box-schedule-work-filter-option-hover-background
+  );
   cursor: pointer;
   filter: none;
 }
@@ -670,8 +570,11 @@
 .scheduleFilterChip {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-filter-chip-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-filter-chip-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-filter-chip-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-filter-chip-border);
   border-radius: 999px;
   color: var(--color-pages-work-schedule-page-schedule-filter-chip-text);
   display: flex;
@@ -689,7 +592,8 @@
 
 .scheduleFilterField {
   align-items: stretch;
-  border-bottom: 1px solid var(--color-pages-work-schedule-page-schedule-filter-field-border);
+  border-bottom: 1px solid
+    var(--color-pages-work-schedule-page-schedule-filter-field-border);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -699,8 +603,11 @@
 
 .scheduleWorkerFilterPanel {
   align-items: stretch;
-  background: var(--color-pages-work-schedule-page-schedule-worker-filter-panel-background);
-  border-bottom: 1px solid var(--color-pages-work-schedule-page-schedule-worker-filter-panel-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-worker-filter-panel-background
+  );
+  border-bottom: 1px solid
+    var(--color-pages-work-schedule-page-schedule-worker-filter-panel-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -713,6 +620,59 @@
   z-index: 20;
 }
 
+.scheduleWorkerFilterControls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  justify-content: space-between;
+}
+
+.scheduleGenderFilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.scheduleGenderFilterButton {
+  background: var(
+    --color-pages-work-schedule-page-schedule-filter-chip-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-filter-chip-border);
+  border-radius: 6px;
+  color: var(--color-pages-work-schedule-page-schedule-team-toggle-text);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  min-height: 25px;
+  min-width: 40px;
+  padding: 0 8px;
+  touch-action: manipulation;
+}
+
+.scheduleGenderFilterButton[aria-pressed="true"] {
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-apply-button-background
+  );
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-task-apply-button-background
+  );
+  color: var(--color-pages-work-schedule-page-schedule-task-apply-button-text);
+}
+
+.scheduleGenderFilterButton:hover {
+  filter: brightness(0.97);
+}
+
+.scheduleGenderFilterButton:focus-visible {
+  outline: 2px solid
+    var(--color-pages-work-schedule-page-schedule-team-toggle-accent);
+  outline-offset: 2px;
+}
+
 .scheduleTeamToggle {
   align-items: center;
   color: var(--color-pages-work-schedule-page-schedule-team-toggle-text);
@@ -722,11 +682,15 @@
   gap: 6px;
   justify-content: flex-start;
   line-height: 1.2;
+  min-height: 30px;
   user-select: none;
+  white-space: nowrap;
 }
 
 .scheduleTeamToggle input {
-  accent-color: var(--color-pages-work-schedule-page-schedule-team-toggle-accent);
+  accent-color: var(
+    --color-pages-work-schedule-page-schedule-team-toggle-accent
+  );
   height: 15px;
   margin: 0;
   width: 15px;
@@ -771,7 +735,9 @@
 }
 
 .scheduleGroupDivider {
-  background: var(--color-pages-work-schedule-page-schedule-group-divider-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-group-divider-background
+  );
   height: 12px;
   margin: 2px 0 4px;
   opacity: 0.75;
@@ -781,8 +747,11 @@
 .scheduleWorkerToken {
   align-items: stretch;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-worker-token-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-worker-token-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-worker-token-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-worker-token-border);
   border-radius: 8px;
   box-sizing: border-box;
   color: var(--color-pages-work-schedule-page-schedule-worker-token-text);
@@ -805,7 +774,9 @@
 }
 
 .scheduleWorkerToken:hover {
-  border-color: var(--color-pages-work-schedule-page-schedule-worker-token-hover-border);
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-worker-token-hover-border
+  );
   cursor: grab;
 }
 
@@ -815,10 +786,14 @@
 
 .scheduleWorkerTeamCard {
   align-items: stretch;
-  background: var(--color-pages-work-schedule-page-schedule-worker-team-card-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-worker-team-card-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-worker-team-card-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-worker-team-card-border);
   border-radius: 8px;
-  box-shadow: inset 0 0 0 1px var(--color-pages-work-schedule-page-schedule-worker-team-card-shadow-color);
+  box-shadow: inset 0 0 0 1px
+    var(--color-pages-work-schedule-page-schedule-worker-team-card-shadow-color);
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -834,7 +809,9 @@
 }
 
 .scheduleWorkerTeamCard:hover {
-  border-color: var(--color-pages-work-schedule-page-schedule-worker-team-card-hover-border);
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-worker-team-card-hover-border
+  );
   cursor: grab;
 }
 
@@ -843,8 +820,11 @@
 }
 
 .draggingWorkerTeamCard {
-  border-color: var(--color-pages-work-schedule-page-dragging-worker-team-card-border);
-  box-shadow: 0 10px 24px var(--color-pages-work-schedule-page-dragging-worker-team-card-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-dragging-worker-team-card-border
+  );
+  box-shadow: 0 10px 24px
+    var(--color-pages-work-schedule-page-dragging-worker-team-card-shadow-color);
   opacity: 0.5;
   transform: scale(0.99);
 }
@@ -865,8 +845,12 @@
 }
 
 .scheduleWorkerTeamCard .scheduleWorkerToken {
-  background: var(--color-pages-work-schedule-page-schedule-worker-team-card-schedule-worker-token-background);
-  border-color: var(--color-pages-work-schedule-page-schedule-worker-team-card-schedule-worker-token-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-worker-team-card-schedule-worker-token-background
+  );
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-worker-team-card-schedule-worker-token-border
+  );
   gap: 3px;
   min-height: 48px;
   padding: 7px 9px;
@@ -893,20 +877,27 @@
 }
 
 .assignedWorkerToken {
-  background: var(--color-pages-work-schedule-page-assigned-worker-token-background);
+  background: var(
+    --color-pages-work-schedule-page-assigned-worker-token-background
+  );
   opacity: 0.72;
 }
 
 .draggingWorkerToken {
-  border-color: var(--color-pages-work-schedule-page-dragging-worker-token-border);
-  box-shadow: 0 10px 24px var(--color-pages-work-schedule-page-dragging-worker-token-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-dragging-worker-token-border
+  );
+  box-shadow: 0 10px 24px
+    var(--color-pages-work-schedule-page-dragging-worker-token-shadow-color);
   opacity: 0.35;
   transform: scale(0.98);
 }
 
 .droppedWorkerToken {
   animation: scheduleTokenDrop 180ms ease-out;
-  background: var(--color-pages-work-schedule-page-dropped-worker-token-background);
+  background: var(
+    --color-pages-work-schedule-page-dropped-worker-token-background
+  );
   cursor: default;
   gap: 3px;
   min-height: 48px;
@@ -962,12 +953,6 @@
   gap: 4px;
 }
 
-.assignmentAttendanceButton {
-  font-size: 10px;
-  min-height: 22px;
-  padding: 0 7px;
-}
-
 .droppedWorkerToken .assignmentCountButton {
   height: 24px;
   padding: 0 8px;
@@ -976,8 +961,11 @@
 .assignmentCountButton {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-assignment-count-button-background);
-  border: 1px solid var(--color-pages-work-schedule-page-assignment-count-button-border);
+  background: var(
+    --color-pages-work-schedule-page-assignment-count-button-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-assignment-count-button-border);
   border-radius: 999px;
   color: var(--color-pages-work-schedule-page-assignment-count-button-text);
   display: flex;
@@ -998,8 +986,11 @@
 
 .guestParticipantCount {
   align-items: center;
-  background: var(--color-pages-work-schedule-page-guest-participant-count-background);
-  border: 1px solid var(--color-pages-work-schedule-page-guest-participant-count-border);
+  background: var(
+    --color-pages-work-schedule-page-guest-participant-count-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-guest-participant-count-border);
   border-radius: 999px;
   color: var(--color-pages-work-schedule-page-guest-participant-count-text);
   display: flex;
@@ -1023,10 +1014,14 @@
 .guestParticipantRowActions button {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-guest-participant-row-actions-background);
+  background: var(
+    --color-pages-work-schedule-page-guest-participant-row-actions-background
+  );
   border: 0;
   border-radius: 999px;
-  color: var(--color-pages-work-schedule-page-guest-participant-row-actions-text);
+  color: var(
+    --color-pages-work-schedule-page-guest-participant-row-actions-text
+  );
   display: flex;
   font-size: 13px;
   height: 26px;
@@ -1040,7 +1035,9 @@
 }
 
 .guestParticipantRowActions .guestParticipantDeleteButton {
-  color: var(--color-pages-work-schedule-page-guest-participant-row-actions-guest-participant-delete-button-text);
+  color: var(
+    --color-pages-work-schedule-page-guest-participant-row-actions-guest-participant-delete-button-text
+  );
 }
 
 .guestParticipantDeleteIcon {
@@ -1062,8 +1059,11 @@
 
 .assignmentCountEditor input {
   appearance: textfield;
-  background: var(--color-pages-work-schedule-page-assignment-count-editor-background);
-  border: 1px solid var(--color-pages-work-schedule-page-assignment-count-editor-border);
+  background: var(
+    --color-pages-work-schedule-page-assignment-count-editor-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-assignment-count-editor-border);
   border-radius: 999px;
   color: var(--color-pages-work-schedule-page-assignment-count-editor-text);
   font-size: 12px;
@@ -1080,8 +1080,13 @@
 }
 
 .assignmentCountEditor input:focus {
-  border-color: var(--color-pages-work-schedule-page-assignment-count-editor-focus-border);
-  box-shadow: 0 0 0 2px var(--color-pages-work-schedule-page-assignment-count-editor-focus-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-assignment-count-editor-focus-border
+  );
+  box-shadow: 0 0 0 2px
+    var(
+      --color-pages-work-schedule-page-assignment-count-editor-focus-shadow-color
+    );
   outline: 0;
 }
 
@@ -1107,7 +1112,9 @@
 
 .scheduleWorkerMeta,
 .scheduleWorkerWorkTypes {
-  color: var(--color-pages-work-schedule-page-schedule-worker-meta-schedule-worker-work-types-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-worker-meta-schedule-worker-work-types-text
+  );
   font-size: 12px;
   font-weight: 800;
   line-height: 1.3;
@@ -1132,11 +1139,15 @@
 }
 
 .scheduleWorkerGenderFemale {
-  color: var(--color-pages-work-schedule-page-schedule-worker-gender-female-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-worker-gender-female-text
+  );
 }
 
 .scheduleWorkerGenderUnknown {
-  color: var(--color-pages-work-schedule-page-schedule-worker-gender-unknown-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-worker-gender-unknown-text
+  );
 }
 
 .emptyPickupLocation {
@@ -1145,9 +1156,13 @@
 
 .scheduleWorkerInlineEditButton {
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-worker-inline-edit-button-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-worker-inline-edit-button-background
+  );
   border: 0;
-  color: var(--color-pages-work-schedule-page-schedule-worker-inline-edit-button-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-worker-inline-edit-button-text
+  );
   font-size: 12px;
   font-weight: 900;
   justify-self: end;
@@ -1157,16 +1172,24 @@
 }
 
 .scheduleWorkerInlineEditButton:hover {
-  color: var(--color-pages-work-schedule-page-schedule-worker-inline-edit-button-hover-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-worker-inline-edit-button-hover-text
+  );
   cursor: pointer;
 }
 
 .scheduleWorkerQuickEditor {
   align-items: stretch;
-  background: var(--color-pages-work-schedule-page-schedule-worker-quick-editor-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-worker-quick-editor-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-worker-quick-editor-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-worker-quick-editor-border);
   border-radius: 8px;
-  box-shadow: inset 0 0 0 1px var(--color-pages-work-schedule-page-schedule-worker-quick-editor-shadow-color);
+  box-shadow: inset 0 0 0 1px
+    var(
+      --color-pages-work-schedule-page-schedule-worker-quick-editor-shadow-color
+    );
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1195,16 +1218,23 @@
 .scheduleWorkerQuickFields span,
 .scheduleWorkerGenderEditor > span,
 .scheduleWorkerQuickWorkTypes > span {
-  color: var(--color-pages-work-schedule-page-schedule-worker-gender-editor-schedule-worker-quick-work-types-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-worker-gender-editor-schedule-worker-quick-work-types-text
+  );
   font-size: 11px;
   font-weight: 900;
 }
 
 .scheduleWorkerQuickFields input {
-  background: var(--color-pages-work-schedule-page-schedule-worker-quick-fields-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-worker-quick-fields-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-worker-quick-fields-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-worker-quick-fields-border);
   border-radius: 8px;
-  color: var(--color-pages-work-schedule-page-schedule-worker-quick-fields-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-worker-quick-fields-text
+  );
   font-size: 12px;
   font-weight: 800;
   min-height: 32px;
@@ -1214,8 +1244,13 @@
 }
 
 .scheduleWorkerQuickFields input:focus {
-  border-color: var(--color-pages-work-schedule-page-schedule-worker-quick-fields-focus-border);
-  box-shadow: 0 0 0 3px var(--color-pages-work-schedule-page-schedule-worker-quick-fields-focus-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-worker-quick-fields-focus-border
+  );
+  box-shadow: 0 0 0 3px
+    var(
+      --color-pages-work-schedule-page-schedule-worker-quick-fields-focus-shadow-color
+    );
   outline: 0;
 }
 
@@ -1230,7 +1265,10 @@
 .scheduleWorkerGenderOptionActive {
   align-items: center;
   appearance: none;
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-worker-gender-option-schedule-worker-gender-option-active-border);
+  border: 1px solid
+    var(
+      --color-pages-work-schedule-page-schedule-worker-gender-option-schedule-worker-gender-option-active-border
+    );
   border-radius: 999px;
   display: flex;
   font-size: 12px;
@@ -1241,14 +1279,24 @@
 }
 
 .scheduleWorkerGenderOption {
-  background: var(--color-pages-work-schedule-page-schedule-worker-gender-option-background);
-  color: var(--color-pages-work-schedule-page-schedule-worker-gender-option-text);
+  background: var(
+    --color-pages-work-schedule-page-schedule-worker-gender-option-background
+  );
+  color: var(
+    --color-pages-work-schedule-page-schedule-worker-gender-option-text
+  );
 }
 
 .scheduleWorkerGenderOptionActive {
-  background: var(--color-pages-work-schedule-page-schedule-worker-gender-option-active-background);
-  border-color: var(--color-pages-work-schedule-page-schedule-worker-gender-option-active-border);
-  color: var(--color-pages-work-schedule-page-schedule-worker-gender-option-active-text);
+  background: var(
+    --color-pages-work-schedule-page-schedule-worker-gender-option-active-background
+  );
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-worker-gender-option-active-border
+  );
+  color: var(
+    --color-pages-work-schedule-page-schedule-worker-gender-option-active-text
+  );
 }
 
 .scheduleWorkerGenderOption:hover,
@@ -1258,8 +1306,13 @@
 }
 
 .scheduleWorkerQuickWorkTypes [class*="workTypeEditor"] {
-  background: var(--color-pages-work-schedule-page-schedule-worker-quick-work-types-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-worker-quick-work-types-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-worker-quick-work-types-background
+  );
+  border: 1px solid
+    var(
+      --color-pages-work-schedule-page-schedule-worker-quick-work-types-border
+    );
   border-radius: 8px;
   padding: 7px;
 }
@@ -1280,8 +1333,11 @@
 
 .scheduleTaskCard {
   align-items: stretch;
-  background: var(--color-pages-work-schedule-page-schedule-task-card-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-task-card-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-card-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-task-card-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -1297,23 +1353,34 @@
 }
 
 .scheduleTaskCard:hover {
-  border-color: var(--color-pages-work-schedule-page-schedule-task-card-hover-border);
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-task-card-hover-border
+  );
 }
 
 .draggingScheduleTaskCard {
-  background: var(--color-pages-work-schedule-page-dragging-schedule-task-card-background);
-  border-color: var(--color-pages-work-schedule-page-dragging-schedule-task-card-border);
-  box-shadow: inset 3px 0 0 var(--color-pages-work-schedule-page-dragging-schedule-task-card-shadow-color);
+  background: var(
+    --color-pages-work-schedule-page-dragging-schedule-task-card-background
+  );
+  border-color: var(
+    --color-pages-work-schedule-page-dragging-schedule-task-card-border
+  );
+  box-shadow: inset 3px 0 0
+    var(
+      --color-pages-work-schedule-page-dragging-schedule-task-card-shadow-color
+    );
   opacity: 0.45;
   transform: scale(0.985);
 }
 
 .scheduleTaskDropBefore {
-  box-shadow: 0 -4px 0 var(--color-pages-work-schedule-page-schedule-task-drop-before-shadow-color);
+  box-shadow: 0 -4px 0
+    var(--color-pages-work-schedule-page-schedule-task-drop-before-shadow-color);
 }
 
 .scheduleTaskDropAfter {
-  box-shadow: 0 4px 0 var(--color-pages-work-schedule-page-schedule-task-drop-after-shadow-color);
+  box-shadow: 0 4px 0
+    var(--color-pages-work-schedule-page-schedule-task-drop-after-shadow-color);
 }
 
 .scheduleTaskHeader {
@@ -1326,7 +1393,9 @@
 .scheduleTaskOrderHandle {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-task-order-handle-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-order-handle-background
+  );
   border: 0;
   color: var(--color-pages-work-schedule-page-schedule-task-order-handle-text);
   display: flex;
@@ -1339,7 +1408,9 @@
 }
 
 .scheduleTaskOrderHandle:hover {
-  color: var(--color-pages-work-schedule-page-schedule-task-order-handle-hover-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-task-order-handle-hover-text
+  );
   cursor: grab;
 }
 
@@ -1436,10 +1507,17 @@
 .schedulePreviousAssignmentsButton {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-previous-assignments-button-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-previous-assignments-button-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-previous-assignments-button-background
+  );
+  border: 1px solid
+    var(
+      --color-pages-work-schedule-page-schedule-previous-assignments-button-border
+    );
   border-radius: 999px;
-  color: var(--color-pages-work-schedule-page-schedule-previous-assignments-button-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-previous-assignments-button-text
+  );
   display: flex;
   flex-shrink: 0;
   font-size: 12px;
@@ -1451,27 +1529,29 @@
   white-space: nowrap;
 }
 
-.scheduleAttendanceConfirmButton {
-  border-radius: 999px;
-  flex-shrink: 0;
-  height: 32px;
-  line-height: 1;
-}
-
 .scheduleTaskApplyButton {
-  background: var(--color-pages-work-schedule-page-schedule-task-apply-button-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-apply-button-background
+  );
   color: var(--color-pages-work-schedule-page-schedule-task-apply-button-text);
 }
 
 .scheduleTaskResetButton {
-  background: var(--color-pages-work-schedule-page-schedule-task-reset-button-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-reset-button-background
+  );
   color: var(--color-pages-work-schedule-page-schedule-task-reset-button-text);
 }
 
 .scheduleTaskCollapseButton {
-  background: var(--color-pages-work-schedule-page-schedule-task-collapse-button-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-task-collapse-button-border);
-  color: var(--color-pages-work-schedule-page-schedule-task-collapse-button-text);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-collapse-button-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-task-collapse-button-border);
+  color: var(
+    --color-pages-work-schedule-page-schedule-task-collapse-button-text
+  );
 }
 
 .scheduleTaskApplyButton:hover,
@@ -1491,8 +1571,12 @@
 }
 
 .scheduleTaskApplyButton:disabled {
-  background: var(--color-pages-work-schedule-page-schedule-task-apply-button-disabled-background);
-  color: var(--color-pages-work-schedule-page-schedule-task-apply-button-disabled-text);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-apply-button-disabled-background
+  );
+  color: var(
+    --color-pages-work-schedule-page-schedule-task-apply-button-disabled-text
+  );
   cursor: default;
 }
 
@@ -1507,7 +1591,9 @@
 .scheduleTaskEditButton {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-task-edit-button-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-edit-button-background
+  );
   border: 0;
   border-radius: 999px;
   color: var(--color-pages-work-schedule-page-schedule-task-edit-button-text);
@@ -1521,8 +1607,12 @@
 }
 
 .scheduleTaskEditButton:hover {
-  background: var(--color-pages-work-schedule-page-schedule-task-edit-button-hover-background);
-  color: var(--color-pages-work-schedule-page-schedule-task-edit-button-hover-text);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-edit-button-hover-background
+  );
+  color: var(
+    --color-pages-work-schedule-page-schedule-task-edit-button-hover-text
+  );
   cursor: pointer;
 }
 
@@ -1536,8 +1626,11 @@
 .scheduleTaskDeleteButton {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-task-delete-button-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-task-delete-button-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-delete-button-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-task-delete-button-border);
   border-radius: 999px;
   color: var(--color-pages-work-schedule-page-schedule-task-delete-button-text);
   display: flex;
@@ -1583,10 +1676,15 @@
 }
 
 .scheduleTaskInlineEditor input {
-  background: var(--color-pages-work-schedule-page-schedule-task-inline-editor-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-task-inline-editor-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-inline-editor-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-task-inline-editor-border);
   border-radius: 8px;
-  color: var(--color-pages-work-schedule-page-schedule-task-inline-editor-text-2);
+  color: var(
+    --color-pages-work-schedule-page-schedule-task-inline-editor-text-2
+  );
   font-size: 13px;
   font-weight: 800;
   min-height: 34px;
@@ -1596,8 +1694,13 @@
 }
 
 .scheduleTaskInlineEditor input:focus {
-  border-color: var(--color-pages-work-schedule-page-schedule-task-inline-editor-focus-border);
-  box-shadow: 0 0 0 3px var(--color-pages-work-schedule-page-schedule-task-inline-editor-focus-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-task-inline-editor-focus-border
+  );
+  box-shadow: 0 0 0 3px
+    var(
+      --color-pages-work-schedule-page-schedule-task-inline-editor-focus-shadow-color
+    );
   outline: 0;
 }
 
@@ -1623,8 +1726,11 @@
 }
 
 .scheduleTaskMeta span {
-  background: var(--color-pages-work-schedule-page-schedule-task-meta-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-task-meta-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-meta-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-task-meta-border);
   border-radius: 999px;
   color: var(--color-pages-work-schedule-page-schedule-task-meta-text);
   font-size: 12px;
@@ -1641,8 +1747,11 @@
 }
 
 .scheduleTaskWorkTypeEditor [class*="workTypeEditor"] {
-  background: var(--color-pages-work-schedule-page-schedule-task-work-type-editor-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-task-work-type-editor-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-work-type-editor-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-task-work-type-editor-border);
   border-radius: 8px;
   padding: 7px;
   width: 100%;
@@ -1652,10 +1761,17 @@
 .scheduleRequiredCountEditor {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-required-count-button-schedule-required-count-editor-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-required-count-button-schedule-required-count-editor-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-required-count-button-schedule-required-count-editor-background
+  );
+  border: 1px solid
+    var(
+      --color-pages-work-schedule-page-schedule-required-count-button-schedule-required-count-editor-border
+    );
   border-radius: 999px;
-  color: var(--color-pages-work-schedule-page-schedule-required-count-button-schedule-required-count-editor-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-required-count-button-schedule-required-count-editor-text
+  );
   display: flex;
   font-size: 12px;
   font-weight: 900;
@@ -1666,15 +1782,21 @@
 }
 
 .scheduleRequiredCountButton:hover {
-  border-color: var(--color-pages-work-schedule-page-schedule-required-count-button-hover-border);
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-required-count-button-hover-border
+  );
   cursor: pointer;
 }
 
 .scheduleRequiredCountEditor span {
-  background: var(--color-pages-work-schedule-page-schedule-required-count-editor-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-required-count-editor-background
+  );
   border: 0;
   border-radius: 0;
-  color: var(--color-pages-work-schedule-page-schedule-required-count-editor-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-required-count-editor-text
+  );
   font-size: 12px;
   font-weight: 900;
   min-height: 0;
@@ -1683,10 +1805,15 @@
 
 .scheduleRequiredCountEditor input {
   appearance: textfield;
-  background: var(--color-pages-work-schedule-page-schedule-required-count-editor-background-2);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-required-count-editor-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-required-count-editor-background-2
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-required-count-editor-border);
   border-radius: 999px;
-  color: var(--color-pages-work-schedule-page-schedule-required-count-editor-text-2);
+  color: var(
+    --color-pages-work-schedule-page-schedule-required-count-editor-text-2
+  );
   font-size: 12px;
   font-weight: 900;
   height: 22px;
@@ -1701,8 +1828,13 @@
 }
 
 .scheduleRequiredCountEditor input:focus {
-  border-color: var(--color-pages-work-schedule-page-schedule-required-count-editor-focus-border);
-  box-shadow: 0 0 0 2px var(--color-pages-work-schedule-page-schedule-required-count-editor-focus-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-required-count-editor-focus-border
+  );
+  box-shadow: 0 0 0 2px
+    var(
+      --color-pages-work-schedule-page-schedule-required-count-editor-focus-shadow-color
+    );
   outline: 0;
 }
 
@@ -1722,12 +1854,16 @@
 }
 
 .inlineConfirmButton {
-  background: var(--color-pages-work-schedule-page-inline-confirm-button-background);
+  background: var(
+    --color-pages-work-schedule-page-inline-confirm-button-background
+  );
   color: var(--color-pages-work-schedule-page-inline-confirm-button-text);
 }
 
 .inlineCancelButton {
-  background: var(--color-pages-work-schedule-page-inline-cancel-button-background);
+  background: var(
+    --color-pages-work-schedule-page-inline-cancel-button-background
+  );
   color: var(--color-pages-work-schedule-page-inline-cancel-button-text);
 }
 
@@ -1766,8 +1902,11 @@
 
 .scheduleDropZone {
   align-items: stretch;
-  background: var(--color-pages-work-schedule-page-schedule-drop-zone-background);
-  border: 1px dashed var(--color-pages-work-schedule-page-schedule-drop-zone-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-drop-zone-background
+  );
+  border: 1px dashed
+    var(--color-pages-work-schedule-page-schedule-drop-zone-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -1790,9 +1929,14 @@
 }
 
 .activeScheduleDropZone {
-  background: var(--color-pages-work-schedule-page-active-schedule-drop-zone-background);
-  border-color: var(--color-pages-work-schedule-page-active-schedule-drop-zone-border);
-  box-shadow: inset 0 0 0 1px var(--color-pages-work-schedule-page-active-schedule-drop-zone-shadow-color);
+  background: var(
+    --color-pages-work-schedule-page-active-schedule-drop-zone-background
+  );
+  border-color: var(
+    --color-pages-work-schedule-page-active-schedule-drop-zone-border
+  );
+  box-shadow: inset 0 0 0 1px
+    var(--color-pages-work-schedule-page-active-schedule-drop-zone-shadow-color);
 }
 
 .scheduleDropHint {
@@ -1810,8 +1954,11 @@
 .guestParticipantEditor {
   align-items: center;
   animation: scheduleTokenDrop 180ms ease-out;
-  background: var(--color-pages-work-schedule-page-guest-participant-editor-background);
-  border: 1px solid var(--color-pages-work-schedule-page-guest-participant-editor-border);
+  background: var(
+    --color-pages-work-schedule-page-guest-participant-editor-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-guest-participant-editor-border);
   border-radius: 7px;
   display: grid;
   gap: 8px;
@@ -1820,10 +1967,17 @@
 }
 
 .guestParticipantIdentityFields input {
-  background: var(--color-pages-work-schedule-page-guest-participant-identity-fields-background);
-  border: 1px solid var(--color-pages-work-schedule-page-guest-participant-identity-fields-border);
+  background: var(
+    --color-pages-work-schedule-page-guest-participant-identity-fields-background
+  );
+  border: 1px solid
+    var(
+      --color-pages-work-schedule-page-guest-participant-identity-fields-border
+    );
   border-radius: 6px;
-  color: var(--color-pages-work-schedule-page-guest-participant-identity-fields-text);
+  color: var(
+    --color-pages-work-schedule-page-guest-participant-identity-fields-text
+  );
   font-size: 12px;
   font-weight: 800;
   min-height: 30px;
@@ -1834,8 +1988,13 @@
 
 .guestParticipantIdentityFields input:focus,
 .guestParticipantCountField input:focus {
-  border-color: var(--color-pages-work-schedule-page-guest-participant-identity-fields-guest-participant-count-field-focus-focus-border);
-  box-shadow: 0 0 0 2px var(--color-pages-work-schedule-page-guest-participant-identity-fields-guest-participant-count-field-focus-focus-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-guest-participant-identity-fields-guest-participant-count-field-focus-focus-border
+  );
+  box-shadow: 0 0 0 2px
+    var(
+      --color-pages-work-schedule-page-guest-participant-identity-fields-guest-participant-count-field-focus-focus-shadow-color
+    );
   outline: 0;
 }
 
@@ -1848,7 +2007,9 @@
 
 .guestParticipantCountField {
   align-items: center;
-  color: var(--color-pages-work-schedule-page-guest-participant-count-field-text);
+  color: var(
+    --color-pages-work-schedule-page-guest-participant-count-field-text
+  );
   display: flex;
   font-size: 11px;
   font-weight: 900;
@@ -1857,10 +2018,15 @@
 
 .guestParticipantCountField input {
   appearance: textfield;
-  background: var(--color-pages-work-schedule-page-guest-participant-count-field-background);
-  border: 1px solid var(--color-pages-work-schedule-page-guest-participant-count-field-border);
+  background: var(
+    --color-pages-work-schedule-page-guest-participant-count-field-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-guest-participant-count-field-border);
   border-radius: 6px;
-  color: var(--color-pages-work-schedule-page-guest-participant-count-field-text-2);
+  color: var(
+    --color-pages-work-schedule-page-guest-participant-count-field-text-2
+  );
   font-size: 12px;
   font-weight: 900;
   height: 30px;
@@ -1872,10 +2038,13 @@
 .addGuestParticipantBar {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-add-guest-participant-bar-background);
+  background: var(
+    --color-pages-work-schedule-page-add-guest-participant-bar-background
+  );
   border: 0;
   border-radius: 0 0 7px 7px;
-  border-top: 1px solid var(--color-pages-work-schedule-page-add-guest-participant-bar-border);
+  border-top: 1px solid
+    var(--color-pages-work-schedule-page-add-guest-participant-bar-border);
   color: var(--color-pages-work-schedule-page-add-guest-participant-bar-text);
   display: flex;
   font-size: 20px;
@@ -1887,8 +2056,12 @@
 }
 
 .addGuestParticipantBar:hover {
-  background: var(--color-pages-work-schedule-page-add-guest-participant-bar-hover-background);
-  color: var(--color-pages-work-schedule-page-add-guest-participant-bar-hover-text);
+  background: var(
+    --color-pages-work-schedule-page-add-guest-participant-bar-hover-background
+  );
+  color: var(
+    --color-pages-work-schedule-page-add-guest-participant-bar-hover-text
+  );
   cursor: pointer;
 }
 
@@ -1905,10 +2078,14 @@
 .removeAssignedWorkerButton {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-remove-assigned-worker-button-background);
+  background: var(
+    --color-pages-work-schedule-page-remove-assigned-worker-button-background
+  );
   border: 0;
   border-radius: 999px;
-  color: var(--color-pages-work-schedule-page-remove-assigned-worker-button-text);
+  color: var(
+    --color-pages-work-schedule-page-remove-assigned-worker-button-text
+  );
   display: flex;
   font-size: 18px;
   font-weight: 900;
@@ -1937,10 +2114,14 @@
 
 .scheduleDragPreview {
   align-items: flex-start;
-  background: var(--color-pages-work-schedule-page-schedule-drag-preview-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-drag-preview-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-drag-preview-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-drag-preview-border);
   border-radius: 8px;
-  box-shadow: 0 18px 38px var(--color-pages-work-schedule-page-schedule-drag-preview-shadow-color);
+  box-shadow: 0 18px 38px
+    var(--color-pages-work-schedule-page-schedule-drag-preview-shadow-color);
   contain: layout paint;
   display: flex;
   flex-direction: column;
@@ -1961,10 +2142,16 @@
 
 .scheduleTaskDragPreview {
   align-items: flex-start;
-  background: var(--color-pages-work-schedule-page-schedule-task-drag-preview-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-task-drag-preview-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-drag-preview-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-task-drag-preview-border);
   border-radius: 8px;
-  box-shadow: 0 20px 42px var(--color-pages-work-schedule-page-schedule-task-drag-preview-shadow-color);
+  box-shadow: 0 20px 42px
+    var(
+      --color-pages-work-schedule-page-schedule-task-drag-preview-shadow-color
+    );
   contain: layout paint;
   display: flex;
   flex-direction: column;
@@ -1994,7 +2181,9 @@
 .scheduleTaskDragPreview strong span,
 .scheduleTaskDragPreview p,
 .scheduleTaskDragPreview small {
-  color: var(--color-pages-work-schedule-page-schedule-task-drag-preview-schedule-task-drag-preview-text);
+  color: var(
+    --color-pages-work-schedule-page-schedule-task-drag-preview-schedule-task-drag-preview-text
+  );
   font-size: 12px;
   font-weight: 800;
   line-height: 1.35;
@@ -2009,7 +2198,9 @@
 }
 
 .scheduleTaskDragPreview small {
-  color: var(--color-pages-work-schedule-page-schedule-task-drag-preview-text-2);
+  color: var(
+    --color-pages-work-schedule-page-schedule-task-drag-preview-text-2
+  );
 }
 
 .scheduleTaskMemo span {
@@ -2020,8 +2211,11 @@
 
 .scheduleTaskMemo textarea {
   flex: 1;
-  background: var(--color-pages-work-schedule-page-schedule-task-memo-background);
-  border: 1px solid var(--color-pages-work-schedule-page-schedule-task-memo-border);
+  background: var(
+    --color-pages-work-schedule-page-schedule-task-memo-background
+  );
+  border: 1px solid
+    var(--color-pages-work-schedule-page-schedule-task-memo-border);
   border-radius: 8px;
   color: var(--color-pages-work-schedule-page-schedule-task-memo-text-2);
   min-height: 68px;
@@ -2031,15 +2225,20 @@
 }
 
 .scheduleTaskMemo textarea:focus {
-  border-color: var(--color-pages-work-schedule-page-schedule-task-memo-focus-border);
-  box-shadow: 0 0 0 3px var(--color-pages-work-schedule-page-schedule-task-memo-focus-shadow-color);
+  border-color: var(
+    --color-pages-work-schedule-page-schedule-task-memo-focus-border
+  );
+  box-shadow: 0 0 0 3px
+    var(--color-pages-work-schedule-page-schedule-task-memo-focus-shadow-color);
   outline: 0;
 }
 
 .scheduleMemoEditButton {
   align-items: center;
   appearance: none;
-  background: var(--color-pages-work-schedule-page-schedule-memo-edit-button-background);
+  background: var(
+    --color-pages-work-schedule-page-schedule-memo-edit-button-background
+  );
   border: 0;
   border-radius: 999px;
   color: var(--color-pages-work-schedule-page-schedule-memo-edit-button-text);
@@ -2053,8 +2252,12 @@
 }
 
 .scheduleMemoEditButton:hover {
-  background: var(--color-pages-work-schedule-page-schedule-memo-edit-button-hover-background);
-  color: var(--color-pages-work-schedule-page-schedule-memo-edit-button-hover-text);
+  background: var(
+    --color-pages-work-schedule-page-schedule-memo-edit-button-hover-background
+  );
+  color: var(
+    --color-pages-work-schedule-page-schedule-memo-edit-button-hover-text
+  );
   cursor: pointer;
 }
 
@@ -2098,17 +2301,17 @@
 }
 
 @media (max-width: 819px) {
-  .noShowModalBackdrop {
+  .separationWarningBackdrop {
     padding: 12px;
   }
 
-  .noShowModalHeader {
+  .separationWarningHeader {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
   }
 
-  .noShowModalHeader > div:last-child {
+  .separationWarningHeader > div:last-child {
     justify-content: flex-end;
     width: 100%;
   }
@@ -2117,27 +2320,9 @@
     align-items: stretch;
     flex-direction: column;
   }
-
-  .noShowRecordActions {
-    align-items: center;
-    flex-direction: row;
-    justify-content: flex-end;
-  }
-
   .scheduleDateBar {
     align-items: stretch;
     grid-template-columns: 1fr;
-  }
-
-  .attendanceBulkActions {
-    flex-wrap: wrap;
-    margin-right: 0;
-    width: 100%;
-  }
-
-  .attendanceBulkActions button {
-    flex: 1 1 130px;
-    min-width: 0;
   }
 
   .scheduleDateControl {
@@ -2412,4 +2597,15 @@
     display: none;
   }
 }
-.assignmentCautionButton { display: flex; align-items: center; justify-content: center; min-height: 40px; min-width: 40px; padding: 4px; border: 0; background: transparent; color: var(--color-pages-journal-page-danger-button-text); cursor: pointer; }
+.assignmentCautionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-pages-journal-page-danger-button-text);
+  cursor: pointer;
+}

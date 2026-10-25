@@ -79,12 +79,16 @@
 | 배정별 단가 | `work_schedule_assignment_pay_term`: `HOURLY/DAILY/HALF_DAY/PIECE`, 약정/작업자 금액, 통화 | 조회/등록/수정 API 없음 |
 | 정산 기간 | `attendance_settlement_period`: `OPEN/CONFIRMED/PAID/LOCKED` | API 없음 |
 | 근태 변경 이력 | `worker_attendance_revision` | DB trigger로 기록되나 조회 API 없음 |
-| 노쇼 변경 이력 | `worker_no_show_incident_revision` | 기록되나 조회 API 없음 |
+| 노쇼 변경 이력 | `worker_no_show_incident_revision` | 2026-10-25 [조회·메모·취소 API](no-show.md) 연결. 실제 인증/역할 인가는 미완성 |
 | 동시 배치 확인 감사 | `worker_separation_override_audit` | 저장만 되고 조회 API 없음 |
 | 통화 분석 | `call_analysis_job`, `call_analysis_result` | 업로드/분석/초안 조회 API 없음 |
 | 작업자 가능일 예외 | `labor_agency_worker_availability_exception` | 현재 작업자 응답은 주간 마스크/메모만 사용; 예외 API 없음 |
 
 DB 테이블이 있다는 이유만으로 위 기능을 프론트에서 사용할 수 있다고 문서화하면 안 된다.
+
+2026-10-25: 위 기존 단가·기간 테이블은 계속 DB-only지만, 별도의 `finance_*` 원장과 [수익·정산 API](finance.md)가 구현되었다.
+금액 확정·수납·지급·배분·취소/정정·주기 설정은 새 원장을 사용한다. 기존 기반을 사용 중인 것으로 바꾸어 해석하면 안 된다.
+현재 금융 API도 loginId 전달 방식이므로 실제 인증/역할별 금전 권한은 출시 차단 사항이다.
 
 ## 계획만 있고 구현되지 않은 경로
 
@@ -93,7 +97,7 @@ DB 테이블이 있다는 이유만으로 위 기능을 프론트에서 사용�
 - backend-fast 업로드/스트리밍/실시간 fan-out
 - WebSocket `/ws`
 - 통화 녹음 업로드와 분석 초안
-- 단가/정산/지급 확정과 차액 조정
+- 기존 pay_term/settlement_period 기반 API (새 finance 원장의 구현 범위는 [finance.md](finance.md)와 구분)
 - 감사 이력 조회
 
 ## 삭제 동작 요약
@@ -118,4 +122,4 @@ DELETE 재호출은 대상별로 `200` 또는 `400`이 달라 일관된 멱등 �
 3. 민감 컬럼의 실제 저장값을 비운영 데이터로 확인하고 암호화/키 관리 경계를 구현한다.
 4. 예정대로 근무 후 assignment 상태를 통합 테스트로 검증한다.
 5. 익명 참여자 소개/정산 필드의 수정 계약을 유지/수정 중 하나로 결정한다.
-6. DB-only 단가/정산 계약은 화면과 업무 정책 승인 후 별도 API로 설계한다.
+6. 새 finance 원장과 기존 DB-only 단가/정산 기간의 관계를 향후 약정 단가 기능 설계 시 검토한다. 자동 이관은 하지 않는다.

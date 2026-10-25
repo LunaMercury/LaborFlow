@@ -28,9 +28,11 @@
 | 일지 | `sales_journal`, `work_journal` | 사용 중 | 영업 현장 자유 기록·날짜별 작업 메모 |
 | 노쇼 | `worker_no_show_incident`, `worker_no_show_incident_revision` | 사용 중 | 노쇼 원배정·대체·취소 이력 |
 | 정산 | `work_schedule_assignment_pay_term`, `attendance_settlement_period` | DB 기반 | 배정 단가·정산 기간 |
+| 정산 | `finance_work`, `finance_work_revision`, `finance_obligation`, `finance_cash`, `finance_cash_allocation`, `finance_cash_cancellation`, `finance_request`, `finance_settings`, `finance_settings_revision` | 사용 중 | [036 금액·배분·정정 원장](finance.md), 2026-10-25 |
+| 배치 주의 | `worker_client_assignment_caution`, `assignment_caution_acknowledgement` | 사용 중 | [035 관계·확인 이력](assignment-cautions.md) |
 | 통화 분석 | `call_analysis_job`, `call_analysis_result` | DB 기반 | 녹음 분석 작업·임시 결과 |
 
-총 41개다.
+001~036의 CREATE TABLE 소스 기준 총 52개다(기존 조사 41개 + 035의 2개 + 036의 9개). 운영 DB 적용 상태와는 별개다.
 
 ## 코드 근거 지도
 
@@ -277,15 +279,15 @@
 
 ### `worker_no_show_incident` — 사용 중
 
-- 컬럼: `uuid PK`, `agency_owner_uuid uuid NN FK RESTRICT`, `worker_profile_uuid uuid NN FK RESTRICT`, `original_assignment_uuid uuid NN FK RESTRICT`, `replacement_worker_profile_uuid uuid FK SET NULL`, `replacement_assignment_uuid uuid FK SET NULL`, `occurred_on date NN`, `status varchar(16) NN DEFAULT 'OPEN'`, `note text`, `reported_by_account_uuid uuid FK SET NULL`, timestamps, `deleted_at`, `previous_assignment_status varchar(16) NN`, `previous_attendance_data jsonb`, `replacement_assignment_created boolean NN DEFAULT true`, `resolved_by_account_uuid uuid FK SET NULL`, `cancelled_at timestamptz`.
+- 컬럼: `uuid PK`, `agency_owner_uuid uuid NN FK RESTRICT`, `worker_profile_uuid uuid nullable FK RESTRICT`(037부터 익명 허용), `original_assignment_uuid uuid NN FK RESTRICT`, `replacement_worker_profile_uuid uuid FK SET NULL`, `replacement_assignment_uuid uuid FK SET NULL`, `occurred_on date NN`, `status varchar(16) NN DEFAULT 'OPEN'`, `note text`, `reported_by_account_uuid uuid FK SET NULL`, timestamps, `deleted_at`, `previous_assignment_status varchar(16) NN`, `previous_attendance_data jsonb`, `replacement_assignment_created boolean NN DEFAULT true`, `resolved_by_account_uuid uuid FK SET NULL`, `cancelled_at timestamptz`.
 - 제약/인덱스: status `OPEN|REPLACED|CANCELLED`, previous status `PLANNED|WORKED|ABSENT|CANCELLED`, note 비공백; 활성 원배정당 한 incident UQ, 취소 제외 작업자 이력 부분 인덱스; updated trigger.
-- 코드: `JdbcScheduleDao.replaceNoShow`, `changeNoShowReplacement`, `cancelNoShow`; 작업자 노쇼 횟수 표시 조회.
+- 코드: `JdbcNoShowDao`/`NoShowService`가 기록·조회·메모·취소를 연결하고 기존 `JdbcScheduleDao.changeNoShowReplacement/cancelNoShow`가 대체·복원을 담당한다. 작업자 횟수는 활성 사건만 집계한다. 익명 사건은 원배정에 프로필이 연결되면 COALESCE로 조회/집계하며, 과거 NULL 식별자를 임의 추정해 일괄 채우지 않는다.
 
 ### `worker_no_show_incident_revision` — 사용 중
 
-- 컬럼: `uuid PK`, `incident_uuid uuid NN FK RESTRICT`, 이전/새 `replacement_worker_profile_uuid` 각각 FK SET NULL, 이전/새 `replacement_assignment_uuid` 각각 FK SET NULL, `performed_by_account_uuid uuid FK SET NULL`, `action varchar(24) NN`, `created_at`.
-- 제약/인덱스: action `CREATED|REPLACEMENT_CHANGED|CANCELLED`, incident/date 인덱스. updated/deleted 컬럼과 trigger가 없다.
-- 생성: DB trigger가 아니라 `JdbcScheduleDao`가 노쇼 작업과 같은 서비스 트랜잭션 안에서 명시적으로 INSERT한다.
+- 컬럼: `uuid PK`, `incident_uuid uuid NN FK RESTRICT`, 이전/새 `replacement_worker_profile_uuid` 각각 FK SET NULL, 이전/새 `replacement_assignment_uuid` 각각 FK SET NULL, `performed_by_account_uuid uuid FK SET NULL`, `action varchar(24) NN`, `created_at`, `note varchar(1000) nullable`(037 추가).
+- 제약/인덱스: action `CREATED|REPLACEMENT_CHANGED|CANCELLED|NOTE_UPDATED`, incident/date 인덱스. updated/deleted 컬럼과 trigger가 없다.
+- 생성: DB trigger가 아니라 `JdbcScheduleDao`와 `JdbcNoShowDao`가 서비스 트랜잭션 안에서 명시적으로 기록한다. 신규 취소 API는 같은 트랜잭션에서 생성한 취소 revision에 사유를 채운다. 메모 수정은 별도 revision이다.
 
 ## 통화 분석
 

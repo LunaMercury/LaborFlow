@@ -433,6 +433,26 @@ class AttendanceServiceTest {
         assertNoPlannedAttendanceWasSaved();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"DRAFT", "WORKED", "ABSENT", "CANCELLED"})
+    void activeNoShowBlocksEveryNormalAttendanceStatusUntilExplicitCancellation(String status) {
+        UUID assignmentUuid = assignmentUuid(13);
+        stubAssignmentContext(assignmentUuid, standardAssignmentContext());
+        when(attendanceDao.hasActiveNoShow(AGENCY_OWNER_UUID, assignmentUuid)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.updateRecord(
+            LOGIN_ID,
+            assignmentUuid,
+            new UpdateAttendanceRecordRequest(null, null, 0, status, "UNKNOWN")
+        ))
+            .isInstanceOf(com.laborflow.core.noshow.application.NoShowException.class)
+            .hasMessage("노쇼 이력 관리에서 노쇼를 취소한 뒤 근태를 수정해 주세요.");
+
+        verify(attendanceDao).hasActiveNoShow(AGENCY_OWNER_UUID, assignmentUuid);
+        verify(attendanceDao, never()).findRecords(AGENCY_OWNER_UUID, WORK_DATE);
+        assertNoRecordWasSaved();
+    }
+
     private void stubAssignment(
         UUID assignmentUuid,
         AttendanceAssignmentContext assignmentContext,

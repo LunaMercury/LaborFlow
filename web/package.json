@@ -10,6 +10,9 @@
     "test:api-errors": "node --test tests/apiErrorHandling.test.mjs",
     "test:work-skill-grades": "node --test tests/workSkillGrade.test.mjs",
     "test:journals": "node --test tests/journalApi.test.mjs",
+    "test:finance": "node --test tests/finance*.test.mjs",
+    "test:attendance": "node --test tests/attendance*.test.mjs",
+    "test:no-show": "node --test tests/noShow*.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

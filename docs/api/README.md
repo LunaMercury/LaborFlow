@@ -2,6 +2,9 @@
 
 이 문서는 프론트엔드와 백엔드 개발 에이전트가 현재 구현된 계약을 같은 기준으로 확인하기 위한 진입점이다. 계획이나 DB 구조만 존재하는 기능은 구현된 API와 구분한다.
 
+2026-10-25 추가: [수익·정산](finance.md) — 근태 기반 금액 확정, 농가 수납·작업자 지급·직접 지급 확인,
+부분/일괄 배분, 취소·정정, 기본값과 지급 주기. 시작 기준 `dev` / `3576cbd`이며 기존 DB-only 약정 단가/기간과 구분한다.
+
 테이블의 최종 구조, 관계, 삭제·이력·개인정보 경계는
 [데이터베이스 구조 문서](../database/README.md)를 함께 참고한다. API 요청·응답은 이 문서 묶음이,
 저장 구조는 DB 문서 묶음이 기준이며 둘 사이 차이는 각각의 불일치 문서에 기록한다.
@@ -24,6 +27,7 @@
 - [작업자·거래처 배치 주의](assignment-cautions.md): 공유 관계와 확인 후 배치
 - [일정과 배치](schedule.md): 달력, 날짜별 배치, 익명 인원, 충돌 확인, 노쇼, 다일 범위
 - [근태](attendance.md): 조회, 수정, 예정대로 근무, 작업 메모
+- [노쇼 관리](no-show.md): 근태에서 기록·대체, 작업자별 이력·메모·취소
 - [일지](journals.md): 영업 현장 기록과 날짜별 작업 메모·실제 근태 조회
 - [프로필, 헬스, backend-fast](platform.md): 내 정보, 탈퇴, 상태 확인, Rust 경로
 - [불일치와 미구현 영역](gaps.md): 프론트/백엔드 차이, DB만 있는 기능, 개선 후보
@@ -91,6 +95,33 @@
 | Journals | `DELETE /api/journals/work/{scheduleDayUuid}` | [journals.md](journals.md#일지-삭제) |
 
 backend-fast에는 `GET /health` 하나만 구현되어 있다. `/ws`나 `/fast/*`에 대응하는 애플리케이션 경로는 현재 없다.
+
+### 수익·정산 추가 경로 (2026-10-25)
+
+| 메서드·경로 | 목적 |
+|---|---|
+| `GET /api/finance/work` | 작업일 기준 실적·정산 목록 |
+| `POST /api/finance/work/{scheduleDayUuid}/prepare` | 명시적 근태 기반 초안 |
+| `GET /api/finance/work/{workUuid}` | 현재 원천·저장 스냅샷·이력 |
+| `PUT /api/finance/work/{workUuid}` | 초안 저장·금액 확정·사유 있는 정정 |
+| `GET /api/finance/balances` | 기간과 독립된 미수·미지급·직접 지급 확인 잔액 |
+| `GET /api/finance/cash` | 실제 기록일 기준 이력 |
+| `POST /api/finance/cash` | 부분·일괄 배분과 입출금/직접 지급 확인 기록 |
+| `POST /api/finance/cash/{cashUuid}/cancel` | 원본 보존 취소 |
+| `POST /api/finance/cash/{cashUuid}/correct` | 원자적 취소·대체 정정 |
+| `GET /api/finance/settings` | 사무소·거래처·작업자 기본값 |
+| `PUT /api/finance/settings` | 버전·사유를 포함한 기본값 변경 |
+
+상세 DTO, 오류·재시도·트랜잭션 한계는 [finance.md](finance.md)를 따른다. 실제 송금·운영 인증은 구현 범위가 아니다.
+
+### 노쇼 관리 추가 경로 (2026-10-25)
+
+| 메서드·경로 | 목적 |
+|---|---|
+| `GET /api/no-show/incidents` | 작업자 또는 날짜별 이력 조회 |
+| `POST /api/no-show/incidents` | 대체자 없이 노쇼 기록 |
+| `PATCH /api/no-show/incidents/{uuid}` | 이력 메모 수정 |
+| `POST /api/no-show/incidents/{uuid}/cancel` | 사유 있는 취소와 원상태 복원 |
 
 ## 계약 상태 표기
 

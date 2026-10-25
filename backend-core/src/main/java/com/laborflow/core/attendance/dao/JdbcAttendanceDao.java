@@ -67,6 +67,7 @@ public class JdbcAttendanceDao implements AttendanceDao {
                 AND a.deleted_at IS NULL
                 AND d.deleted_at IS NULL
                 AND s.deleted_at IS NULL
+            FOR UPDATE OF a
             """,
             (resultSet, rowNumber) -> new AttendanceAssignmentContext(
                 resultSet.getObject("work_date", LocalDate.class),
@@ -191,7 +192,9 @@ public class JdbcAttendanceDao implements AttendanceDao {
                 COALESCE(att.break_minutes, 0) AS break_minutes,
                 COALESCE(att.status, 'DRAFT') AS attendance_status,
                 COALESCE(att.time_entry_type, 'UNKNOWN') AS time_entry_type,
-                att.confirmed_at IS NOT NULL AS confirmed
+                att.confirmed_at IS NOT NULL AS confirmed,
+                incident.uuid AS no_show_incident_uuid,
+                incident.status AS no_show_incident_status
             FROM public.work_schedule_assignment a
             JOIN public.work_schedule_day d ON d.uuid = a.schedule_day_uuid
             JOIN public.farm_work_site s ON s.uuid = a.work_site_uuid
@@ -213,6 +216,10 @@ public class JdbcAttendanceDao implements AttendanceDao {
                 ON att_summary.schedule_day_uuid = a.schedule_day_uuid
                 AND att_summary.agency_owner_uuid = a.agency_owner_uuid
                 AND att_summary.deleted_at IS NULL
+            LEFT JOIN public.worker_no_show_incident incident
+                ON incident.original_assignment_uuid=a.uuid
+                AND incident.agency_owner_uuid=a.agency_owner_uuid
+                AND incident.status IN ('OPEN','REPLACED') AND incident.deleted_at IS NULL
             WHERE a.agency_owner_uuid = ?
                 AND a.work_date = ?
                 AND s.agency_owner_uuid = a.agency_owner_uuid
@@ -248,11 +255,22 @@ public class JdbcAttendanceDao implements AttendanceDao {
                 resultSet.getInt("break_minutes"),
                 resultSet.getString("attendance_status"),
                 resultSet.getString("time_entry_type"),
-                resultSet.getBoolean("confirmed")
+                resultSet.getBoolean("confirmed"),
+                resultSet.getObject("no_show_incident_uuid", UUID.class),
+                resultSet.getString("no_show_incident_status")
             ),
             agencyOwnerUuid,
             workDate
         );
+    }
+
+    @Override
+    public boolean hasActiveNoShow(UUID office, UUID assignmentUuid) {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject("""
+            SELECT EXISTS(SELECT 1 FROM public.worker_no_show_incident
+                WHERE agency_owner_uuid=? AND original_assignment_uuid=?
+                    AND status IN ('OPEN','REPLACED') AND deleted_at IS NULL)
+            """, Boolean.class,office,assignmentUuid));
     }
 
     @Override

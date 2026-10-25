@@ -2,13 +2,17 @@
 
 이 문서는 LaborFlow의 **현재 구현 스냅샷**이다. 최종 설계나 설계 승인 문서가 아니며, 이후 구현 에이전트는 이 문서보다 최신 사용자 결정과 실제 코드·마이그레이션을 먼저 확인해야 한다.
 
+2026-10-25 후속 추가: migration `036`의 [수익·정산 원장](finance.md).
+같은 날짜의 migration `037`은 [노쇼 관리](../api/no-show.md)의 익명 배정·메모/취소 이력과 근태 연결을 확장한다.
+실제 근태·금액·수납·지급·정정의 저장 경계와 기존 DB-only 단가/기간 기반의 차이를 별도로 설명한다.
+
 ## 조사 기준
 
 - 기준일: 2026-09-13 (Asia/Seoul과 같은 UTC+9 업무 환경을 전제로 소스 해석)
 - 브랜치: `dev`
 - 구현 시작 기준 커밋: `4970ccebd7aba17b7c3943ed4d067f64f7190a75`
 - 작업 상태: 위 커밋에서 시작한 현재 일지 구현과 마이그레이션을 반영했으며 운영 DB 적용 여부는 확인하지 않음
-- 스키마 기준: `database/migrations/001_...sql`부터 `035_...sql`까지 순서대로 적용한 최종 상태. 배치 주의 추가는 2026-10-11, 시작 커밋 `5b433f3` 이후 구현이다.
+- 스키마 기준: `database/migrations/001_...sql`부터 `037_...sql`까지의 소스. 035 배치 주의, 036 수익·정산, 037 노쇼 후속 변경을 함께 참고한다.
 - 애플리케이션 기준: backend-core의 Service, DAO, 트랜잭션 선언과 기존 API 문서 대조
 - 운영 DB 확인: 수행하지 않음. `flyway_schema_history`, 실제 테이블·인덱스·데이터는 조회하지 않았다.
 
@@ -61,7 +65,7 @@ erDiagram
 3. 여러 날짜 일정은 `farm_work_site` 하나와 날짜별 `work_schedule_day` 여러 행으로 표현한다. 배정은 특정 `work_schedule_day`에 연결된다.
 4. 등록 작업자와 익명 참여자는 모두 `work_schedule_assignment`에 저장한다. `participant_type`과 nullable `worker_profile_uuid`가 둘을 구분하고, 익명 인원 묶음은 같은 `participant_group_uuid`를 공유한다.
 5. 근태는 배정당 활성 `worker_attendance_record` 최대 한 건이며, 변경 시 DB 트리거가 `worker_attendance_revision`을 만든다. 일정 단위 메모도 별도 요약·리비전 테이블에 보존한다.
-6. 노쇼는 원배정을 `REPLACED`, 근태를 `ABSENT`로 바꾸면서 `worker_no_show_incident`와 명시적 리비전을 남긴다. 취소를 위해 원상태 스냅샷을 보관한다.
+6. 노쇼는 incident OPEN과 근태/배정 ABSENT를 함께 기록한다. 대체자를 연결하면 원배정과 incident가 REPLACED가 되며, 최초 노쇼 전 스냅샷은 유지한다. 취소는 이력과 사유를 남기고 원상태를 복원한다.
 7. 동시 배치 주의는 사무소 프로필 UUID 두 개를 정렬해 한 쌍으로 저장한다. 충돌을 확인하고 저장하면 `worker_separation_override_audit`이 남는다.
 
 ## 갱신 기준

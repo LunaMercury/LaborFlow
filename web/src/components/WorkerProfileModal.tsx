@@ -6,6 +6,7 @@ import {
   createWorkerFromGuestAssignment,
   deleteWorkerProfile,
   fetchWorkerSeparationRules,
+  fetchWorkers,
   updateWorkerProfile,
   type WorkerSeparationRule,
 } from "../api/workforceApi";
@@ -13,6 +14,7 @@ import type { WorkTypeOption } from "../data/workTypeOptions";
 import type { WorkerRow } from "../data/workerRows";
 import { formatKoreanPhoneNumber, getPhoneDigits } from "../utils/phoneNumber";
 import { WorkerWorkTypeCell } from "./WorkerWorkTypeCell";
+import { NoShowHistoryModal } from "./NoShowHistoryModal";
 import styles from "./WorkerProfileModal.module.css";
 
 type WorkerProfileModalMode = "create" | "edit";
@@ -162,6 +164,8 @@ export function WorkerProfileModal({
     Record<string, number>
   >(worker?.workTypeRatings ?? {});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [noShowHistoryOpen, setNoShowHistoryOpen] = useState(false);
+  const [noShowCount, setNoShowCount] = useState(worker?.noShowCount ?? 0);
   const submittingRef = useRef(false);
   const cautionDraftRef = useRef<AssignmentCautionEditorHandle>(null);
   const [separationRules, setSeparationRules] = useState<SeparationRuleDraft[]>([]);
@@ -169,6 +173,10 @@ export function WorkerProfileModal({
   const [isLoadingSeparationRules, setIsLoadingSeparationRules] = useState(isEditMode);
   const [separationRuleError, setSeparationRuleError] = useState("");
   const [separationRuleReloadVersion, setSeparationRuleReloadVersion] = useState(0);
+
+  useEffect(() => {
+    setNoShowCount(worker?.noShowCount ?? 0);
+  }, [worker?.profileUuid, worker?.noShowCount]);
 
   useEffect(() => {
     if (!isEditMode || !worker?.profileUuid) {
@@ -389,7 +397,9 @@ export function WorkerProfileModal({
     <div className={styles.modalBackdrop} role="presentation">
       <section
         aria-labelledby="worker-profile-title"
-        aria-modal="true"
+        aria-modal={noShowHistoryOpen ? undefined : true}
+        aria-hidden={noShowHistoryOpen ? true : undefined}
+        inert={noShowHistoryOpen ? true : undefined}
         className={styles.workerProfileDialog}
         role="dialog"
       >
@@ -552,6 +562,14 @@ export function WorkerProfileModal({
                     <span>{isActive ? "활성" : "휴식중"}</span>
                   </label>
                 </div>
+
+                {isEditMode && worker?.profileUuid ? (
+                  <div className={styles.noShowHistoryRow}>
+                    <span>노쇼 이력 {noShowCount}회</span>
+                    <button className={styles.secondaryActionButton} disabled={isSubmitting} type="button"
+                      onClick={() => setNoShowHistoryOpen(true)}>노쇼 이력 관리</button>
+                  </div>
+                ) : null}
 
                 <div className={styles.workerRiskSetting}>
                   <div>
@@ -829,6 +847,14 @@ export function WorkerProfileModal({
           </form>
         </div>
       </section>
+      {noShowHistoryOpen && isEditMode && worker?.profileUuid ? (
+        <NoShowHistoryModal loginId={loginId} workerProfileUuid={worker.profileUuid}
+          onClose={() => setNoShowHistoryOpen(false)}
+          onChanged={async () => {
+            const refreshedWorkers = await fetchWorkers(loginId);
+            setNoShowCount(refreshedWorkers.find(item => item.profileUuid === worker.profileUuid)?.noShowCount ?? 0);
+          }} />
+      ) : null}
     </div>
   );
 }

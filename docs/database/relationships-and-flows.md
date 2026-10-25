@@ -66,6 +66,7 @@ erDiagram
     work_schedule_day ||--o{ work_journal : "schedule_day_uuid"
     work_schedule_assignment ||--o| worker_no_show_incident : "original_assignment_uuid"
     worker_no_show_incident ||--o{ worker_no_show_incident_revision : "incident_uuid"
+    labor_agency_worker_profile o|--o{ worker_no_show_incident : "original_worker nullable (037)"
     labor_agency_worker_profile o|--o{ worker_no_show_incident : "replacement_worker"
 ```
 
@@ -151,11 +152,12 @@ erDiagram
 
 1. 노쇼 처리 전 `original_assignment_uuid`가 해당 사무소·일정에 속하는지 확인한다.
 2. 기존 assignment status와 근태 row 전체를 incident의 `previous_*`에 보관한다.
-3. 원배정은 `REPLACED`, 원 작업자 근태는 `ABSENT`로 바꾼다.
+3. 대체자 없이 등록하면 incident OPEN, 원배정/근태 ABSENT다. 대체자를 연결하면 원배정/incident REPLACED가 되며 최초 previous_*는 유지한다. 근태 화면은 활성 incident와 ABSENT를 노쇼로 구분한다.
 4. 대체 작업자가 이미 해당 일정에 배정돼 있으면 그 배정을 재사용하고, 아니면 새 등록 assignment를 만든다. 시스템 생성 여부를 `replacement_assignment_created`로 기록한다.
 5. 대체자 변경은 이전 시스템 생성 배정을 삭제 가능한지 확인한 뒤 새 대체 배정으로 교체하고 revision을 남긴다.
 6. 취소는 시스템 생성 대체 배정을 조건부 제거하고 원 assignment status와 근태 snapshot을 복원한다. incident는 `CANCELLED`가 되고 revision을 남긴다.
 7. 노쇼 횟수는 취소되지 않은 incident 이력을 조회한다. 수동 `worker_risk_flag`와는 별도다.
+8. 037부터 익명은 worker_profile_uuid가 없어도 원배정으로 연결한다. 나중에 원배정에 프로필이 연결되면 해당 사무소 프로필의 이력으로 조회한다. 기록·사유 수정·취소는 [노쇼 API](../api/no-show.md), 일상 조작은 근태/작업자 정보에서 수행한다.
 
 ### 영업일지 작성과 작업일지 저장
 

@@ -33,6 +33,12 @@ if ($LASTEXITCODE -ne 0) { throw "npm run test:api-errors failed" }
 if ($LASTEXITCODE -ne 0) { throw "npm run test:work-skill-grades failed" }
 & $npmCmd run test:journals
 if ($LASTEXITCODE -ne 0) { throw "npm run test:journals failed" }
+& $npmCmd run test:finance
+if ($LASTEXITCODE -ne 0) { throw "npm run test:finance failed" }
+& $npmCmd run test:attendance
+if ($LASTEXITCODE -ne 0) { throw "npm run test:attendance failed" }
+& $npmCmd run test:no-show
+if ($LASTEXITCODE -ne 0) { throw "npm run test:no-show failed" }
 
 Write-Host "Running TypeScript and Vite build..." -ForegroundColor Yellow
 & $npmCmd run build

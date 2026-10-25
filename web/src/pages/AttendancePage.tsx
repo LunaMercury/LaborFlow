@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   confirmPlannedAttendance,
   fetchAttendanceRecords,
@@ -12,6 +12,10 @@ import {
 import appStyles from "../App.module.css";
 import { StatusSnackbar } from "../components/StatusSnackbar";
 import { WorkerProfileModal } from "../components/WorkerProfileModal";
+import { NoShowHistoryModal } from "../components/NoShowHistoryModal";
+import { AttendanceNoShowReplacementModal } from "../components/AttendanceNoShowReplacementModal";
+import { NoShowCreateModal } from "../components/NoShowCreateModal";
+import { notifyNoShowsChanged, subscribeNoShowsChanged } from "../api/noShowApi";
 import { fetchWorkers, fetchWorkTypes } from "../api/workforceApi";
 import type { WorkerRow } from "../data/workerRows";
 import {
@@ -30,11 +34,12 @@ type AttendanceDraft = {
   actualEndTime: string;
   actualStartTime: string;
   breakMinutes: string;
-  status: AttendanceStatus;
+  status: AttendanceUiStatus;
   timeEntryType: AttendanceTimeEntryType;
 };
 
-type StatusFilter = "ALL" | AttendanceStatus;
+type AttendanceUiStatus = AttendanceStatus | "NO_SHOW";
+type StatusFilter = "ALL" | AttendanceUiStatus;
 
 type AttendanceWorkerModalState = {
   mode: "create" | "edit";
@@ -42,10 +47,11 @@ type AttendanceWorkerModalState = {
   worker?: WorkerRow;
 };
 
-const statusOptions: Array<{ label: string; value: AttendanceStatus }> = [
+const statusOptions: Array<{ label: string; value: AttendanceUiStatus }> = [
   { label: "미확인", value: "DRAFT" },
   { label: "근무", value: "WORKED" },
   { label: "결근", value: "ABSENT" },
+  { label: "노쇼", value: "NO_SHOW" },
   { label: "취소", value: "CANCELLED" },
 ];
 
@@ -95,6 +101,10 @@ function formatSelectedDate(dateValue: string) {
   }).format(new Date(year, month - 1, day));
 }
 
+function displayStatus(record: AttendanceRecord): AttendanceUiStatus {
+  return record.noShowIncidentUuid ? "NO_SHOW" : record.status;
+}
+
 function createDraft(record: AttendanceRecord): AttendanceDraft {
   const usesPlannedDefaults =
     record.status === "DRAFT" &&
@@ -104,7 +114,7 @@ function createDraft(record: AttendanceRecord): AttendanceDraft {
     actualEndTime: record.actualEndTime || (usesPlannedDefaults ? record.plannedEndTime : ""),
     actualStartTime: record.actualStartTime || (usesPlannedDefaults ? record.plannedStartTime : ""),
     breakMinutes: String(usesPlannedDefaults ? 60 : (record.breakMinutes ?? 0)),
-    status: record.status,
+    status: displayStatus(record),
     timeEntryType: usesPlannedDefaults && record.timeEntryType === "UNKNOWN"
       ? "PLANNED"
       : record.timeEntryType,
@@ -152,6 +162,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [isLoading, setIsLoading] = useState(true);
   const [isConfirmingAll, setIsConfirmingAll] = useState(false);
+  const confirmingAllRef = useRef(false);
   const [savingAssignmentUuid, setSavingAssignmentUuid] = useState<
     string | null
   >(null);
@@ -161,19 +172,31 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
   const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
   const [workerModalState, setWorkerModalState] =
     useState<AttendanceWorkerModalState | null>(null);
+  const [noShowHistoryRecord, setNoShowHistoryRecord] = useState<AttendanceRecord | null>(null);
+  const [replacementRecord, setReplacementRecord] = useState<AttendanceRecord | null>(null);
+  const [pendingNoShowRecord, setPendingNoShowRecord] = useState<AttendanceRecord | null>(null);
+  const draftStateRef = useRef({ records, drafts, taskNoteDrafts, savedTaskNotes });
+  draftStateRef.current = { records, drafts, taskNoteDrafts, savedTaskNotes };
+  const loadGeneration = useRef(0);
 
-  const loadRecords = useCallback(async () => {
+  const loadRecords = useCallback(async (preserveDrafts = false) => {
+    const generation = ++loadGeneration.current;
     setIsLoading(true);
     try {
       const response = await fetchAttendanceRecords(loginId, selectedDate);
+      if (generation !== loadGeneration.current) return;
       const nextRecords = response.records;
+      const previous = draftStateRef.current;
       setAttendanceTasks(response.tasks);
       setRecords(nextRecords);
       setDrafts(
         Object.fromEntries(
           nextRecords.map((record) => [
             record.assignmentUuid,
-            createDraft(record),
+            preserveDrafts && previous.records.some((old) =>
+              old.assignmentUuid === record.assignmentUuid && previous.drafts[old.assignmentUuid] &&
+              !draftMatchesRecord(previous.drafts[old.assignmentUuid], old))
+              ? previous.drafts[record.assignmentUuid] : createDraft(record),
           ]),
         ),
       );
@@ -181,26 +204,35 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
         response.tasks.map((task) => [task.scheduleDayUuid, task.taskNote || ""]),
       );
       setSavedTaskNotes(nextTaskNotes);
-      setTaskNoteDrafts(nextTaskNotes);
+      setTaskNoteDrafts(Object.fromEntries(response.tasks.map((task) => [task.scheduleDayUuid,
+        preserveDrafts && (previous.taskNoteDrafts[task.scheduleDayUuid] ?? "") !== (previous.savedTaskNotes[task.scheduleDayUuid] ?? "")
+          ? previous.taskNoteDrafts[task.scheduleDayUuid] : nextTaskNotes[task.scheduleDayUuid],
+      ])));
     } catch (error) {
-      setAttendanceTasks([]);
-      setRecords([]);
-      setDrafts({});
-      setSavedTaskNotes({});
-      setTaskNoteDrafts({});
+      if (generation !== loadGeneration.current) return;
+      if (!preserveDrafts) {
+        setAttendanceTasks([]);
+        setRecords([]);
+        setDrafts({});
+        setSavedTaskNotes({});
+        setTaskNoteDrafts({});
+      }
       setStatusMessage(
         error instanceof Error
           ? error.message
           : "근태 기록을 불러오지 못했습니다.",
       );
     } finally {
-      setIsLoading(false);
+      if (generation === loadGeneration.current) setIsLoading(false);
     }
   }, [loginId, selectedDate]);
 
   useEffect(() => {
     void loadRecords();
+    return () => { loadGeneration.current++; };
   }, [loadRecords]);
+
+  useEffect(() => subscribeNoShowsChanged(() => { void loadRecords(true); }), [loadRecords]);
 
   useEffect(() => {
     Promise.all([fetchWorkers(loginId), fetchWorkTypes(loginId)])
@@ -231,7 +263,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
     () =>
       statusFilter === "ALL"
         ? records
-        : records.filter((record) => record.status === statusFilter),
+        : records.filter((record) => displayStatus(record) === statusFilter),
     [records, statusFilter],
   );
 
@@ -252,12 +284,13 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
 
   const summary = useMemo(
     () => ({
-      absent: records.filter((record) => record.status === "ABSENT").length,
-      cancelled: records.filter((record) => record.status === "CANCELLED")
+      absent: records.filter((record) => displayStatus(record) === "ABSENT").length,
+      noShow: records.filter((record) => displayStatus(record) === "NO_SHOW").length,
+      cancelled: records.filter((record) => displayStatus(record) === "CANCELLED")
         .length,
-      draft: records.filter((record) => record.status === "DRAFT").length,
+      draft: records.filter((record) => displayStatus(record) === "DRAFT").length,
       total: records.length,
-      worked: records.filter((record) => record.status === "WORKED").length,
+      worked: records.filter((record) => displayStatus(record) === "WORKED").length,
     }),
     [records],
   );
@@ -291,9 +324,20 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
     if (!draft) {
       return;
     }
+    if (draft.status === "NO_SHOW" && !record.noShowIncidentUuid) {
+      setPendingNoShowRecord(record);
+      return;
+    }
 
     setSavingAssignmentUuid(record.assignmentUuid);
     try {
+      if (record.noShowIncidentUuid) {
+        setStatusMessage("노쇼 관리에서 노쇼를 취소한 뒤 근태를 수정해 주세요.");
+        return;
+      }
+      if (draft.status === "NO_SHOW") {
+        return;
+      }
       const updatedRecord = await updateAttendanceRecord(
         loginId,
         record.assignmentUuid,
@@ -358,6 +402,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
   const navigateToWorkJournal = (
     task: AttendanceTask,
     taskRecords: AttendanceRecord[],
+    destination: "journal" | "finance" = "journal",
   ) => {
     const hasUnsavedRecords = taskRecords.some((record) => {
       const draft = drafts[record.assignmentUuid] ?? createDraft(record);
@@ -368,17 +413,34 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
       (savedTaskNotes[task.scheduleDayUuid] ?? "");
     if (
       (hasUnsavedRecords || hasUnsavedNote) &&
-      !window.confirm("저장하지 않은 근태 변경사항이 있습니다. 작업일지로 이동할까요?")
+      !window.confirm(`저장하지 않은 근태 변경사항이 있습니다. ${destination === "finance" ? "금액 확인" : "작업일지"}으로 이동할까요?`)
     ) {
       return;
     }
     const returnTo = `/attendance?workDate=${encodeURIComponent(selectedDate)}`;
+    if (destination === "finance") {
+      onNavigate(`/finance?scheduleDayUuid=${encodeURIComponent(task.scheduleDayUuid)}&workDate=${encodeURIComponent(selectedDate)}`);
+      return;
+    }
     onNavigate(
       `/work-journals?scheduleDayUuid=${encodeURIComponent(task.scheduleDayUuid)}&returnTo=${encodeURIComponent(returnTo)}`,
     );
   };
 
   const handleConfirmAll = async () => {
+    if (confirmingAllRef.current || isLoading || isFutureDate || savingAssignmentUuid || savingScheduleDayUuid) return;
+    const hasUnsavedRecords = records.some((record) =>
+      !draftMatchesRecord(drafts[record.assignmentUuid] ?? createDraft(record), record),
+    );
+    const hasUnsavedNotes = attendanceTasks.some((task) =>
+      (taskNoteDrafts[task.scheduleDayUuid] ?? "") !== (savedTaskNotes[task.scheduleDayUuid] ?? ""),
+    );
+    if (hasUnsavedRecords || hasUnsavedNotes) {
+      setStatusMessage("저장하지 않은 근태 또는 메모가 있습니다. 먼저 저장한 뒤 모두 예정대로 처리해 주세요.");
+      return;
+    }
+    if (!window.confirm(`${selectedDate}의 미확정 근태를 모두 예정시간과 휴게 60분으로 근무 처리할까요?\n현재 목록 필터와 관계없이 해당 날짜 전체에 적용하며, 이미 확정된 근무·결근·취소 기록은 유지합니다.`)) return;
+    confirmingAllRef.current = true;
     setIsConfirmingAll(true);
     try {
       const confirmedCount = await confirmPlannedAttendance(loginId, {
@@ -386,7 +448,9 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
         workDate: selectedDate,
       });
       await loadRecords();
-      setStatusMessage(`${confirmedCount}명의 근태를 예정대로 확정했습니다.`);
+      setStatusMessage(confirmedCount > 0
+        ? `${confirmedCount}건의 근태를 예정대로 저장했습니다.`
+        : "처리할 미확정 근태가 없습니다.");
     } catch (error) {
       setStatusMessage(
         error instanceof Error
@@ -394,6 +458,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
           : "예정 근무를 확정하지 못했습니다.",
       );
     } finally {
+      confirmingAllRef.current = false;
       setIsConfirmingAll(false);
     }
   };
@@ -403,6 +468,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
       <section
         className={styles.attendancePanel}
         aria-labelledby="attendance-title"
+        aria-busy={isConfirmingAll}
       >
         <header className={styles.attendanceHeader}>
           <div>
@@ -415,16 +481,18 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
               isFutureDate ||
               isLoading ||
               isConfirmingAll ||
-              records.length === 0
+              savingAssignmentUuid !== null ||
+              savingScheduleDayUuid !== null ||
+              !records.some((record) => record.status === "DRAFT" || !record.confirmed)
             }
             type="button"
             onClick={() => void handleConfirmAll()}
           >
-            {isConfirmingAll ? "확정 중" : "전체 예정대로 근무"}
+            {isConfirmingAll ? "저장 중" : "모두 예정대로"}
           </button>
         </header>
 
-        <div className={styles.attendanceDateBar}>
+        <div className={styles.attendanceDateBar} inert={isConfirmingAll ? true : undefined}>
           <button
             type="button"
             onClick={() => setSelectedDate(moveDate(selectedDate, -1))}
@@ -471,6 +539,9 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
             <strong>{summary.absent}</strong> 결근
           </span>
           <span>
+            <strong>{summary.noShow}</strong> 노쇼
+          </span>
+          <span>
             <strong>{summary.cancelled}</strong> 취소
           </span>
         </div>
@@ -513,7 +584,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
               : "조건에 맞는 근태 기록이 없습니다."}
           </div>
         ) : (
-          <div className={styles.attendanceTaskList}>
+          <div className={styles.attendanceTaskList} inert={isConfirmingAll ? true : undefined}>
             {groupedRecords.map((group) => {
               const { records: taskRecords, task } = group;
               return (
@@ -540,6 +611,13 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
                         onClick={() => navigateToWorkJournal(task, taskRecords)}
                       >
                         작업일지
+                      </button>
+                      <button
+                        className={styles.attendanceJournalButton}
+                        type="button"
+                        onClick={() => navigateToWorkJournal(task, taskRecords, "finance")}
+                      >
+                        금액 확인
                       </button>
                     </div>
                   </header>
@@ -578,6 +656,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
                           const isDirty = !draftMatchesRecord(draft, record);
                           const disablesTime =
                             draft.status === "ABSENT" ||
+                            draft.status === "NO_SHOW" ||
                             draft.status === "CANCELLED";
                           const hasValidTimes =
                             isValidOptionalTime(draft.actualStartTime) &&
@@ -589,6 +668,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
                                   className={styles.attendanceWorkerIdentity}
                                 >
                                   <strong>{record.displayName}</strong>
+                                  {record.noShowIncidentUuid && record.status !== "ABSENT" ? <span className={styles.noShowWarning}>노쇼·근태 상태 확인 필요</span> : null}
                                   <span>
                                     {record.pickupLocation || "승차장소 없음"}
                                   </span>
@@ -663,13 +743,12 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
                               <td data-label="상태">
                                 <select
                                   aria-label={`${record.displayName} 근태 상태`}
-                                  disabled={isFutureDate}
+                                  disabled={isFutureDate || Boolean(record.noShowIncidentUuid)}
                                   value={draft.status}
                                   onChange={(event) =>
-                                    updateDraft(record.assignmentUuid, {
-                                      status: event.target
-                                        .value as AttendanceStatus,
-                                    })
+                                    updateDraft(record.assignmentUuid, event.target.value === "NO_SHOW"
+                                      ? { status: "NO_SHOW", actualStartTime: "", actualEndTime: "", breakMinutes: "0", timeEntryType: "UNKNOWN" }
+                                      : { status: event.target.value as AttendanceUiStatus })
                                   }
                                 >
                                   {statusOptions.map((option) => (
@@ -705,6 +784,12 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
                                 </select>
                               </td>
                               <td data-label="관리">
+                                {record.noShowIncidentUuid ? <div className={styles.noShowActions}>
+                                  <button className={styles.editAttendanceWorkerButton} type="button" onClick={() => setNoShowHistoryRecord(record)}>노쇼 관리</button>
+                                  <button className={styles.editAttendanceWorkerButton} type="button" disabled={isFutureDate} onClick={() => setReplacementRecord(record)}>
+                                    {record.noShowIncidentStatus === "REPLACED" ? "대체자 변경" : "대체자 선택"}
+                                  </button>
+                                </div> : null}
                                 <button
                                   className={styles.editAttendanceWorkerButton}
                                   type="button"
@@ -796,7 +881,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
           onSaved={(nextWorkers) => {
             setWorkers(nextWorkers);
             setWorkerModalState(null);
-            void loadRecords();
+            void loadRecords(true);
             setStatusMessage(
               workerModalState.mode === "create"
                 ? "익명 참여자를 작업자로 등록했습니다."
@@ -805,6 +890,20 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
           }}
         />
       ) : null}
+      {noShowHistoryRecord ? <NoShowHistoryModal
+        loginId={loginId}
+        workerProfileUuid={noShowHistoryRecord.workerProfileUuid ?? undefined}
+        workDate={noShowHistoryRecord.workerProfileUuid ? undefined : noShowHistoryRecord.workDate}
+        assignmentUuid={noShowHistoryRecord.assignmentUuid}
+        onClose={() => setNoShowHistoryRecord(null)}
+      /> : null}
+      {replacementRecord ? <AttendanceNoShowReplacementModal loginId={loginId} record={replacementRecord}
+        onClose={() => setReplacementRecord(null)} onSaved={() => { setReplacementRecord(null); notifyNoShowsChanged(); }} /> : null}
+      {pendingNoShowRecord ? <NoShowCreateModal loginId={loginId} record={pendingNoShowRecord}
+        onClose={() => setPendingNoShowRecord(null)} onSaved={() => {
+          setPendingNoShowRecord(null);
+          setStatusMessage("노쇼를 기록했습니다. 노쇼 관리에서 이력을 확인하거나 대체자를 선택할 수 있습니다.");
+        }} /> : null}
     </main>
   );
 }

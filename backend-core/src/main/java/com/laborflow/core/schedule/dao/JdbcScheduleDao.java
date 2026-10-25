@@ -913,6 +913,7 @@ public class JdbcScheduleDao implements ScheduleDao {
         UUID originalAssignmentUuid,
         UUID replacementWorkerProfileUuid
     ) {
+        lockNoShowChange(agencyOwnerUuid, originalAssignmentUuid);
         NoShowAssignmentContext original = jdbcTemplate.query(
             """
             SELECT a.worker_profile_uuid,
@@ -947,6 +948,20 @@ public class JdbcScheduleDao implements ScheduleDao {
         );
         if (original.workerProfileUuid().equals(replacementWorkerProfileUuid)) {
             throw new IllegalArgumentException("The no-show worker cannot replace themselves.");
+        }
+        if (original.workDate().isAfter(LocalDate.now(java.time.ZoneId.of("Asia/Seoul")))) {
+            throw new com.laborflow.core.noshow.application.NoShowException("미래 날짜에는 노쇼를 기록할 수 없습니다.");
+        }
+        if ("CANCELLED".equals(original.status())) {
+            throw new com.laborflow.core.noshow.application.NoShowException("취소된 배정에는 노쇼를 기록할 수 없습니다.");
+        }
+        Integer openCount = jdbcTemplate.queryForObject("""
+            SELECT count(*) FROM public.worker_no_show_incident
+            WHERE agency_owner_uuid=? AND original_assignment_uuid=? AND status='OPEN' AND deleted_at IS NULL
+            """,Integer.class,agencyOwnerUuid,originalAssignmentUuid);
+        if (openCount != null && openCount > 0) {
+            changeNoShowReplacement(agencyOwnerUuid,accountUuid,scheduleDayUuid,originalAssignmentUuid,replacementWorkerProfileUuid);
+            return;
         }
         if ("REPLACED".equalsIgnoreCase(original.status())) {
             UUID persistedReplacementWorkerUuid = jdbcTemplate.query(
@@ -1092,13 +1107,17 @@ public class JdbcScheduleDao implements ScheduleDao {
         UUID originalAssignmentUuid,
         UUID replacementWorkerProfileUuid
     ) {
+        lockNoShowChange(agencyOwnerUuid, originalAssignmentUuid);
         NoShowIncidentContext incident = findActiveNoShowIncident(
             agencyOwnerUuid,
             scheduleDayUuid,
             originalAssignmentUuid
         );
-        if (incident.originalWorkerProfileUuid().equals(replacementWorkerProfileUuid)) {
+        if (java.util.Objects.equals(incident.originalWorkerProfileUuid(), replacementWorkerProfileUuid)) {
             throw new IllegalArgumentException("The no-show worker cannot replace themselves.");
+        }
+        if (incident.assignmentContext().workDate().isAfter(LocalDate.now(java.time.ZoneId.of("Asia/Seoul")))) {
+            throw new com.laborflow.core.noshow.application.NoShowException("미래 날짜에는 대체 작업자를 배정할 수 없습니다.");
         }
         if (replacementWorkerProfileUuid.equals(incident.replacementWorkerProfileUuid())) {
             return;
@@ -1121,11 +1140,12 @@ public class JdbcScheduleDao implements ScheduleDao {
             SET replacement_worker_profile_uuid = ?,
                 replacement_assignment_uuid = ?,
                 replacement_assignment_created = ?,
+                status = 'REPLACED',
                 reported_by_account_uuid = ?,
                 updated_at = now()
             WHERE uuid = ?
                 AND agency_owner_uuid = ?
-                AND status = 'REPLACED'
+                AND status IN ('OPEN','REPLACED')
                 AND deleted_at IS NULL
             """,
             replacementWorkerProfileUuid,
@@ -1153,6 +1173,7 @@ public class JdbcScheduleDao implements ScheduleDao {
         UUID scheduleDayUuid,
         UUID originalAssignmentUuid
     ) {
+        lockNoShowChange(agencyOwnerUuid, originalAssignmentUuid);
         NoShowIncidentContext incident = findActiveNoShowIncident(
             agencyOwnerUuid,
             scheduleDayUuid,
@@ -1185,7 +1206,7 @@ public class JdbcScheduleDao implements ScheduleDao {
                 updated_at = now()
             WHERE uuid = ?
                 AND agency_owner_uuid = ?
-                AND status = 'REPLACED'
+                AND status IN ('OPEN','REPLACED')
                 AND deleted_at IS NULL
             """,
             accountUuid,
@@ -1287,7 +1308,8 @@ public class JdbcScheduleDao implements ScheduleDao {
             WHERE incident.agency_owner_uuid = ?
                 AND assignment.schedule_day_uuid = ?
                 AND incident.original_assignment_uuid = ?
-                AND incident.status = 'REPLACED'
+                AND incident.status IN ('OPEN','REPLACED')
+                AND assignment.agency_owner_uuid = incident.agency_owner_uuid
                 AND incident.deleted_at IS NULL
                 AND assignment.deleted_at IS NULL
             """,
@@ -1315,6 +1337,11 @@ public class JdbcScheduleDao implements ScheduleDao {
         ).stream().findFirst().orElseThrow(
             () -> new IllegalArgumentException("Active no-show incident was not found.")
         );
+    }
+
+    private void lockNoShowChange(UUID office, UUID assignment) {
+        jdbcTemplate.query("SELECT pg_advisory_xact_lock(hashtextextended('laborflow.no-show:' || ?::text,0))", rs -> { },office.toString());
+        jdbcTemplate.query("SELECT uuid FROM public.work_schedule_assignment WHERE uuid=? AND agency_owner_uuid=? FOR UPDATE", rs -> { },assignment,office);
     }
 
     private void removeNoShowReplacementAssignment(

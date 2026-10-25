@@ -8,22 +8,15 @@ import {
 } from "react";
 import {
   addGuestParticipants,
-  cancelNoShow,
-  changeNoShowReplacement,
   deleteGuestParticipants,
   deleteScheduleTaskRange,
   fetchScheduleTasks,
-  replaceNoShow,
   updateScheduleTask,
   updateGuestParticipants,
   WorkerSeparationConflictError,
   type ScheduleAssignment,
   type ScheduleTask,
 } from "../api/scheduleApi";
-import {
-  confirmPlannedAttendance,
-  type ConfirmPlannedAttendancePayload,
-} from "../api/attendanceApi";
 import {
   fetchWorkerSeparationRules,
   fetchWorkers,
@@ -37,6 +30,7 @@ import {
 import appStyles from "../App.module.css";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
 import { StatusSnackbar } from "../components/StatusSnackbar";
+import { subscribeNoShowsChanged } from "../api/noShowApi";
 import { AssignmentHistoryModal } from "../components/AssignmentHistoryModal";
 import { buildImportedAssignments } from "../components/assignmentHistory";
 import { AssignmentCautionDialog } from "../components/AssignmentCautionDialog";
@@ -85,22 +79,6 @@ type GuestParticipantGroup = {
   groupUuid: string;
   participantCount: number;
   pickupLocation: string;
-};
-
-type NoShowReplacementDraft = {
-  allowTimeConflict: boolean;
-  currentReplacementWorkerId?: string;
-  mode: "create" | "change";
-  originalAssignmentUuid: string;
-  originalWorkerId: string;
-  replacementWorkerId: string;
-  taskId: string;
-};
-
-type NoShowCancelDraft = {
-  originalAssignmentUuid: string;
-  taskId: string;
-  workerName: string;
 };
 
 type SeparationWarningDraft =
@@ -418,34 +396,6 @@ function findSeparationConflicts(
       workerIdSet.has(rule.workerProfileUuidA) &&
       workerIdSet.has(rule.workerProfileUuidB),
   );
-}
-
-function parseTimeToMinutes(value: string) {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
-
-  if (!match) {
-    return null;
-  }
-
-  return Number(match[1]) * 60 + Number(match[2]);
-}
-
-function scheduleTasksOverlap(left: ScheduleTask, right: ScheduleTask) {
-  const leftStart = parseTimeToMinutes(left.startTime);
-  const leftEnd = parseTimeToMinutes(left.endTime);
-  const rightStart = parseTimeToMinutes(right.startTime);
-  const rightEnd = parseTimeToMinutes(right.endTime);
-
-  if (
-    leftStart === null ||
-    leftEnd === null ||
-    rightStart === null ||
-    rightEnd === null
-  ) {
-    return false;
-  }
-
-  return leftStart < rightEnd && rightStart < leftEnd;
 }
 
 function getWorkTypeGroupName(workTypeName: string) {
@@ -792,6 +742,9 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
   const [workerSearchDraft, setWorkerSearchDraft] = useState("");
   const [workFilters, setWorkFilters] = useState<string[]>([]);
   const [isTeamViewEnabled, setIsTeamViewEnabled] = useState(false);
+  const [workerGenderFilter, setWorkerGenderFilter] = useState<
+    "남" | "여" | null
+  >(null);
   const [workers, setWorkers] = useState<WorkerRow[]>([]);
   const [workTypes, setWorkTypes] = useState(fallbackWorkTypeOptions);
   const [tasks, setTasks] = useState<ScheduleTask[]>([]);
@@ -814,16 +767,11 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     useState<EditingAssignmentCount | null>(null);
   const [guestParticipantDraft, setGuestParticipantDraft] =
     useState<GuestParticipantDraft | null>(null);
-  const [noShowReplacementDraft, setNoShowReplacementDraft] =
-    useState<NoShowReplacementDraft | null>(null);
-  const [noShowCancelDraft, setNoShowCancelDraft] =
-    useState<NoShowCancelDraft | null>(null);
   const [separationRules, setSeparationRules] = useState<
     WorkerSeparationRule[]
   >([]);
   const [separationWarningDraft, setSeparationWarningDraft] =
     useState<SeparationWarningDraft | null>(null);
-  const [isReplacingNoShow, setIsReplacingNoShow] = useState(false);
   const [assignmentCautions, setAssignmentCautions] = useState<AssignmentCaution[]>([]);
   const [cautionDialog, setCautionDialog] = useState<{ cautions: AssignmentCaution[]; confirm?: (acks: CautionAcknowledgement[]) => void } | null>(null);
   const [checkingCautions, setCheckingCautions] = useState(false);
@@ -838,9 +786,6 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
   );
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
   const [savingGuestParticipantKey, setSavingGuestParticipantKey] = useState<
-    string | null
-  >(null);
-  const [confirmingAttendanceKey, setConfirmingAttendanceKey] = useState<
     string | null
   >(null);
   const [assignmentHistoryTask, setAssignmentHistoryTask] = useState<ScheduleTask | null>(null);
@@ -873,67 +818,6 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     [draggingWorker],
   );
   const isDraggingWorkers = draggingWorkerIds.size > 0;
-  const noShowTask = noShowReplacementDraft
-    ? tasks.find((task) => task.id === noShowReplacementDraft.taskId) ?? null
-    : null;
-  const noShowCandidates = useMemo(() => {
-    if (!noShowReplacementDraft || !noShowTask) {
-      return [];
-    }
-
-    const targetWorkerIds = new Set(
-      noShowTask.assignments
-        .filter((assignment) => assignment.assignmentStatus !== "replaced")
-        .map((assignment) => assignment.workerProfileUuid)
-        .filter((workerId): workerId is string => Boolean(workerId)),
-    );
-
-    return workers
-      .filter((worker) => {
-        const workerId = getWorkerId(worker);
-        return (
-          worker.isActive !== false &&
-          workerId !== noShowReplacementDraft.originalWorkerId &&
-          !targetWorkerIds.has(workerId)
-        );
-      })
-      .map((worker) => {
-        const workerId = getWorkerId(worker);
-        const matchingWorkTypeCount = worker.workTypeCodes.filter((code) =>
-          noShowTask.workTypeCodes.includes(code),
-        ).length;
-        const assignedTasks = tasks.filter((task) =>
-          task.assignments.some(
-            (assignment) =>
-              assignment.workerProfileUuid === workerId &&
-              assignment.assignmentStatus !== "replaced",
-          ),
-        );
-        const timeConflicts = assignedTasks.filter((task) =>
-          scheduleTasksOverlap(noShowTask, task),
-        );
-        return { assignedTasks, matchingWorkTypeCount, timeConflicts, worker };
-      })
-      .sort(
-        (left, right) =>
-          right.matchingWorkTypeCount - left.matchingWorkTypeCount ||
-          left.assignedTasks.length - right.assignedTasks.length ||
-          getWorkerDisplayName(left.worker).localeCompare(
-            getWorkerDisplayName(right.worker),
-            "ko-KR",
-          ),
-      );
-  }, [noShowReplacementDraft, noShowTask, tasks, workers]);
-  const selectedNoShowCandidate = noShowReplacementDraft
-    ? noShowCandidates.find(
-        (candidate) =>
-          getWorkerId(candidate.worker) ===
-          noShowReplacementDraft.replacementWorkerId,
-      ) ?? null
-    : null;
-  const selectedReplacementHasTimeConflict = Boolean(
-    selectedNoShowCandidate?.timeConflicts.length,
-  );
 
   useEffect(() => {
     tasksRef.current = tasks;
@@ -1068,6 +952,15 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     };
   }, [loginId, selectedDate]);
 
+  useEffect(() => {
+    let active = true;
+    const unsubscribe = subscribeNoShowsChanged(() => {
+      void fetchWorkers(loginId).then(next => { if (active) setWorkers(next); })
+        .catch(() => { if (active) setStatusMessage("노쇼 이력 변경 후 작업자 정보를 갱신하지 못했습니다. 새로고침해 주세요."); });
+    });
+    return () => { active = false; unsubscribe(); };
+  }, [loginId]);
+
   const assignedWorkerIds = useMemo(
     () =>
       new Set(
@@ -1089,6 +982,13 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
       }
 
       if (!workerIsAvailableOnDate(worker, selectedDate)) {
+        return false;
+      }
+
+      if (
+        workerGenderFilter &&
+        getWorkerGenderLabel(worker.gender) !== workerGenderFilter
+      ) {
         return false;
       }
 
@@ -1114,7 +1014,15 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     }
 
     return { matchingWorkers, otherWorkers };
-  }, [assignedWorkerIds, selectedDate, workFilters, workTypes, workerSearchDraft, workers]);
+  }, [
+    assignedWorkerIds,
+    selectedDate,
+    workFilters,
+    workTypes,
+    workerGenderFilter,
+    workerSearchDraft,
+    workers,
+  ]);
 
   const addWorkFilter = (filterLabel: string) => {
     const nextFilter = filterLabel.trim();
@@ -1886,159 +1794,6 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
       );
     } finally {
       setSavingGuestParticipantKey(null);
-    }
-  };
-
-  const saveNoShowReplacement = async (acknowledgedCautions: CautionAcknowledgement[] = []) => {
-    if (placementSaveBusy.current || cautionGateBusy.current) return;
-    if (
-      !noShowReplacementDraft ||
-      !noShowReplacementDraft.replacementWorkerId
-    ) {
-      setStatusMessage("대체 작업자를 선택해 주세요.");
-      return;
-    }
-
-    if (
-      selectedReplacementHasTimeConflict &&
-      !noShowReplacementDraft.allowTimeConflict
-    ) {
-      setStatusMessage("시간이 겹치는 배정을 확인해 주세요.");
-      return;
-    }
-
-    setIsReplacingNoShow(true);
-    placementSaveBusy.current = true;
-    try {
-      const request = {
-        acknowledgedCautions,
-        originalAssignmentUuid:
-          noShowReplacementDraft.originalAssignmentUuid,
-        replacementWorkerProfileUuid:
-          noShowReplacementDraft.replacementWorkerId,
-      };
-      const savedTask =
-        noShowReplacementDraft.mode === "change"
-          ? await changeNoShowReplacement(
-              loginId,
-              selectedDate,
-              noShowReplacementDraft.taskId,
-              request,
-            )
-          : await replaceNoShow(
-              loginId,
-              selectedDate,
-              noShowReplacementDraft.taskId,
-              request,
-            );
-      const nextWorkers = await fetchWorkers(loginId);
-      setTasks((currentTasks) =>
-        currentTasks.map((task) =>
-          task.id === savedTask.id ? savedTask : task,
-        ),
-      );
-      setPersistedTasks((currentTasks) =>
-        currentTasks.map((task) =>
-          task.id === savedTask.id ? savedTask : task,
-        ),
-      );
-      setAssignedWorkerIdsByTaskId((currentAssignments) => ({
-        ...currentAssignments,
-        [savedTask.id]: createAssignmentDrafts([savedTask])[savedTask.id],
-      }));
-      setWorkers(nextWorkers);
-      setNoShowReplacementDraft(null);
-      setStatusMessage(
-        noShowReplacementDraft.mode === "change"
-          ? "노쇼 대체 작업자를 변경했습니다."
-          : "노쇼를 기록하고 대체 작업자를 배정했습니다.",
-      );
-    } catch (error) {
-      if (error instanceof AssignmentCautionConflictError) {
-        cautionGateBusy.current = true;
-        setCautionDialog({ cautions: error.conflicts, confirm: acks => { void saveNoShowReplacement(mergeCautionAcknowledgements(acknowledgedCautions, acks)); } });
-        setStatusMessage(""); return;
-      }
-      setStatusMessage(
-        error instanceof Error
-          ? error.message
-          : "노쇼 대체 인원을 저장하지 못했습니다.",
-      );
-    } finally {
-      placementSaveBusy.current = false;
-      setIsReplacingNoShow(false);
-    }
-  };
-
-  const confirmNoShowCancellation = async () => {
-    if (!noShowCancelDraft) {
-      return;
-    }
-
-    setIsReplacingNoShow(true);
-    try {
-      const savedTask = await cancelNoShow(
-        loginId,
-        selectedDate,
-        noShowCancelDraft.taskId,
-        noShowCancelDraft.originalAssignmentUuid,
-      );
-      const nextWorkers = await fetchWorkers(loginId);
-      setTasks((currentTasks) =>
-        currentTasks.map((task) =>
-          task.id === savedTask.id ? savedTask : task,
-        ),
-      );
-      setPersistedTasks((currentTasks) =>
-        currentTasks.map((task) =>
-          task.id === savedTask.id ? savedTask : task,
-        ),
-      );
-      setAssignedWorkerIdsByTaskId((currentAssignments) => ({
-        ...currentAssignments,
-        [savedTask.id]: createAssignmentDrafts([savedTask])[savedTask.id],
-      }));
-      setWorkers(nextWorkers);
-      setNoShowCancelDraft(null);
-      setStatusMessage("노쇼 처리를 취소하고 기존 배정을 복원했습니다.");
-    } catch (error) {
-      setStatusMessage(
-        error instanceof Error
-          ? error.message
-          : "노쇼 처리를 취소하지 못했습니다.",
-      );
-    } finally {
-      setIsReplacingNoShow(false);
-    }
-  };
-
-  const confirmAttendanceAsPlanned = async (
-    key: string,
-    payload: ConfirmPlannedAttendancePayload,
-    confirmationMessage?: string,
-  ) => {
-    if (confirmationMessage && !window.confirm(confirmationMessage)) {
-      return;
-    }
-
-    setConfirmingAttendanceKey(key);
-    setStatusMessage("");
-    try {
-      const confirmedCount = await confirmPlannedAttendance(loginId, payload);
-      await reloadSelectedDateTasks();
-      setStatusMessage(
-        confirmedCount > 0
-          ? `${confirmedCount}명의 근무를 예정대로 확인했습니다.`
-          : "확인할 저장된 배치가 없습니다.",
-      );
-    } catch (error) {
-      setStatusMessage(
-        error instanceof Error
-          ? error.message
-          : "예정 근무를 확정하지 못했습니다.",
-      );
-    } finally {
-      setConfirmingAttendanceKey(null);
     }
   };
 
@@ -2886,34 +2641,6 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
     <main className={styles.mainContent}>
       <section className={styles.workSchedulePanel} aria-label="작업자 배치">
         <div className={styles.scheduleDateBar}>
-          <div className={styles.attendanceBulkActions}>
-            <button
-              disabled={confirmingAttendanceKey !== null}
-              type="button"
-              onClick={() =>
-                confirmAttendanceAsPlanned(
-                  `date:${selectedDate}`,
-                  { scope: "DATE", workDate: selectedDate },
-                  "선택한 날짜의 저장된 배치를 모두 예정대로 근무 처리할까요?",
-                )
-              }
-            >
-              날짜 전체 예정대로
-            </button>
-            <button
-              disabled={confirmingAttendanceKey !== null}
-              type="button"
-              onClick={() =>
-                confirmAttendanceAsPlanned(
-                  `week:${selectedDate}`,
-                  { scope: "WEEK", workDate: selectedDate },
-                  "선택한 날짜가 포함된 주의 저장된 배치를 모두 예정대로 근무 처리할까요?",
-                )
-              }
-            >
-              주간 전체 예정대로
-            </button>
-          </div>
           <label className={styles.scheduleDateField}>
             <span>작업일</span>
             <div className={styles.scheduleDateControl}>
@@ -3000,16 +2727,39 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
                   ))}
                 </div>
               ) : null}
-              <label className={styles.scheduleTeamToggle}>
-                <input
-                  checked={isTeamViewEnabled}
-                  type="checkbox"
-                  onChange={(event) =>
-                    setIsTeamViewEnabled(event.target.checked)
-                  }
-                />
-                <span>팀 적용</span>
-              </label>
+              <div className={styles.scheduleWorkerFilterControls}>
+                <label className={styles.scheduleTeamToggle}>
+                  <input
+                    checked={isTeamViewEnabled}
+                    type="checkbox"
+                    onChange={(event) =>
+                      setIsTeamViewEnabled(event.target.checked)
+                    }
+                  />
+                  <span>팀 적용</span>
+                </label>
+                <div
+                  aria-label="작업자 성별 필터"
+                  className={styles.scheduleGenderFilter}
+                  role="group"
+                >
+                  {(["남", "여"] as const).map((gender) => (
+                    <button
+                      aria-pressed={workerGenderFilter === gender}
+                      className={styles.scheduleGenderFilterButton}
+                      key={gender}
+                      type="button"
+                      onClick={() =>
+                        setWorkerGenderFilter((current) =>
+                          current === gender ? null : gender,
+                        )
+                      }
+                    >
+                      {gender}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div className={styles.scheduleWorkerList}>
@@ -3239,7 +2989,6 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
                     >
                       <div className={styles.scheduleDropZoneTitle}>{label}</div>
                       {noShowRecords.map(({ assignment, worker }) => {
-                        const workerId = getWorkerId(worker);
                         const workerName = worker.name.trim();
                         const workerNickname = worker.nickname?.trim() ?? "";
                         const identityText =
@@ -3268,52 +3017,12 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
                                   노쇼 - {Math.max(worker.noShowCount ?? 1, 1)}회
                                 </b>
                               </div>
-                              <div className={styles.noShowRecordActions}>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setNoShowReplacementDraft({
-                                      allowTimeConflict: false,
-                                      currentReplacementWorkerId:
-                                        assignment.noShowReplacementWorkerProfileUuid ??
-                                        undefined,
-                                      mode: "change",
-                                      originalAssignmentUuid:
-                                        assignment.assignmentUuid as string,
-                                      originalWorkerId: workerId,
-                                      replacementWorkerId: "",
-                                      taskId: task.id,
-                                    })
-                                  }
-                                >
-                                  대체 변경
-                                </button>
-                                <button
-                                  className={styles.noShowCancelButton}
-                                  type="button"
-                                  onClick={() =>
-                                    setNoShowCancelDraft({
-                                      originalAssignmentUuid:
-                                        assignment.assignmentUuid as string,
-                                      taskId: task.id,
-                                      workerName: identityText,
-                                    })
-                                  }
-                                >
-                                  노쇼 취소
-                                </button>
-                              </div>
                             </div>
                           </div>
                         );
                       })}
                       {assignedWorkers.map((worker) => {
                         const workerId = getWorkerId(worker);
-                        const persistedAssignment = task.assignments.find(
-                          (assignment) =>
-                            assignment.workerProfileUuid === workerId &&
-                            assignment.assignmentStatus !== "replaced",
-                        );
                         const assignmentCountAction =
                           editingAssignmentCount?.taskId === task.id &&
                           editingAssignmentCount.workerId === workerId ? (
@@ -3380,63 +3089,6 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
                               </button>
                             ) : null}
                             {assignmentCountAction}
-                            {persistedAssignment?.assignmentUuid ? (
-                              <>
-                                <button
-                                  className={styles.assignmentAttendanceButton}
-                                  disabled={
-                                    confirmingAttendanceKey !== null ||
-                                    persistedAssignment.attendanceStatus ===
-                                      "worked"
-                                  }
-                                  type="button"
-                                  onClick={() =>
-                                    confirmAttendanceAsPlanned(
-                                      `assignment:${persistedAssignment.assignmentUuid}`,
-                                      {
-                                        assignmentUuid:
-                                          persistedAssignment.assignmentUuid,
-                                        scope: "ASSIGNMENT",
-                                      },
-                                    )
-                                  }
-                                  onPointerDown={(event) =>
-                                    event.stopPropagation()
-                                  }
-                                >
-                                  {persistedAssignment.attendanceStatus ===
-                                  "worked"
-                                    ? "근무 확인됨"
-                                    : "예정대로"}
-                                </button>
-                                <button
-                                  className={styles.assignmentNoShowButton}
-                                  disabled={
-                                    persistedAssignment.attendanceStatus ===
-                                      "absent" ||
-                                    persistedAssignment.attendanceStatus ===
-                                      "worked"
-                                  }
-                                  type="button"
-                                  onClick={() =>
-                                    setNoShowReplacementDraft({
-                                      allowTimeConflict: false,
-                                      mode: "create",
-                                      originalAssignmentUuid:
-                                        persistedAssignment.assignmentUuid as string,
-                                      originalWorkerId: workerId,
-                                      replacementWorkerId: "",
-                                      taskId: task.id,
-                                    })
-                                  }
-                                  onPointerDown={(event) =>
-                                    event.stopPropagation()
-                                  }
-                                >
-                                  노쇼
-                                </button>
-                              </>
-                            ) : null}
                           </div>
                         );
 
@@ -3851,30 +3503,6 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
                               >
                                 배치 불러오기
                               </button>
-                              <button
-                                className={styles.scheduleAttendanceConfirmButton}
-                                disabled={
-                                  confirmingAttendanceKey !== null || canApplyTask
-                                }
-                                title={
-                                  canApplyTask
-                                    ? "배치 변경사항을 먼저 저장해 주세요."
-                                    : undefined
-                                }
-                                type="button"
-                                onClick={() =>
-                                  confirmAttendanceAsPlanned(
-                                    `task:${task.id}`,
-                                    {
-                                      scheduleDayUuid: task.id,
-                                      scope: "SCHEDULE_DAY",
-                                    },
-                                    `${task.title} 작업의 저장된 배치를 모두 예정대로 근무 처리할까요?`,
-                                  )
-                                }
-                              >
-                                예정대로 근무
-                              </button>
                             </div>
                           </>
                         )}
@@ -4020,17 +3648,17 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
           } : undefined} /> : null}
         {separationWarningDraft ? (
           <div
-            className={styles.noShowModalBackdrop}
+            className={styles.separationWarningBackdrop}
             role="presentation"
             onPointerDown={(event) => event.stopPropagation()}
           >
             <section
               aria-labelledby="separation-warning-title"
               aria-modal="true"
-              className={styles.noShowModal}
+              className={styles.separationWarningModal}
               role="alertdialog"
             >
-              <header className={styles.noShowModalHeader}>
+              <header className={styles.separationWarningHeader}>
                 <div>
                   <h2 id="separation-warning-title">동시 배치 주의</h2>
                   <p>
@@ -4046,7 +3674,7 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
                     취소
                   </button>
                   <button
-                    className={styles.noShowConfirmButton}
+                    className={styles.separationWarningConfirmButton}
                     type="button"
                     onClick={confirmSeparationWarning}
                   >
@@ -4074,165 +3702,6 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
                   </small>
                 )}
               </div>
-            </section>
-          </div>
-        ) : null}
-        {noShowReplacementDraft && noShowTask ? (
-          <div
-            className={styles.noShowModalBackdrop}
-            role="presentation"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <section
-              aria-labelledby="no-show-replacement-title"
-              aria-modal="true"
-              className={styles.noShowModal}
-              role="dialog"
-            >
-              <header className={styles.noShowModalHeader}>
-                <div>
-                  <h2 id="no-show-replacement-title">
-                    {noShowReplacementDraft.mode === "change"
-                      ? "노쇼 대체 인원 변경"
-                      : "노쇼 대체 인원 선택"}
-                  </h2>
-                  <p>{noShowTask.title} · 가능한 작업 순으로 표시됩니다.</p>
-                </div>
-                <div>
-                  <button
-                    className={styles.noShowConfirmButton}
-                    disabled={
-                      isReplacingNoShow ||
-                      !noShowReplacementDraft.replacementWorkerId ||
-                      (selectedReplacementHasTimeConflict &&
-                        !noShowReplacementDraft.allowTimeConflict)
-                    }
-                    type="button"
-                    onClick={() => void saveNoShowReplacement()}
-                  >
-                    {noShowReplacementDraft.mode === "change"
-                      ? "변경 적용"
-                      : "대체 적용"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNoShowReplacementDraft(null)}
-                  >
-                    취소
-                  </button>
-                </div>
-              </header>
-              {selectedReplacementHasTimeConflict ? (
-                <label className={styles.noShowConflictWarning}>
-                  <input
-                    checked={noShowReplacementDraft.allowTimeConflict}
-                    type="checkbox"
-                    onChange={(event) =>
-                      setNoShowReplacementDraft({
-                        ...noShowReplacementDraft,
-                        allowTimeConflict: event.target.checked,
-                      })
-                    }
-                  />
-                  <span>
-                    선택한 작업자는 같은 시간대의 다른 작업에 배정되어 있습니다.
-                    시간 중복을 확인했습니다.
-                  </span>
-                </label>
-              ) : null}
-              <div className={styles.noShowCandidateList}>
-                {noShowCandidates.length === 0 ? (
-                  <p className={styles.noShowCandidateEmpty}>
-                    대체 가능한 작업자가 없습니다.
-                  </p>
-                ) : null}
-                {noShowCandidates.map((candidate) => {
-                  const workerId = getWorkerId(candidate.worker);
-                  const isSelected =
-                    noShowReplacementDraft.replacementWorkerId === workerId;
-                  return (
-                    <button
-                      className={isSelected ? styles.noShowCandidateSelected : ""}
-                      key={workerId}
-                      type="button"
-                      onClick={() =>
-                        setNoShowReplacementDraft({
-                          ...noShowReplacementDraft,
-                          allowTimeConflict: false,
-                          replacementWorkerId: workerId,
-                        })
-                      }
-                    >
-                      <strong>{getWorkerDisplayName(candidate.worker)}</strong>
-                      <span>
-                        일치 작업 {candidate.matchingWorkTypeCount}개 · {candidate.worker.pickupLocation || "승차장소 없음"}
-                      </span>
-                      <small
-                        className={
-                          candidate.assignedTasks.length > 0
-                            ? styles.noShowCurrentAssignment
-                            : ""
-                        }
-                      >
-                        {candidate.assignedTasks.length > 0
-                          ? `현재배정 : ${candidate.assignedTasks.map((task) => `${task.title}/${task.ownerName}`).join(", ")}`
-                          : "현재 미배정"}
-                      </small>
-                      {candidate.timeConflicts.length > 0 ? (
-                        <small className={styles.noShowTimeConflict}>
-                          시간 중복 : {candidate.timeConflicts
-                            .map(
-                              (task) =>
-                                `${task.timeRange} ${task.title}/${task.ownerName}`,
-                            )
-                            .join(", ")}
-                        </small>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          </div>
-        ) : null}
-        {noShowCancelDraft ? (
-          <div
-            className={styles.noShowModalBackdrop}
-            role="presentation"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <section
-              aria-labelledby="no-show-cancel-title"
-              aria-modal="true"
-              className={`${styles.noShowModal} ${styles.noShowCancelModal}`}
-              role="dialog"
-            >
-              <header className={styles.noShowModalHeader}>
-                <div>
-                  <h2 id="no-show-cancel-title">노쇼 처리를 취소하시겠습니까?</h2>
-                  <p>
-                    {noShowCancelDraft.workerName}의 기존 배정을 복원하고 현재
-                    대체 배정을 해제합니다.
-                  </p>
-                </div>
-                <div>
-                  <button
-                    disabled={isReplacingNoShow}
-                    type="button"
-                    onClick={() => setNoShowCancelDraft(null)}
-                  >
-                    노쇼 유지
-                  </button>
-                  <button
-                    className={styles.noShowCancelConfirmButton}
-                    disabled={isReplacingNoShow}
-                    type="button"
-                    onClick={() => void confirmNoShowCancellation()}
-                  >
-                    노쇼 취소
-                  </button>
-                </div>
-              </header>
             </section>
           </div>
         ) : null}

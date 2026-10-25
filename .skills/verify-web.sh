@@ -16,4 +16,8 @@ fi
 
 npm run test:api-errors
 npm run test:work-skill-grades
+npm run test:journals
+npm run test:finance
+npm run test:attendance
+npm run test:no-show
 npm run build

@@ -18,6 +18,8 @@ public interface AttendanceDao {
 
     List<AttendanceRecordResponse> findRecords(UUID agencyOwnerUuid, LocalDate workDate);
 
+    boolean hasActiveNoShow(UUID agencyOwnerUuid, UUID assignmentUuid);
+
     int upsertTaskNote(
         UUID agencyOwnerUuid,
         UUID accountUuid,
