@@ -32,6 +32,7 @@ public class JdbcFinanceDao implements FinanceDao {
     @Override public Optional<Source> source(UUID office, UUID day) {
         var headers = jdbc.query("""
             SELECT d.uuid, d.work_date, s.uuid site_uuid, s.owner_uuid client_uuid,
+                d.male_charge_rate, d.female_charge_rate,
                 fp.uuid client_profile_uuid,
                 COALESCE(NULLIF(fp.local_name,''),NULLIF(fp.local_nickname,''),NULLIF(fp.local_business_name,''),
                     NULLIF(fo.canonical_name,''),fo.canonical_business_name,'') client_name,
@@ -51,7 +52,8 @@ public class JdbcFinanceDao implements FinanceDao {
             WHERE s.agency_owner_uuid=? AND d.uuid=?
             """, (r,n) -> new Source(day,r.getObject("work_date",LocalDate.class),uuid(r,"client_uuid"),
                 uuid(r,"client_profile_uuid"),r.getString("client_name"),uuid(r,"site_uuid"),r.getString("site_name"),
-                r.getString("work_title"),r.getBoolean("active"),null,false,List.of()), office,day);
+                r.getString("work_title"),r.getBoolean("active"),null,false,List.of(),
+                r.getBigDecimal("male_charge_rate"),r.getBigDecimal("female_charge_rate")), office,day);
         if (headers.isEmpty()) return Optional.empty();
         Source h = headers.getFirst();
         var assignments = jdbc.query("""
@@ -61,7 +63,7 @@ public class JdbcFinanceDao implements FinanceDao {
                     ELSE COALESCE(NULLIF(p.local_name,''),NULLIF(p.local_nickname,''),w.canonical_name,'Worker') END display_name,
                 a.status assignment_status, COALESCE(att.status,'DRAFT') attendance_status,
                 (att.confirmed_at IS NOT NULL) confirmed, att.actual_start_at, att.actual_end_at,
-                att.break_minutes, a.worker_count, a.work_date, a.work_site_uuid,
+                att.break_minutes, a.worker_count, a.work_date, a.work_site_uuid, a.assignment_area,
                 att.work_date attendance_work_date, att.schedule_day_uuid attendance_day_uuid,
                 att.worker_profile_uuid attendance_worker_profile_uuid
             FROM public.work_schedule_assignment a
@@ -82,13 +84,13 @@ public class JdbcFinanceDao implements FinanceDao {
                 return new Assignment(uuid(r,"uuid"),uuid(r,"worker_profile_uuid"),r.getString("payee_key"),
                     r.getString("display_name"),r.getString("assignment_status"),r.getString("attendance_status"),
                     r.getBoolean("confirmed") && consistent,r.getObject("actual_start_at",OffsetDateTime.class),
-                    r.getObject("actual_end_at",OffsetDateTime.class),r.getObject("break_minutes",Integer.class),r.getInt("worker_count"));
+                    r.getObject("actual_end_at",OffsetDateTime.class),r.getObject("break_minutes",Integer.class),r.getInt("worker_count"),r.getString("assignment_area"));
             }, office,day);
         // Deliberately omit updated_at, confirmation timestamps, notes and mutable person names.
         String fingerprint = sourceFingerprint(new Source(day,h.workDate(),h.clientUuid(),h.clientProfileUuid(),h.clientName(),
             h.siteUuid(),h.siteName(),h.workTitle(),h.active(),null,false,assignments));
         return Optional.of(new Source(day,h.workDate(),h.clientUuid(),h.clientProfileUuid(),h.clientName(),h.siteUuid(),
-            h.siteName(),h.workTitle(),h.active(),fingerprint,ready(assignments),List.copyOf(assignments)));
+            h.siteName(),h.workTitle(),h.active(),fingerprint,ready(assignments),List.copyOf(assignments),h.maleChargeRate(),h.femaleChargeRate()));
     }
     @Override public List<UUID> sourceDays(UUID office, LocalDate from, LocalDate to) {
         return jdbc.query("""

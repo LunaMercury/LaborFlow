@@ -274,7 +274,7 @@
 ## 노쇼 대체
 
 노쇼 생성·이력 관리의 주 화면은 [근태/작업자 정보](no-show.md)로 이동했다. 기존 세 API의 경로는 호환성을 위해 유지한다.
-POST는 등록 작업자의 원배정, PUT/DELETE는 등록·익명의 활성 노쇼 사건을 다룬다. 대체자는 현재 사무소의 등록 작업자 프로필이다.
+POST는 등록·익명 작업자의 원배정을 다루고 사건이 없으면 생성한다. PUT/DELETE는 등록·익명의 활성 노쇼 사건을 다룬다. 대체자는 현재 사무소의 등록 작업자 프로필이다.
 
 ```json
 {
@@ -286,9 +286,9 @@ POST는 등록 작업자의 원배정, PUT/DELETE는 등록·익명의 활성 �
 ### `POST /api/schedule/tasks/{scheduleDayUuid}/no-show-replacement`
 
 - 쿼리: `loginId`, `workDate` 필수.
-- 검증: 일정/대체 작업자 사무소 범위, 두 UUID 필수, 원배정은 해당 일정의 활성 REGISTERED, 자기 자신 대체 금지.
+- 검증: 일정/대체 작업자 사무소 범위, 두 UUID 필수, 원배정은 해당 일정의 삭제되지 않은 REGISTERED/GUEST, 자기 자신 대체 금지. 미래 날짜와 취소된 원배정은 거부한다. 기존 근태·활성 노쇼 사건은 필수 선행 조건이 아니다.
 - 저장: 원배정 근태를 `ABSENT/UNKNOWN`, 실제시간 null, 휴게 0으로 upsert하고 원배정을 `REPLACED`로 바꾼다. 대체자가 같은 일정에 이미 있으면 기존 배정을 연결하고, 없으면 원배정 영역/시간을 복사한 새 REGISTERED 배정을 만든다. 노쇼 incident와 revision을 기록한다.
-- 같은 대체자로 동일 요청: 이미 교체된 상태면 성공 no-op 후 일정 반환. 다른 대체자로 POST 반복은 `400`; 변경 API를 사용해야 한다.
+- 기존 활성 사건이 있으면 PUT과 같은 대체자 변경 경로로 연결하여 최초 previous_* 스냅샷을 보존한다. 같은 대체자로 동일 요청은 no-op, 다른 대체자면 변경 이력을 남긴다. 실패 시 같은 트랜잭션의 새 노쇼/근태/대체 배정을 함께 롤백한다.
 
 ### `PUT /api/schedule/tasks/{scheduleDayUuid}/no-show-replacement`
 
@@ -308,6 +308,18 @@ POST는 등록 작업자의 원배정, PUT/DELETE는 등록·익명의 활성 �
 - 동시 배치 주의 규칙도 노쇼 대체 API에는 적용되지 않는다.
 
 근거: `ScheduleController.replaceNoShow/changeNoShowReplacement/cancelNoShow`, `ScheduleService`, `JdbcScheduleDao.replaceNoShow/changeNoShowReplacement/cancelNoShow`, `AttendanceNoShowReplacementModal`, 대응 `scheduleApi` 함수.
+
+## 일정 농가 청구 단가
+
+2026-10-25 migration 038. 일정 생성·단건 수정·범위 상세 수정 요청에 선택 필드
+`chargeRates: { "male": 160000, "female": 140000 }`를 추가했다. 응답 ScheduleTask에도 같은 객체가 있다.
+각 값은 null 또는 0..999999999999의 정수 원화다. 작업자에게 지급할 단가가 아니다.
+
+- 생성에서 생략/null이면 미입력. 수정에서 객체 생략/null이면 기존 값 유지, 객체 안 null이면 해당 영역 단가 삭제다. 0은 명시적 0원이다.
+- 날짜별 `work_schedule_day`에 저장한다. 범위 상세 수정은 해당 블록의 모든 날짜에 적용하며, 일정 이동은 값을 유지하고 기간 확장 시 마지막 날짜의 단가를 복사한다.
+- 배치·메모 등 기존 호출이 chargeRates를 생략해도 단가를 지우지 않는다. 사무소 소유권 검사를 유지하며 일정 저장 트랜잭션에 포함된다.
+- 정산 초안의 적용 규칙은 [수익·정산 API](finance.md#일정-청구단가-연결)를 참고한다.
+- 근거: ScheduleChargeRates, ScheduleService.validateChargeRates, JdbcScheduleDao.setScheduleDayChargeRates/setCreatedTaskChargeRates/insertScheduleDayFromTemplate.
 
 ## 다일 일정 범위
 

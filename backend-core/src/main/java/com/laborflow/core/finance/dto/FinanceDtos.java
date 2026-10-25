@@ -10,10 +10,25 @@ public final class FinanceDtos {
     private FinanceDtos() { }
     public record Assignment(UUID assignmentUuid, UUID workerProfileUuid, String payeeKey,
         String displayName, String assignmentStatus, String attendanceStatus, boolean confirmed,
-        OffsetDateTime actualStartAt, OffsetDateTime actualEndAt, Integer breakMinutes, int workerCount) { }
+        OffsetDateTime actualStartAt, OffsetDateTime actualEndAt, Integer breakMinutes, int workerCount, String area) {
+        public Assignment(UUID assignmentUuid, UUID workerProfileUuid, String payeeKey,
+            String displayName, String assignmentStatus, String attendanceStatus, boolean confirmed,
+            OffsetDateTime actualStartAt, OffsetDateTime actualEndAt, Integer breakMinutes, int workerCount) {
+            this(assignmentUuid, workerProfileUuid, payeeKey, displayName, assignmentStatus, attendanceStatus, confirmed,
+                actualStartAt, actualEndAt, breakMinutes, workerCount, null);
+        }
+    }
     public record Source(UUID scheduleDayUuid, LocalDate workDate, UUID clientUuid,
         UUID clientProfileUuid, String clientName, UUID siteUuid, String siteName, String workTitle,
-        boolean active, String fingerprint, boolean attendanceReady, List<Assignment> assignments) { }
+        boolean active, String fingerprint, boolean attendanceReady, List<Assignment> assignments,
+        BigDecimal maleChargeRate, BigDecimal femaleChargeRate) {
+        public Source(UUID scheduleDayUuid, LocalDate workDate, UUID clientUuid, UUID clientProfileUuid,
+            String clientName, UUID siteUuid, String siteName, String workTitle, boolean active,
+            String fingerprint, boolean attendanceReady, List<Assignment> assignments) {
+            this(scheduleDayUuid, workDate, clientUuid, clientProfileUuid, clientName, siteUuid, siteName, workTitle,
+                active, fingerprint, attendanceReady, assignments, null, null);
+        }
+    }
     public record LineInput(UUID assignmentUuid, String mode, BigDecimal quantity,
         BigDecimal chargeRate, BigDecimal payRate, BigDecimal chargeAmount, BigDecimal payAmount,
         boolean override, LocalDate payoutDueDate, String note) { }

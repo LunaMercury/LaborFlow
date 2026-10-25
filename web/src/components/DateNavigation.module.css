@@ -1,0 +1,88 @@
+.bar {
+  align-items: center;
+  background: var(--color-pages-work-schedule-page-schedule-date-bar-background);
+  border: 1px solid var(--color-pages-work-schedule-page-schedule-date-bar-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 26px var(--color-pages-work-schedule-page-schedule-date-bar-shadow-color);
+  display: flex;
+  justify-content: flex-end;
+  min-height: 58px;
+  min-width: 0;
+  padding: 10px 14px;
+  width: 100%;
+}
+
+.control {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.single { grid-template-columns: auto auto minmax(150px, 190px) auto auto; }
+.range { grid-template-columns: auto repeat(2, minmax(150px, 190px)) auto auto; }
+
+.label {
+  color: var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-text);
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.control .moveButton {
+  appearance: none;
+  background: var(--color-pages-work-schedule-page-schedule-date-move-button-background);
+  border: 1px solid var(--color-pages-work-schedule-page-schedule-date-move-button-border);
+  border-radius: 8px;
+  color: var(--color-pages-work-schedule-page-schedule-date-move-button-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  min-height: 35px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.moveButton:hover:not(:disabled) {
+  background: var(--color-pages-work-schedule-page-schedule-date-move-button-hover-background);
+  border-color: var(--color-pages-work-schedule-page-schedule-date-move-button-hover-border);
+  cursor: pointer;
+}
+
+.moveButton:disabled { cursor: default; opacity: .55; }
+
+.dateInput {
+  appearance: none;
+  background: var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-background);
+  border: 1px solid var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-border);
+  border-radius: 8px;
+  color: var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-text-2);
+  font: inherit;
+  min-height: 35px;
+  min-width: 0;
+  padding: 0 12px;
+  width: 100%;
+}
+
+.dateInput:focus, .moveButton:focus-visible {
+  border-color: var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-focus-focus-border);
+  box-shadow: 0 0 0 3px var(--color-pages-work-schedule-page-schedule-date-field-schedule-filter-field-focus-focus-shadow-color);
+  outline: 0;
+}
+
+@media (max-width: 600px) {
+  .bar { padding: 10px; }
+  .control { width: 100%; }
+  .single { grid-template-columns: auto auto minmax(0, 1fr) auto auto; gap: 4px; }
+  .label { font-size: 11px; }
+  .control .moveButton { font-size: 11px; padding: 0 6px; }
+  .dateInput { font-size: 12px; padding: 0 4px; }
+  .range { grid-template-columns: auto repeat(2, minmax(0, 1fr)) auto auto; gap: 4px; }
+}
+
+@media (max-width: 380px) {
+  .range { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .range > .dateInput { grid-column: span 3; grid-row: 1; }
+  .range > button { grid-column: span 2; grid-row: 2; }
+}

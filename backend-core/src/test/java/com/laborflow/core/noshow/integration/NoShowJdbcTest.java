@@ -149,4 +149,59 @@ class NoShowJdbcTest {
         jdbc.update("INSERT INTO labor_agency_worker_profile(uuid,agency_owner_uuid,worker_uuid,local_name) VALUES(?,?,?,'Replacement fixture')",p,office,w);
         return p;
     }
+
+    @Test void directReplacementWithoutAttendanceCreatesOneIncidentAndCanChangeOrCancel() {
+        jdbc.update("DELETE FROM worker_attendance_record WHERE assignment_uuid=?",assignment);
+        UUID first=anotherWorker(),second=anotherWorker();
+        tx().executeWithoutResult(s->schedule.replaceNoShow(office,account,day,assignment,first));
+        var incident=dao.byAssignment(office,assignment).orElseThrow();
+        assertThat(incident.status()).isEqualTo("REPLACED");
+        assertThat(incident.replacementWorkerProfileUuid()).isEqualTo(first);
+        assertThat(attendanceStatus()).isEqualTo("ABSENT");
+        tx().executeWithoutResult(s->schedule.replaceNoShow(office,account,day,assignment,first));
+        assertThat(dao.byAssignment(office,assignment).orElseThrow().revisions()).hasSize(1);
+        tx().executeWithoutResult(s->schedule.replaceNoShow(office,account,day,assignment,second));
+        assertThat(dao.byAssignment(office,assignment).orElseThrow().replacementWorkerProfileUuid()).isEqualTo(second);
+        service.cancel(login(),incident.uuid(),new Cancel("가상 대체 취소"));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM worker_attendance_record WHERE assignment_uuid=? AND deleted_at IS NULL",Integer.class,assignment)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM work_schedule_assignment WHERE worker_profile_uuid IN (?,?) AND deleted_at IS NULL",Integer.class,first,second)).isZero();
+    }
+
+    @Test void directAnonymousReplacementDoesNotRequireARegisteredOriginalOrAnIncident() {
+        jdbc.update("UPDATE work_schedule_assignment SET participant_type='GUEST',worker_profile_uuid=NULL,participant_display_name='Fiction guest' WHERE uuid=?",assignment);
+        jdbc.update("UPDATE worker_attendance_record SET worker_profile_uuid=NULL WHERE assignment_uuid=?",assignment);
+        UUID replacement=anotherWorker();
+        tx().executeWithoutResult(s->schedule.replaceNoShow(office,account,day,assignment,replacement));
+        var incident=dao.byAssignment(office,assignment).orElseThrow();
+        assertThat(incident.workerProfileUuid()).isNull();
+        assertThat(incident.status()).isEqualTo("REPLACED");
+        assertThat(attendanceStatus()).isEqualTo("ABSENT");
+        service.cancel(login(),incident.uuid(),new Cancel("가상 익명 대체 취소"));
+        assertThat(attendanceStatus()).isEqualTo("WORKED");
+        assertThat(jdbc.queryForObject("SELECT break_minutes FROM worker_attendance_record WHERE assignment_uuid=? AND deleted_at IS NULL",Integer.class,assignment)).isEqualTo(30);
+    }
+
+    @Test void directReplacementOfAnOpenIncidentKeepsTheOriginalWorkedSnapshot() {
+        var incident=mark();
+        tx().executeWithoutResult(s->schedule.replaceNoShow(office,account,day,assignment,anotherWorker()));
+        service.cancel(login(),incident.uuid(),new Cancel("원래 근태 복원"));
+        assertThat(attendanceStatus()).isEqualTo("WORKED");
+        assertThat(jdbc.queryForObject("SELECT break_minutes FROM worker_attendance_record WHERE assignment_uuid=? AND deleted_at IS NULL",Integer.class,assignment)).isEqualTo(30);
+    }
+
+    @Test void failedDirectReplacementRollsBackTheNewNoShowAndOriginalAttendance() {
+        assertThatThrownBy(()->tx().executeWithoutResult(s->schedule.replaceNoShow(office,account,day,assignment,UUID.randomUUID())))
+            .isInstanceOf(RuntimeException.class);
+        assertThat(dao.byAssignment(office,assignment)).isEmpty();
+        assertThat(attendanceStatus()).isEqualTo("WORKED");
+        assertThat(jdbc.queryForObject("SELECT status FROM work_schedule_assignment WHERE uuid=?",String.class,assignment)).isEqualTo("PLANNED");
+    }
+
+    @Test void directReplacementCannotModifyAForeignOriginalAssignment() {
+        UUID foreign=UUID.randomUUID();
+        assertThatThrownBy(()->tx().executeWithoutResult(s->schedule.replaceNoShow(foreign,account,day,assignment,anotherWorker())))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThat(dao.byAssignment(office,assignment)).isEmpty();
+        assertThat(attendanceStatus()).isEqualTo("WORKED");
+    }
 }

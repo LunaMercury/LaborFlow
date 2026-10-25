@@ -91,6 +91,19 @@ sourceStatus `READY|ATTENDANCE_UNCONFIRMED|NO_WORKED_ATTENDANCE|UNAVAILABLE`, re
 currentSource, snapshot, totals, revisions. Snapshot에 당시 거래처/현장/작업자와 예정일·금액을 보존한다.
 정확한 필드·null 가능성은 `FinanceDtos`의 Source/Assignment/Snapshot/Line/Extra/Work/Summary record가 근거다.
 
+## 일정 청구단가 연결
+
+2026-10-25 migration 038: `currentSource`에 maleChargeRate/femaleChargeRate(nullable 금액),
+각 assignments에 area(MEN/WOMEN)를 추가한다. area는 작업자의 성별이 아니라 배치 영역이다.
+새 정산 초안에서 OFFICE의 청구 단가는 작업자 예외 → 일정 영역별 단가 → 거래처 기본값 → 사무소 기본값 순으로 선택한다.
+일정 단가가 미입력이면 기존 기본값으로 돌아가고, 0원은 유지한다. 작업자 지급 단가에는 적용하지 않는다.
+DIRECT의 사무소 청구액은 소개료이므로 일정 인건비를 소개료나 작업자 직접 지급액으로 자동 대입하지 않는다.
+
+조회만으로 초안을 만들지 않는다. 작업 금액 팝업에서 일정 단가를 표시하고 명시적 초안 생성 시 자동 반영한다.
+기존 초안/확정 금액은 조회·일정 단가 수정으로 재계산하지 않는다. DRAFT에서 `미입력 청구 단가 채우기`를 누르면
+OFFICE이면서 개별 수정이 없고 chargeRate와 chargeAmount가 모두 null인 행만 화면에서 채우며, 저장 전 DB는 변경하지 않는다.
+일정 단가는 기본값 제안으로 취급하여 기존 근태 fingerprint의 정의를 바꾸지 않는다. 이미 확정한 금액·입출금은 그대로다.
+
 ## 잔액과 입출금
 
 ### `GET /balances?kind&filter`

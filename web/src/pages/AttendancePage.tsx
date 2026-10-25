@@ -11,6 +11,8 @@ import {
 } from "../api/attendanceApi";
 import appStyles from "../App.module.css";
 import { StatusSnackbar } from "../components/StatusSnackbar";
+import { DateNavigation } from "../components/DateNavigation";
+import { isValidDateInput } from "../components/dateNavigationHelpers";
 import { WorkerProfileModal } from "../components/WorkerProfileModal";
 import { NoShowHistoryModal } from "../components/NoShowHistoryModal";
 import { AttendanceNoShowReplacementModal } from "../components/AttendanceNoShowReplacementModal";
@@ -78,27 +80,7 @@ function todayValue() {
 
 function initialAttendanceDate() {
   const workDate = new URLSearchParams(window.location.search).get("workDate");
-  if (!workDate || !/^\d{4}-\d{2}-\d{2}$/.test(workDate)) {
-    return todayValue();
-  }
-
-  const [year, month, day] = workDate.split("-").map(Number);
-  const parsedDate = new Date(year, month - 1, day);
-  return toDateInputValue(parsedDate) === workDate ? workDate : todayValue();
-}
-
-function moveDate(dateValue: string, offset: number) {
-  const [year, month, day] = dateValue.split("-").map(Number);
-  return toDateInputValue(new Date(year, month - 1, day + offset));
-}
-
-function formatSelectedDate(dateValue: string) {
-  const [year, month, day] = dateValue.split("-").map(Number);
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  }).format(new Date(year, month - 1, day));
+  return workDate && isValidDateInput(workDate) ? workDate : todayValue();
 }
 
 function displayStatus(record: AttendanceRecord): AttendanceUiStatus {
@@ -161,7 +143,8 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
   const [taskNoteDrafts, setTaskNoteDrafts] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [isLoading, setIsLoading] = useState(true);
-  const [isConfirmingAll, setIsConfirmingAll] = useState(false);
+  const [confirmingScheduleDayUuid, setConfirmingScheduleDayUuid] = useState<string | null>(null);
+  const isConfirmingAll = confirmingScheduleDayUuid !== null;
   const confirmingAllRef = useRef(false);
   const [savingAssignmentUuid, setSavingAssignmentUuid] = useState<
     string | null
@@ -195,6 +178,8 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
             record.assignmentUuid,
             preserveDrafts && previous.records.some((old) =>
               old.assignmentUuid === record.assignmentUuid && previous.drafts[old.assignmentUuid] &&
+              old.noShowIncidentUuid === record.noShowIncidentUuid &&
+              old.noShowIncidentStatus === record.noShowIncidentStatus &&
               !draftMatchesRecord(previous.drafts[old.assignmentUuid], old))
               ? previous.drafts[record.assignmentUuid] : createDraft(record),
           ]),
@@ -413,7 +398,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
       (savedTaskNotes[task.scheduleDayUuid] ?? "");
     if (
       (hasUnsavedRecords || hasUnsavedNote) &&
-      !window.confirm(`저장하지 않은 근태 변경사항이 있습니다. ${destination === "finance" ? "금액 확인" : "작업일지"}으로 이동할까요?`)
+      !window.confirm(`저장하지 않은 근태 변경사항이 있습니다. ${destination === "finance" ? "수익·정산" : "작업일지"}으로 이동할까요?`)
     ) {
       return;
     }
@@ -427,27 +412,27 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
     );
   };
 
-  const handleConfirmAll = async () => {
+  const handleConfirmTask = async (task: AttendanceTask) => {
     if (confirmingAllRef.current || isLoading || isFutureDate || savingAssignmentUuid || savingScheduleDayUuid) return;
-    const hasUnsavedRecords = records.some((record) =>
+    const taskRecords = records.filter((record) => record.scheduleDayUuid === task.scheduleDayUuid);
+    const hasUnsavedRecords = taskRecords.some((record) =>
       !draftMatchesRecord(drafts[record.assignmentUuid] ?? createDraft(record), record),
     );
-    const hasUnsavedNotes = attendanceTasks.some((task) =>
-      (taskNoteDrafts[task.scheduleDayUuid] ?? "") !== (savedTaskNotes[task.scheduleDayUuid] ?? ""),
-    );
+    const hasUnsavedNotes = (taskNoteDrafts[task.scheduleDayUuid] ?? "") !== (savedTaskNotes[task.scheduleDayUuid] ?? "");
     if (hasUnsavedRecords || hasUnsavedNotes) {
-      setStatusMessage("저장하지 않은 근태 또는 메모가 있습니다. 먼저 저장한 뒤 모두 예정대로 처리해 주세요.");
+      setStatusMessage("이 작업에 저장하지 않은 근태 또는 메모가 있습니다. 먼저 저장한 뒤 모두 예정대로 처리해 주세요.");
       return;
     }
-    if (!window.confirm(`${selectedDate}의 미확정 근태를 모두 예정시간과 휴게 60분으로 근무 처리할까요?\n현재 목록 필터와 관계없이 해당 날짜 전체에 적용하며, 이미 확정된 근무·결근·취소 기록은 유지합니다.`)) return;
+    if (!taskRecords.some((record) => !record.noShowIncidentUuid && record.status !== "ABSENT" && record.status !== "CANCELLED" && (record.status === "DRAFT" || !record.confirmed))) return;
+    if (!window.confirm(`${selectedDate} ${task.workTitle} / ${task.ownerName}의 미확정 근태를 예정시간과 휴게 60분으로 근무 처리할까요?\n현재 목록 필터와 관계없이 이 작업에만 적용하며, 이미 확정된 근무·결근·노쇼·취소 기록은 유지합니다.`)) return;
     confirmingAllRef.current = true;
-    setIsConfirmingAll(true);
+    setConfirmingScheduleDayUuid(task.scheduleDayUuid);
     try {
       const confirmedCount = await confirmPlannedAttendance(loginId, {
-        scope: "DATE",
-        workDate: selectedDate,
+        scope: "SCHEDULE_DAY",
+        scheduleDayUuid: task.scheduleDayUuid,
       });
-      await loadRecords();
+      await loadRecords(true);
       setStatusMessage(confirmedCount > 0
         ? `${confirmedCount}건의 근태를 예정대로 저장했습니다.`
         : "처리할 미확정 근태가 없습니다.");
@@ -459,7 +444,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
       );
     } finally {
       confirmingAllRef.current = false;
-      setIsConfirmingAll(false);
+      setConfirmingScheduleDayUuid(null);
     }
   };
 
@@ -475,55 +460,9 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
             <p className={styles.sectionLabel}>근태 관리</p>
             <h1 id="attendance-title">일별 근무 기록</h1>
           </div>
-          <button
-            className={styles.confirmPlannedButton}
-            disabled={
-              isFutureDate ||
-              isLoading ||
-              isConfirmingAll ||
-              savingAssignmentUuid !== null ||
-              savingScheduleDayUuid !== null ||
-              !records.some((record) => record.status === "DRAFT" || !record.confirmed)
-            }
-            type="button"
-            onClick={() => void handleConfirmAll()}
-          >
-            {isConfirmingAll ? "저장 중" : "모두 예정대로"}
-          </button>
         </header>
 
-        <div className={styles.attendanceDateBar} inert={isConfirmingAll ? true : undefined}>
-          <button
-            type="button"
-            onClick={() => setSelectedDate(moveDate(selectedDate, -1))}
-          >
-            이전
-          </button>
-          <label className={styles.attendanceDateField}>
-            <span>{formatSelectedDate(selectedDate)}</span>
-            <input
-              aria-label="근태 날짜 선택"
-              type="date"
-              value={selectedDate}
-              onChange={(event) =>
-                setSelectedDate(event.target.value || todayValue())
-              }
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => setSelectedDate(moveDate(selectedDate, 1))}
-          >
-            다음
-          </button>
-          <button
-            className={styles.todayButton}
-            type="button"
-            onClick={() => setSelectedDate(todayValue())}
-          >
-            오늘
-          </button>
-        </div>
+        <DateNavigation value={selectedDate} today={todayValue()} onChange={setSelectedDate} inputLabel="근태 날짜 선택" disabled={isConfirmingAll} />
 
         <div className={styles.attendanceSummary} aria-label="근태 현황 요약">
           <span>
@@ -617,7 +556,15 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
                         type="button"
                         onClick={() => navigateToWorkJournal(task, taskRecords, "finance")}
                       >
-                        금액 확인
+                        수익·정산
+                      </button>
+                      <button
+                        className={styles.confirmPlannedButton}
+                        disabled={isFutureDate || isLoading || isConfirmingAll || savingAssignmentUuid !== null || savingScheduleDayUuid !== null || !records.some((record) => record.scheduleDayUuid === task.scheduleDayUuid && !record.noShowIncidentUuid && record.status !== "ABSENT" && record.status !== "CANCELLED" && (record.status === "DRAFT" || !record.confirmed))}
+                        type="button"
+                        onClick={() => void handleConfirmTask(task)}
+                      >
+                        {confirmingScheduleDayUuid === task.scheduleDayUuid ? "저장 중" : "모두 예정대로 근무"}
                       </button>
                     </div>
                   </header>
@@ -784,12 +731,12 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
                                 </select>
                               </td>
                               <td data-label="관리">
-                                {record.noShowIncidentUuid ? <div className={styles.noShowActions}>
-                                  <button className={styles.editAttendanceWorkerButton} type="button" onClick={() => setNoShowHistoryRecord(record)}>노쇼 관리</button>
-                                  <button className={styles.editAttendanceWorkerButton} type="button" disabled={isFutureDate} onClick={() => setReplacementRecord(record)}>
+                                <div className={styles.noShowActions}>
+                                  {record.noShowIncidentUuid ? <button className={styles.editAttendanceWorkerButton} type="button" onClick={() => setNoShowHistoryRecord(record)}>노쇼 관리</button> : null}
+                                  <button className={styles.editAttendanceWorkerButton} type="button" disabled={isFutureDate || record.status === "CANCELLED"} onClick={() => setReplacementRecord(record)}>
                                     {record.noShowIncidentStatus === "REPLACED" ? "대체자 변경" : "대체자 선택"}
                                   </button>
-                                </div> : null}
+                                </div>
                                 <button
                                   className={styles.editAttendanceWorkerButton}
                                   type="button"
@@ -810,7 +757,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
                                   type="button"
                                   onClick={() => void handleSave(record)}
                                 >
-                                  {isSaving ? "저장 중" : "저장"}
+                                  {isSaving ? "저장 중" : draft.status === "NO_SHOW" && !record.noShowIncidentUuid ? "노쇼 기록" : "저장"}
                                 </button>
                               </td>
                             </tr>
@@ -898,7 +845,7 @@ export function AttendancePage({ loginId, onNavigate }: AttendancePageProps) {
         onClose={() => setNoShowHistoryRecord(null)}
       /> : null}
       {replacementRecord ? <AttendanceNoShowReplacementModal loginId={loginId} record={replacementRecord}
-        onClose={() => setReplacementRecord(null)} onSaved={() => { setReplacementRecord(null); notifyNoShowsChanged(); }} /> : null}
+        onClose={() => setReplacementRecord(null)} onSaved={() => { setReplacementRecord(null); setStatusMessage("노쇼 기록과 대체 배정을 적용했습니다."); notifyNoShowsChanged(); }} /> : null}
       {pendingNoShowRecord ? <NoShowCreateModal loginId={loginId} record={pendingNoShowRecord}
         onClose={() => setPendingNoShowRecord(null)} onSaved={() => {
           setPendingNoShowRecord(null);

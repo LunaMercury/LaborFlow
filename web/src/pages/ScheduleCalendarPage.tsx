@@ -14,9 +14,11 @@ import {
   rescheduleScheduleRange,
   updateScheduleTaskRange,
   type FarmOwnerOption,
+  type ScheduleChargeRates,
   type ScheduleTask,
 } from "../api/scheduleApi";
 import appStyles from "../App.module.css";
+import { IntegerMoneyInput } from "../components/IntegerMoneyInput";
 import { useUnsavedChangesGuard } from "../hooks/useUnsavedChangesGuard";
 import calendarStyles from "./ScheduleCalendarPage.module.css";
 
@@ -36,6 +38,7 @@ type DatedScheduleTask = ScheduleTask & {
 };
 
 type CalendarEvent = {
+  chargeRates: ScheduleChargeRates;
   assignments: ScheduleTask["assignments"];
   address: string;
   assignmentsCount: number;
@@ -120,6 +123,7 @@ type CalendarDragPreview = {
 };
 
 type ScheduleCreateDraft = {
+  chargeRates: ScheduleChargeRates;
   address: string;
   clientWorkSiteUuid: string;
   endDate: string;
@@ -142,6 +146,7 @@ type ScheduleCreateDraft = {
 };
 
 type ScheduleEditDraft = {
+  chargeRates: ScheduleChargeRates;
   address: string;
   clientWorkSiteUuid: string;
   endDate: string;
@@ -182,6 +187,7 @@ function toInputDate(date: Date) {
 
 function createEmptyScheduleDraft(date: string): ScheduleCreateDraft {
   return {
+    chargeRates: { male: null, female: null },
     address: "",
     clientWorkSiteUuid: "",
     endDate: date,
@@ -206,6 +212,7 @@ function createEmptyScheduleDraft(date: string): ScheduleCreateDraft {
 
 function createEditScheduleDraft(event: CalendarEvent): ScheduleEditDraft {
   return {
+    chargeRates: { ...event.chargeRates },
     address: event.address,
     clientWorkSiteUuid: event.clientWorkSiteUuid ?? "",
     endDate: event.endDate,
@@ -526,11 +533,13 @@ function createEventGroupKey(task: DatedScheduleTask) {
     task.address,
     task.startTime,
     task.endTime,
+    JSON.stringify([task.chargeRates?.male ?? null, task.chargeRates?.female ?? null]),
   ].join("|");
 }
 
 function taskToEvent(task: DatedScheduleTask): CalendarEvent {
   return {
+    chargeRates: { male: task.chargeRates?.male ?? null, female: task.chargeRates?.female ?? null },
     assignments: task.assignments,
     address: task.address,
     assignmentsCount: task.assignments.reduce(
@@ -1411,6 +1420,7 @@ export function ScheduleCalendarPage({
     setIsCreatingSchedule(true);
     try {
       await createScheduleTask(loginId, {
+        chargeRates: createDraft.chargeRates,
         address: createDraft.address.trim(),
         clientWorkSiteUuid: createDraft.clientWorkSiteUuid || null,
         endDate: createDraft.endDate,
@@ -1520,6 +1530,7 @@ export function ScheduleCalendarPage({
     setIsUpdatingSchedule(true);
     try {
       await updateScheduleTaskRange(loginId, {
+        chargeRates: editDraft.chargeRates,
         address,
         clientWorkSiteUuid: editDraft.clientWorkSiteUuid || null,
         endDate: editDraft.endDate,
@@ -1543,6 +1554,7 @@ export function ScheduleCalendarPage({
             ? {
                 ...calendarEvent,
                 address,
+                chargeRates: { ...editDraft.chargeRates },
                 clientWorkSiteUuid: editDraft.clientWorkSiteUuid || null,
                 endDate: editDraft.endDate,
                 endTime: editDraft.endTime,
@@ -2399,6 +2411,28 @@ export function ScheduleCalendarPage({
                   </button>
                 </div>
 
+                <fieldset className={styles.scheduleChargeRates}>
+                  <legend>농가 청구단가 · 1인 기준 (원)</legend>
+                  <div className={styles.scheduleChargeRateColumns}>
+                    <label>
+                      <span>남자 인건비</span>
+                      <IntegerMoneyInput
+                        value={createDraft.chargeRates.male}
+                        disabled={isCreatingSchedule}
+                        onChange={(male) => setCreateDraft((draft) => ({ ...draft, chargeRates: { ...draft.chargeRates, male } }))}
+                      />
+                    </label>
+                    <label>
+                      <span>여자 인건비</span>
+                      <IntegerMoneyInput
+                        value={createDraft.chargeRates.female}
+                        disabled={isCreatingSchedule}
+                        onChange={(female) => setCreateDraft((draft) => ({ ...draft, chargeRates: { ...draft.chargeRates, female } }))}
+                      />
+                    </label>
+                  </div>
+                </fieldset>
+
                 <label>
                   <span>현장 메모</span>
                   <textarea
@@ -2730,6 +2764,28 @@ export function ScheduleCalendarPage({
                     복사
                   </button>
                 </div>
+
+                <fieldset className={styles.scheduleChargeRates}>
+                  <legend>농가 청구단가 · 1인 기준 (원)</legend>
+                  <div className={styles.scheduleChargeRateColumns}>
+                    <label>
+                      <span>남자 인건비</span>
+                      <IntegerMoneyInput
+                        value={editDraft.chargeRates.male}
+                        disabled={isUpdatingSchedule}
+                        onChange={(male) => setEditDraft((draft) => draft ? { ...draft, chargeRates: { ...draft.chargeRates, male } } : draft)}
+                      />
+                    </label>
+                    <label>
+                      <span>여자 인건비</span>
+                      <IntegerMoneyInput
+                        value={editDraft.chargeRates.female}
+                        disabled={isUpdatingSchedule}
+                        onChange={(female) => setEditDraft((draft) => draft ? { ...draft, chargeRates: { ...draft.chargeRates, female } } : draft)}
+                      />
+                    </label>
+                  </div>
+                </fieldset>
 
                 <label>
                   <span>현장 메모</span>

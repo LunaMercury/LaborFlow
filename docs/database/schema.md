@@ -207,6 +207,10 @@
 
 ### `work_schedule_day` — 사용 중
 
+038 추가: `male_charge_rate`, `female_charge_rate` 각각 numeric(12,0), nullable, 기본값 없음,
+CHECK 0..999999999999. 남/여 배치 영역별 농가 청구 1인 단가이며 지급액이 아니다. null과 0은 다르다.
+기존 PK/FK/인덱스는 바꾸지 않는다. ScheduleService/JdbcScheduleDao가 저장하고 JdbcFinanceDao.source가 정산 기본값으로 읽는다.
+
 - 목적: 작업 묶음 안의 실제 날짜별 일정.
 - 컬럼: `uuid PK`, `work_site_uuid uuid NN FK CASCADE`, `work_date date NN`, `daily_start_time time`, `daily_end_time time`, `male_required_count smallint NN DEFAULT 0`, `female_required_count smallint NN DEFAULT 0`, `memo text`, `status varchar(16) NN DEFAULT 'ACTIVE'`, timestamps, `deleted_at`.
 - 제약: 인원 `0..10000`, 종료>시작, status `ACTIVE|CANCELLED|INACTIVE|ARCHIVED`.

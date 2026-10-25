@@ -78,6 +78,35 @@ class FinanceLedgerJdbcTest {
     }
 
     private FinanceDao.Account actor() { return new FinanceDao.Account(account, office); }
+    @Test void calendarBlockRatesSurviveCreationRangeExpansionAndDateMoves() {
+        var schedules=new com.laborflow.core.schedule.dao.JdbcScheduleDao(jdbc);
+        UUID first=tx.execute(s->schedules.createTask(office,client,null,date.plusDays(20),date.plusDays(22),"Fiction harvest","Fiction field","Fiction road",2,3,
+            java.time.LocalTime.of(7,0),java.time.LocalTime.of(17,0),"",List.of()));
+        schedules.setCreatedTaskChargeRates(office,first,new com.laborflow.core.schedule.dto.ScheduleChargeRates(amount(160000),BigDecimal.ZERO));
+        UUID group=jdbc.queryForObject("SELECT work_site_uuid FROM work_schedule_day WHERE uuid=?",UUID.class,first);
+        var days=jdbc.queryForList("SELECT uuid FROM work_schedule_day WHERE work_site_uuid=? ORDER BY work_date",UUID.class,group);
+        assertThat(days).hasSize(3);
+        tx.executeWithoutResult(s->schedules.rescheduleTaskRange(office,days,date.plusDays(25),date.plusDays(29)));
+        var rates=jdbc.queryForList("SELECT male_charge_rate,female_charge_rate FROM work_schedule_day WHERE work_site_uuid=? AND deleted_at IS NULL",group);
+        assertThat(rates).hasSize(5).allSatisfy(row->{
+            assertThat((BigDecimal)row.get("male_charge_rate")).isEqualByComparingTo("160000");
+            assertThat((BigDecimal)row.get("female_charge_rate")).isEqualByComparingTo("0");
+        });
+        schedules.setCreatedTaskChargeRates(UUID.randomUUID(),first,new com.laborflow.core.schedule.dto.ScheduleChargeRates(amount(1),amount(1)));
+        assertThat(dao.source(office,first).orElseThrow().maleChargeRate()).isEqualByComparingTo("160000");
+    }
+    @Test void storedScheduleRatesSeedFinanceAndRemainAfterFinancialPreparation() {
+        var schedules=new com.laborflow.core.schedule.dao.JdbcScheduleDao(jdbc);
+        schedules.setScheduleDayChargeRates(office,day,new com.laborflow.core.schedule.dto.ScheduleChargeRates(amount(160000),amount(140000)));
+        assertThat(dao.source(office,day).orElseThrow().maleChargeRate()).isEqualByComparingTo("160000");
+        assertThat(service.prepareWork(login(),day).snapshot().lines().getFirst().chargeRate()).isEqualByComparingTo("160000");
+        schedules.setScheduleDayChargeRates(office,day,new com.laborflow.core.schedule.dto.ScheduleChargeRates(amount(190000),BigDecimal.ZERO));
+        assertThat(service.prepareWork(login(),day).snapshot().lines().getFirst().chargeRate()).isEqualByComparingTo("160000");
+        assertThat(dao.source(office,day).orElseThrow().femaleChargeRate()).isEqualByComparingTo("0");
+        assertThatThrownBy(()->schedules.setScheduleDayChargeRates(UUID.randomUUID(),day,new com.laborflow.core.schedule.dto.ScheduleChargeRates(amount(1),amount(1)))).isInstanceOf(IllegalArgumentException.class);
+        schedules.setScheduleDayChargeRates(office,day,new com.laborflow.core.schedule.dto.ScheduleChargeRates(null,null));
+        assertThat(dao.source(office,day).orElseThrow().maleChargeRate()).isNull();
+    }
     private String login() { return "fiction-" + account; }
     private BigDecimal amount(long value) { return BigDecimal.valueOf(value); }
     private Snapshot snapshot(String mode, long charge, long pay) {

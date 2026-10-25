@@ -30,6 +30,7 @@ import {
 import appStyles from "../App.module.css";
 import { WorkerWorkTypeCell } from "../components/WorkerWorkTypeCell";
 import { StatusSnackbar } from "../components/StatusSnackbar";
+import { DateNavigation } from "../components/DateNavigation";
 import { subscribeNoShowsChanged } from "../api/noShowApi";
 import { AssignmentHistoryModal } from "../components/AssignmentHistoryModal";
 import { buildImportedAssignments } from "../components/assignmentHistory";
@@ -2640,43 +2641,7 @@ export function WorkSchedulePage({ loginId, onNavigate }: WorkSchedulePageProps)
   return (
     <main className={styles.mainContent}>
       <section className={styles.workSchedulePanel} aria-label="작업자 배치">
-        <div className={styles.scheduleDateBar}>
-          <label className={styles.scheduleDateField}>
-            <span>작업일</span>
-            <div className={styles.scheduleDateControl}>
-              <button
-                className={styles.scheduleDateMoveButton}
-                type="button"
-                onClick={() =>
-                  setSelectedDate(getPreviousDateInputValue(selectedDate))
-                }
-              >
-                ◀ 어제
-              </button>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(event) => setSelectedDate(event.target.value)}
-              />
-              <button
-                className={styles.scheduleDateMoveButton}
-                type="button"
-                onClick={() => setSelectedDate(getTodayInputValue())}
-              >
-                오늘
-              </button>
-              <button
-                className={styles.scheduleDateMoveButton}
-                type="button"
-                onClick={() =>
-                  setSelectedDate(getNextDateInputValue(selectedDate))
-                }
-              >
-                내일 ▶
-              </button>
-            </div>
-          </label>
-        </div>
+        <DateNavigation value={selectedDate} today={getTodayInputValue()} onChange={setSelectedDate} />
 
         <div className={styles.workScheduleSplit}>
           <section

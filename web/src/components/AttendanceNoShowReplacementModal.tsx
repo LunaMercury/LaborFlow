@@ -7,7 +7,7 @@ import {
   type CautionAcknowledgement,
 } from "../api/assignmentCautionsApi";
 import {
-  changeNoShowReplacement,
+  replaceNoShow,
   fetchScheduleTasks,
   type ScheduleAssignment,
   type ScheduleTask,
@@ -33,19 +33,6 @@ function workerName(worker: WorkerRow) {
   return worker.name.trim() || worker.nickname?.trim() || "이름 없음";
 }
 
-function overlaps(left: ScheduleTask, right: ScheduleTask) {
-  const minutes = (time: string) => {
-    const match = /^(\d{1,2}):(\d{2})$/.exec(time.trim());
-    return match ? Number(match[1]) * 60 + Number(match[2]) : null;
-  };
-  const leftStart = minutes(left.startTime);
-  const leftEnd = minutes(left.endTime);
-  const rightStart = minutes(right.startTime);
-  const rightEnd = minutes(right.endTime);
-  return leftStart !== null && leftEnd !== null && rightStart !== null && rightEnd !== null
-    && leftStart < rightEnd && rightStart < leftEnd;
-}
-
 function todayValue() {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit",
@@ -63,8 +50,8 @@ function ReplacementContent({ loginId, record, onClose, onSaved }: AttendanceNoS
   const [loading, setLoading] = useState(true);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
   const [replacementWorkerId, setReplacementWorkerId] = useState("");
-  const [allowTimeConflict, setAllowTimeConflict] = useState(false);
   const [busy, setBusy] = useState(false);
   const [caution, setCaution] = useState<{
     conflicts: AssignmentCaution[];
@@ -101,42 +88,40 @@ function ReplacementContent({ loginId, record, onClose, onSaved }: AttendanceNoS
   const task = data?.tasks.find(item => item.id === record.scheduleDayUuid);
   const original = task?.assignments.find(item => item.assignmentUuid === record.assignmentUuid);
   const metadata = record as AttendanceRecord & NoShowMetadata;
-  const incidentStatus = (original?.noShowIncidentStatus ?? metadata.noShowIncidentStatus)?.toUpperCase();
-  const incidentUuid = original?.noShowIncidentUuid ?? metadata.noShowIncidentUuid;
+  const incidentStatus = (original?.noShowIncidentStatus || metadata.noShowIncidentStatus)?.toUpperCase();
   const currentReplacementId = original?.noShowReplacementWorkerProfileUuid ?? metadata.noShowReplacementWorkerProfileUuid;
   const changing = Boolean(currentReplacementId) || incidentStatus === "REPLACED";
   const title = changing ? "대체자 변경" : "대체자 선택";
   const unavailable = futureDate ? "미래 날짜에는 대체자를 배정할 수 없습니다."
-    : data && (!task || !original || !incidentUuid || !["OPEN", "REPLACED"].includes(incidentStatus ?? "")
-      || record.status !== "ABSENT" || !record.attendanceUuid)
-      ? "저장된 활성 노쇼 기록에서만 대체자를 배정할 수 있습니다. 근태 목록을 새로 확인해 주세요."
+    : record.status === "CANCELLED" || original?.assignmentStatus?.toLowerCase() === "cancelled"
+      ? "취소된 배정에는 대체자를 적용할 수 없습니다."
+    : data && !task
+      ? "대상 작업을 찾을 수 없습니다. 근태 목록을 새로 확인해 주세요."
       : "";
 
   const candidates = useMemo(() => {
     if (!data || !task || unavailable) return [];
-    const targetWorkerIds = new Set(task.assignments
-      .filter(item => item.assignmentStatus?.toLowerCase() !== "replaced")
-      .map(item => item.workerProfileUuid));
+    const assignedWorkerIds = new Set(data.tasks.flatMap(item => item.assignments
+      .filter(assignment => !["replaced", "cancelled"].includes(assignment.assignmentStatus?.toLowerCase() ?? "planned"))
+      .map(assignment => assignment.workerProfileUuid)));
     return data.workers
       .filter(worker => worker.isActive !== false && Boolean(worker.profileUuid)
-        && worker.profileUuid !== record.workerProfileUuid && !targetWorkerIds.has(worker.profileUuid))
-      .map(worker => {
-        const assignedTasks = data.tasks.filter(item => item.assignments.some(assignment =>
-          assignment.workerProfileUuid === worker.profileUuid && assignment.assignmentStatus?.toLowerCase() !== "replaced"));
-        return {
-          worker, assignedTasks,
-          matchingWorkTypeCount: worker.workTypeCodes.filter(code => task.workTypeCodes.includes(code)).length,
-          timeConflicts: assignedTasks.filter(item => overlaps(task, item)),
-        };
-      })
+        && worker.profileUuid !== record.workerProfileUuid && !assignedWorkerIds.has(worker.profileUuid))
+      .map(worker => ({
+        worker,
+        matchingWorkTypeCount: worker.workTypeCodes.filter(code => task.workTypeCodes.includes(code)).length,
+      }))
       .sort((left, right) => right.matchingWorkTypeCount - left.matchingWorkTypeCount
-        || left.assignedTasks.length - right.assignedTasks.length
         || workerName(left.worker).localeCompare(workerName(right.worker), "ko-KR"));
   }, [data, task, record.workerProfileUuid, unavailable]);
+  const visibleCandidates = useMemo(() => {
+    const normalize = (value: string) => value.replace(/\s+/g, "").toLocaleLowerCase("ko-KR");
+    const query = normalize(search);
+    return query ? candidates.filter(({ worker }) => [worker.name, worker.nickname ?? ""]
+      .some(value => normalize(value).includes(query))) : [];
+  }, [candidates, search]);
   const selected = candidates.find(item => item.worker.profileUuid === replacementWorkerId);
-  const hasTimeConflict = Boolean(selected?.timeConflicts.length);
-  const canSave = !loading && !unavailable && Boolean(task && selected)
-    && (!hasTimeConflict || allowTimeConflict);
+  const canSave = !loading && !unavailable && Boolean(task && selected);
 
   const close = () => { if (!inFlightRef.current && !caution) onClose(); };
   const save = async (acknowledgedCautions: CautionAcknowledgement[] = []) => {
@@ -146,7 +131,7 @@ function ReplacementContent({ loginId, record, onClose, onSaved }: AttendanceNoS
     setError("");
     setCaution(null);
     try {
-      await changeNoShowReplacement(loginId, record.workDate, task.id, {
+      await replaceNoShow(loginId, record.workDate, task.id, {
         originalAssignmentUuid: record.assignmentUuid,
         replacementWorkerProfileUuid: replacementWorkerId,
         acknowledgedCautions,
@@ -181,35 +166,34 @@ function ReplacementContent({ loginId, record, onClose, onSaved }: AttendanceNoS
       <div className={styles.body} aria-busy={busy || loading}>
         {error || unavailable ? <p className={styles.error} role="alert">{error || unavailable}</p> : null}
         <p className={styles.summary}>{record.workDate} · {record.workTitle} / {record.ownerName}</p>
-        <p className={styles.summary}>노쇼: {record.displayName}</p>
+        <p className={styles.summary}>대체 대상: {record.displayName}</p>
         {changing ? <p className={styles.currentAssignment}>현재 대체자: {currentName || "배정됨"}</p> : null}
         {loading ? <p role="status">대체 작업자를 불러오는 중입니다.</p> : null}
         {!loading && !data && !unavailable ? <button type="button" onClick={() => setLoadAttempt(value => value + 1)}>다시 불러오기</button> : null}
-        {hasTimeConflict ? <label className={styles.conflictWarning}>
-          <input type="checkbox" checked={allowTimeConflict} disabled={busy || Boolean(caution)} onChange={event => setAllowTimeConflict(event.target.checked)} />
-          <span>선택한 작업자는 같은 시간대의 다른 작업에 배정되어 있습니다. 시간 중복을 확인했습니다.</span>
-        </label> : null}
-        {selected?.assignedTasks.length ? <p className={styles.summary}>다른 작업의 기존 배정은 유지됩니다.</p> : null}
-        <div className={styles.candidates}>
-          {!loading && data && !unavailable && candidates.length === 0 ? <p className={styles.summary}>선택 가능한 등록 작업자가 없습니다.</p> : null}
-          {candidates.map(candidate => <label className={styles.candidate} key={candidate.worker.profileUuid}>
+        <input aria-label="대체 작업자 이름 또는 호칭 검색" className={styles.searchInput}
+          type="search" placeholder="이름 또는 호칭 검색" value={search}
+          disabled={loading || busy || Boolean(caution) || Boolean(unavailable) || !data}
+          onChange={event => { setSearch(event.target.value); setReplacementWorkerId(""); }} />
+        {search.trim() && !loading && data && !unavailable ? <div className={styles.candidates}>
+          {!loading && data && !unavailable && visibleCandidates.length === 0 ? <p className={styles.summary} role="status">
+            {candidates.length === 0 ? "선택 가능한 미배정 작업자가 없습니다." : "검색 결과가 없습니다."}
+          </p> : null}
+          {visibleCandidates.map(candidate => <label className={styles.candidate} key={candidate.worker.profileUuid}>
             <input type="radio" name="no-show-replacement" value={candidate.worker.profileUuid}
               checked={replacementWorkerId === candidate.worker.profileUuid} disabled={busy || Boolean(caution)}
-              onChange={() => { setReplacementWorkerId(candidate.worker.profileUuid as string); setAllowTimeConflict(false); }} />
+              onChange={() => setReplacementWorkerId(candidate.worker.profileUuid as string)} />
             <span className={styles.candidateDetails}>
               <strong>{workerName(candidate.worker)}</strong>
+              {candidate.worker.name.trim() && candidate.worker.nickname?.trim() ? <small>{candidate.worker.nickname}</small> : null}
               <small>일치 작업 {candidate.matchingWorkTypeCount}개 · {candidate.worker.pickupLocation || "승차장소 없음"}</small>
-              <small className={candidate.assignedTasks.length ? styles.currentAssignment : undefined}>
-                {candidate.assignedTasks.length ? `현재배정 : ${candidate.assignedTasks.map(item => `${item.title}/${item.ownerName}`).join(", ")}` : "현재 미배정"}
-              </small>
-              {candidate.timeConflicts.length ? <small className={styles.timeConflict}>시간 중복 : {candidate.timeConflicts.map(item => `${item.timeRange} ${item.title}/${item.ownerName}`).join(", ")}</small> : null}
             </span>
           </label>)}
-        </div>
+        </div> : null}
+        {selected ? <p className={styles.summary} role="status">선택한 대체자: <strong>{workerName(selected.worker)}</strong></p> : null}
         <div className={styles.actions}>
           <button type="button" disabled={busy} onClick={close}>닫기</button>
           <button className={styles.saveButton} type="button" disabled={busy || Boolean(caution) || !canSave} onClick={() => void save()}>
-            {busy ? "저장 중" : title}
+            {busy ? "적용 중" : "대체 적용"}
           </button>
         </div>
       </div>

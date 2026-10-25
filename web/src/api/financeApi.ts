@@ -9,6 +9,7 @@ export type FinanceAssignment = {
   assignmentUuid: string; workerProfileUuid: string | null; payeeKey: string;
   displayName: string; assignmentStatus: string; attendanceStatus: string;
   confirmed: boolean; workerCount: number; actualStartAt: string | null; actualEndAt: string | null; breakMinutes: number | null;
+  area?: "MEN" | "WOMEN" | null;
 };
 export type FinanceLine = Omit<FinanceAssignment, "assignmentStatus" | "confirmed" | "workerCount"> & {
   mode: FinanceMode; quantity: number; chargeRate: Amount; payRate: Amount;
@@ -22,8 +23,9 @@ export type FinanceSource = {
   scheduleDayUuid: string; workDate: string; clientUuid: string; clientProfileUuid: string; clientName: string;
   siteUuid: string; siteName: string; workTitle: string; active: boolean;
   fingerprint: string; attendanceReady: boolean; assignments: FinanceAssignment[];
+  maleChargeRate?: Amount; femaleChargeRate?: Amount;
 };
-export type FinanceSnapshot = Omit<FinanceSource, "active" | "fingerprint" | "attendanceReady" | "assignments" | "scheduleDayUuid"> & {
+export type FinanceSnapshot = Omit<FinanceSource, "active" | "fingerprint" | "attendanceReady" | "assignments" | "scheduleDayUuid" | "maleChargeRate" | "femaleChargeRate"> & {
   sourceFingerprint: string; defaultMode: FinanceMode; defaultChargeRate: Amount;
   defaultPayRate: Amount; receiptDueDate: string | null; lines: FinanceLine[];
   extras: FinanceExtra[]; note: string | null;
@@ -62,6 +64,9 @@ export type ClientFinanceOverride = { clientProfileUuid: string; defaultMode: Fi
 export type FinanceSettings = { version: number; defaultMode: FinanceMode; defaultChargeRate: Amount; defaultPayRate: Amount; payoutCycle: Cycle; weeklyPayday: number; customDueDate: string | null; workerOverrides: WorkerFinanceOverride[]; clientOverrides: ClientFinanceOverride[] };
 
 const monetaryKeys = new Set(["amount", "chargeRate", "payRate", "costRate", "defaultChargeRate", "defaultPayRate", "chargeAmount", "payAmount", "costAmount", "officeCharge", "officePay", "extraCost", "workProfit", "directPay", "settledAmount", "outstandingAmount", "totalAmount", "totalSettled", "totalOutstanding", "relatedReceiptOutstanding"]);
+
+monetaryKeys.add("maleChargeRate");
+monetaryKeys.add("femaleChargeRate");
 
 export function parseFinanceJson(input: string): unknown {
   return JSON.parse(input, (key, value) => {

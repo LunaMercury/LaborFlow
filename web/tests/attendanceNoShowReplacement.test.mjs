@@ -76,7 +76,7 @@ function mount(props) {
   return {
     async flush() { for (let i = 0; i < 6; i++) { await setImmediate(); if (dirty) render(); } },
     all,
-    input(value) { return all().find(node => node.type === "input" && node.props.value === value); },
+    input(value) { return all().find(node => node.type === "input" && node.props.type === "radio" && node.props.value === value); },
     save() { return all().find(node => node.type === "button" && node.props.className === "saveButton"); },
     dialog() { return all().find(node => node.type === imports["./AssignmentHistoryModal"].HistoryDialog); },
     caution() { return all().find(node => node.type === imports["./AssignmentCautionDialog"].AssignmentCautionDialog); },
@@ -111,7 +111,7 @@ async function scenario(run, options = {}) {
   globalThis.fetch = async (url, init) => {
     const request = { url: new URL(String(url)), init };
     requests.push(request);
-    if (init?.method === "PUT") return options.write ? options.write(request, requests.filter(item => item.init?.method === "PUT").length) : Response.json(target);
+    if (init?.method === "POST") return options.write ? options.write(request, requests.filter(item => item.init?.method === "POST").length) : Response.json(target);
     if (request.url.pathname === "/api/workforce/workers") {
       if (options.loadFailure) return new Response(null, { status: 503 });
       return Response.json({ workers: options.workers ?? [worker("candidate")] });
@@ -122,52 +122,116 @@ async function scenario(run, options = {}) {
   const ui = mount({ loginId: "fiction office", record: { ...record, ...options.record }, onClose() { closed++; }, onSaved() { saved++; } });
   try {
     await ui.flush();
-    await run(ui, { requests, writes: () => requests.filter(item => item.init?.method === "PUT"), saved: () => saved, closed: () => closed });
+    // Mutation cases start after searching; search:null exercises the initial empty input.
+    const search = ui.all().find(node => node.props.type === "search");
+    if (options.search !== null && !search.props.disabled) {
+      search.props.onChange({ target: { value: options.search ?? "candidate" } });
+      await ui.flush();
+    }
+    await run(ui, { requests, writes: () => requests.filter(item => item.init?.method === "POST"), saved: () => saved, closed: () => closed });
   } finally { ui.unmount(); globalThis.fetch = previous; }
 }
 
-test("loads the attendance date, filters registered active candidates, and ranks matches then assignment counts", async () => {
+test("loads the attendance date and shows only active unassigned registered workers, ranking matching work first", async () => {
   await scenario(async (ui, state) => {
-    assert.deepEqual(ui.all().filter(node => node.type === "input" && node.props.type === "radio").map(node => node.props.value), ["free", "busy", "no-match"]);
+    assert.deepEqual(ui.all().filter(node => node.type === "input" && node.props.type === "radio").map(node => node.props.value), ["free", "no-match"]);
     assert.equal(ui.dialog().props.title, "대체자 선택");
     assert.equal(ui.save().props.disabled, true);
+    assert.equal(ui.save().props.children, "대체 적용");
     assert.equal(state.requests.find(item => item.url.pathname === "/api/schedule/tasks").url.searchParams.get("workDate"), record.workDate);
     assert.equal(state.requests[0].url.searchParams.get("loginId"), "fiction office");
-    assert.match(ui.html(), /class="currentAssignment">현재배정 : other\/거래처/);
-    const css = readFileSync(new URL("../src/components/AttendanceNoShowReplacementModal.module.css", import.meta.url), "utf8");
-    assert.match(css, /\.currentAssignment\s*\{[^}]*color: var\(--color-pages-journal-page-error-text\);[^}]*font-weight: 700;/);
+    assert.doesNotMatch(ui.html(), /시간 중복을 확인|현재배정/);
   }, {
-    workers: [worker("original"), worker("existing"), worker("inactive", [], { isActive: false }), worker(undefined), worker("no-match", []), worker("busy"), worker("free")],
+    search: "가상",
+    workers: [worker("original"), worker("existing"), worker("inactive", [], { isActive: false }), worker(undefined), worker("no-match", [], { name: "가상 불일치" }), worker("busy"), worker("free", ["garlic"], { name: "가상 자유" })],
     tasks: [{ ...target, assignments: [...target.assignments, assignment("existing")] }, other("other", ["busy"])],
   });
 });
 
-test("overlap requires explicit acknowledgement, keeps other assignments, and resets acknowledgement on selection change", async () => {
+test("other assignments exclude candidates for the entire date, including non-overlapping work", async () => {
   const tasks = [target, other("other", ["busy"]), other("later", ["later"], "12:00", "14:00")];
   await scenario(async (ui, state) => {
-    ui.input("busy").props.onChange(); await ui.flush();
+    assert.equal(ui.input("busy"), undefined);
+    assert.equal(ui.input("later"), undefined);
     assert.equal(ui.save().props.disabled, true);
-    assert.match(ui.html(), /시간 중복/);
-    assert.match(ui.html(), /다른 작업의 기존 배정은 유지됩니다/);
-    ui.all().find(node => node.props.type === "checkbox").props.onChange({ target: { checked: true } }); await ui.flush();
-    assert.equal(ui.save().props.disabled, false);
-    ui.input("later").props.onChange(); await ui.flush();
-    assert.equal(ui.save().props.disabled, false);
-    assert.ok(!ui.all().some(node => node.props.type === "checkbox"));
-    ui.input("busy").props.onChange(); await ui.flush();
-    assert.equal(ui.save().props.disabled, true);
-    ui.all().find(node => node.props.type === "checkbox").props.onChange({ target: { checked: true } }); await ui.flush();
+    assert.match(ui.html(), /선택 가능한 미배정 작업자가 없습니다/);
     ui.save().props.onClick(); await ui.flush();
-    assert.equal(state.writes().length, 1);
-    assert.deepEqual(JSON.parse(state.writes()[0].init.body), { originalAssignmentUuid: record.assignmentUuid, replacementWorkerProfileUuid: "busy", acknowledgedCautions: [] });
-    assert.equal(state.writes()[0].url.pathname, "/api/schedule/tasks/target/no-show-replacement");
-    assert.equal(state.saved(), 1);
-    assert.equal(state.closed(), 1);
+    assert.equal(state.writes().length, 0);
     assert.deepEqual(tasks[1].assignments, [assignment("busy")]);
   }, { workers: [worker("busy"), worker("later")], tasks });
 });
 
-test("PUT is used for first assignment and changes, and duplicate clicks cannot duplicate writes", async () => {
+test("name and nickname search is local, preserves Korean input, and never reveals excluded workers", async () => {
+  await scenario(async (ui, state) => {
+    const search = () => ui.all().find(node => node.props.type === "search");
+    search().props.onChange({ target: { value: "김 철" } }); await ui.flush();
+    assert.equal(search().props.value, "김 철");
+    assert.deepEqual(ui.all().filter(node => node.props.type === "radio").map(node => node.props.value), ["free"]);
+    assert.match(ui.html(), /가상 철수/);
+    ui.input("free").props.onChange(); await ui.flush();
+    assert.equal(ui.save().props.disabled, false);
+    search().props.onChange({ target: { value: "앞산" } }); await ui.flush();
+    assert.deepEqual(ui.all().filter(node => node.props.type === "radio").map(node => node.props.value), ["nickname-only"]);
+    assert.equal(ui.save().props.disabled, true);
+    search().props.onChange({ target: { value: "없음" } }); await ui.flush();
+    assert.match(ui.html(), /검색 결과가 없습니다/);
+    search().props.onChange({ target: { value: "" } }); await ui.flush();
+    assert.equal(ui.all().filter(node => node.props.type === "radio").length, 0);
+    assert.ok(!ui.all().some(node => node.props.className === "candidates"));
+    assert.equal(state.requests.length, 2);
+    assert.equal(state.writes().length, 0);
+  }, { workers: [worker("free", ["garlic"], { name: "김철수", nickname: "가상 철수" }), worker("nickname-only", [], { name: "", nickname: "앞산아주머니" }), worker("busy", [], { name: "김철수" }), worker("inactive", [], { name: "김철수", isActive: false })], tasks: [target, other("other", ["busy"])] });
+});
+
+test("cancelled and replaced assignment history does not hide otherwise available workers", async () => {
+  await scenario(async (ui) => {
+    assert.deepEqual(ui.all().filter(node => node.props.type === "radio").map(node => node.props.value), ["cancelled-worker", "replaced-worker"]);
+  }, { search: "worker", workers: [worker("cancelled-worker"), worker("replaced-worker"), worker("absent-worker")], tasks: [target, { ...other("history", []), assignments: [
+    { ...assignment("cancelled-worker"), assignmentStatus: "CANCELLED" },
+    { ...assignment("replaced-worker"), assignmentStatus: "replaced" },
+    { ...assignment("absent-worker"), assignmentStatus: "absent" },
+  ] }] });
+});
+
+test("both selection and change hide candidates until typing and hide them again for empty or whitespace input", async () => {
+  for (const status of ["OPEN", "REPLACED"]) {
+    await scenario(async (ui, state) => {
+      const search = () => ui.all().find(node => node.props.type === "search");
+      assert.ok(!ui.all().some(node => node.props.className === "candidates"));
+      assert.doesNotMatch(ui.html(), /검색 결과가 없습니다|선택 가능한 미배정/);
+      assert.equal(ui.save().props.disabled, true);
+      search().props.onChange({ target: { value: "candidate" } }); await ui.flush();
+      assert.ok(ui.input("candidate"));
+      ui.input("candidate").props.onChange(); await ui.flush();
+      assert.equal(ui.save().props.disabled, false);
+      search().props.onChange({ target: { value: " \t " } }); await ui.flush();
+      assert.ok(!ui.all().some(node => node.props.className === "candidates"));
+      assert.equal(ui.save().props.disabled, true);
+      search().props.onChange({ target: { value: "missing" } }); await ui.flush();
+      assert.match(ui.html(), /검색 결과가 없습니다/);
+      search().props.onChange({ target: { value: "" } }); await ui.flush();
+      assert.ok(!ui.all().some(node => node.props.className === "candidates"));
+      assert.equal(state.requests.length, 2);
+      assert.equal(state.writes().length, 0);
+    }, { search: null, record: { noShowIncidentStatus: status }, tasks: [{ ...target, assignments: [{ ...target.assignments[0], noShowIncidentStatus: status }] }] });
+  }
+});
+
+test("closing without a replacement never saves or changes the original no-show and assignments", async () => {
+  const tasks = structuredClone([target]);
+  const before = structuredClone(tasks);
+  await scenario(async (ui, state) => {
+    assert.equal(ui.save().props.disabled, true);
+    ui.dialog().props.onClose(); await ui.flush();
+    assert.equal(state.closed(), 1);
+    assert.equal(state.saved(), 0);
+    assert.equal(state.writes().length, 0);
+    assert.deepEqual(tasks, before);
+    assert.equal(tasks[0].assignments[0].noShowIncidentStatus, "OPEN");
+  }, { tasks });
+});
+
+test("one transactional POST is used for first assignment and changes, and duplicate clicks cannot duplicate writes", async () => {
   let release;
   const pending = new Promise(resolve => { release = resolve; });
   await scenario(async (ui, state) => {
@@ -246,16 +310,12 @@ test("saved anonymous guest incidents can select and change replacements from re
   }
 });
 
-test("future, unsaved, non-absent, missing, and cancelled incidents never enable replacement", async () => {
+test("future, missing tasks and cancelled assignments never enable replacement", async () => {
   for (const options of [
     { record: { workDate: "2999-01-01" } },
-    { record: { attendanceUuid: null } },
-    { record: { status: "WORKED" } },
-    { record: { participantType: "guest", workerProfileUuid: null, attendanceUuid: null } },
-    { record: { participantType: "guest", workerProfileUuid: null, status: "WORKED" } },
     { tasks: [] },
-    { tasks: [{ ...target, assignments: [{ ...target.assignments[0], noShowIncidentUuid: null, noShowIncidentStatus: undefined }] }] },
-    { tasks: [{ ...target, assignments: [{ ...target.assignments[0], noShowIncidentStatus: "CANCELLED" }] }] },
+    { record: { status: "CANCELLED" } },
+    { tasks: [{ ...target, assignments: [{ ...target.assignments[0], assignmentStatus: "cancelled" }] }] },
   ]) {
     await scenario(async (ui, state) => {
       assert.equal(ui.save().props.disabled, true);
@@ -267,22 +327,46 @@ test("future, unsaved, non-absent, missing, and cancelled incidents never enable
   }
 });
 
-test("attendance metadata supports selection/change labels while fresh cancelled task metadata blocks stale records", async () => {
+test("empty schedule metadata does not hide attendance metadata or block search", async () => {
   await scenario(async (ui) => {
     assert.equal(ui.dialog().props.title, "대체자 변경");
     ui.input("candidate").props.onChange(); await ui.flush();
     assert.equal(ui.save().props.disabled, false);
   }, {
     record: { noShowIncidentUuid: "incident", noShowIncidentStatus: "REPLACED", noShowReplacementWorkerProfileUuid: "previous" },
-    tasks: [{ ...target, assignments: [{ ...assignment("original"), assignmentUuid: record.assignmentUuid }, assignment("previous")] }],
+    tasks: [{ ...target, assignments: [{ ...assignment("original"), assignmentUuid: record.assignmentUuid, noShowIncidentStatus: "" }, assignment("previous")] }],
   });
   await scenario(async (ui, state) => {
-    assert.equal(ui.save().props.disabled, true);
+    assert.equal(ui.all().find(node => node.props.type === "search").props.disabled, false);
+    ui.input("candidate").props.onChange(); await ui.flush();
+    assert.equal(ui.save().props.disabled, false);
     assert.equal(state.writes().length, 0);
   }, {
     record: { noShowIncidentUuid: "incident", noShowIncidentStatus: "OPEN" },
     tasks: [{ ...target, assignments: [{ ...target.assignments[0], noShowIncidentStatus: "CANCELLED" }] }],
   });
+});
+
+test("unconfirmed, worked, anonymous and previously cancelled no-show records can search and apply directly", async () => {
+  for (const row of [
+    { status: "DRAFT", attendanceUuid: null },
+    { status: "WORKED" },
+    { status: "DRAFT", participantType: "guest", workerProfileUuid: null, attendanceUuid: null },
+    { status: "ABSENT" },
+  ]) {
+    await scenario(async (ui, state) => {
+      assert.equal(ui.all().find(node => node.props.type === "search").props.disabled, false);
+      assert.doesNotMatch(ui.html(), /저장된 활성 노쇼/);
+      ui.input("candidate").props.onChange(); await ui.flush();
+      assert.equal(ui.save().props.disabled, false);
+      assert.equal(state.writes().length, 0);
+      ui.save().props.onClick(); await ui.flush();
+      assert.equal(state.writes().length, 1);
+      assert.equal(state.writes()[0].init.method, "POST");
+      assert.equal(state.writes()[0].url.pathname, "/api/schedule/tasks/target/no-show-replacement");
+      assert.equal(state.saved(), 1);
+    }, { record: { ...row, noShowIncidentUuid: null }, tasks: [{ ...target, assignments: [{ ...assignment("original"), assignmentUuid: record.assignmentUuid, noShowIncidentUuid: null, noShowIncidentStatus: "" }] }] });
+  }
 });
 
 test("closing an unmounted request cannot report a save into a different attendance modal", async () => {

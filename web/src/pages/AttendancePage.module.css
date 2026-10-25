@@ -39,10 +39,12 @@
   border: 1px solid var(--color-pages-attendance-page-confirm-planned-button-border);
   border-radius: 6px;
   color: var(--color-pages-attendance-page-confirm-planned-button-text);
-  font-size: 14px;
+  font: inherit;
+  font-size: 12px;
   font-weight: 800;
-  min-height: 38px;
-  padding: 0 16px;
+  min-height: 32px;
+  padding: 0 10px;
+  white-space: nowrap;
 }
 
 .confirmPlannedButton:hover:not(:disabled) {
@@ -54,62 +56,6 @@
   background: var(--color-pages-attendance-page-confirm-planned-button-disabled-background);
   border-color: var(--color-pages-attendance-page-confirm-planned-button-disabled-border);
   cursor: not-allowed;
-}
-
-.attendanceDateBar {
-  align-items: center;
-  background: var(--color-pages-attendance-page-attendance-date-bar-background);
-  border: 1px solid var(--color-pages-attendance-page-attendance-date-bar-border);
-  border-radius: 7px;
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  min-height: 54px;
-  padding: 8px 12px;
-}
-
-.attendanceDateBar button {
-  background: var(--color-pages-attendance-page-attendance-date-bar-background-2);
-  border: 1px solid var(--color-pages-attendance-page-attendance-date-bar-border-2);
-  border-radius: 5px;
-  color: var(--color-pages-attendance-page-attendance-date-bar-text);
-  font-size: 13px;
-  font-weight: 800;
-  min-height: 34px;
-  padding: 0 12px;
-}
-
-.attendanceDateBar button:hover {
-  background: var(--color-pages-attendance-page-attendance-date-bar-hover-background);
-  cursor: pointer;
-}
-
-.attendanceDateBar .todayButton {
-  border-color: var(--color-pages-attendance-page-attendance-date-bar-today-button-border);
-  color: var(--color-pages-attendance-page-attendance-date-bar-today-button-text);
-}
-
-.attendanceDateField {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-.attendanceDateField span {
-  color: var(--color-pages-attendance-page-attendance-date-field-text);
-  font-size: 15px;
-  font-weight: 900;
-  white-space: nowrap;
-}
-
-.attendanceDateField input {
-  border: 1px solid var(--color-pages-attendance-page-attendance-date-field-border);
-  border-radius: 5px;
-  color: var(--color-pages-attendance-page-attendance-date-field-text-2);
-  font: inherit;
-  min-height: 34px;
-  padding: 0 8px;
 }
 
 .attendanceSummary {
@@ -200,10 +146,17 @@
   background: var(--color-pages-attendance-page-attendance-task-header-background);
   border-bottom: 1px solid var(--color-pages-attendance-page-attendance-task-header-border);
   display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   justify-content: space-between;
   min-height: 66px;
   padding: 10px 16px;
+}
+
+.attendanceTaskHeader > div:first-child {
+  flex: 1 1 220px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .attendanceTaskHeader h2 {
@@ -227,9 +180,12 @@
 .attendanceTaskHeaderActions {
   align-items: center;
   display: flex;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  margin-left: auto;
+  max-width: 100%;
 }
 
 .attendanceTaskHeaderActions > strong {
@@ -521,15 +477,6 @@
     align-self: flex-end;
   }
 
-  .attendanceDateBar {
-    flex-wrap: wrap;
-  }
-
-  .attendanceDateField {
-    order: -1;
-    width: 100%;
-  }
-
   .attendanceSummary {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
@@ -549,9 +496,9 @@
   }
 
   .attendanceTaskHeaderActions {
-    align-items: flex-end;
-    flex-direction: column;
+    align-items: center;
     gap: 4px;
+    width: 100%;
   }
 
   .attendanceTaskNote {

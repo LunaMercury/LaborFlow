@@ -4,7 +4,7 @@ import type { Cycle, FinanceMode } from "../api/financeApi";
 import styles from "./FinancePage.module.css";
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className={styles.field}><span>{label}</span>{children}</label>;
+  return <label className={styles.financeFormField}><span>{label}</span>{children}</label>;
 }
 export function MoneyInput({ label, value, onChange }: { label: string; value: Amount; onChange: (value: Amount) => void }) {
   return <Field label={label}><input inputMode="numeric" placeholder="미입력" value={value ?? ""} onChange={event => {
@@ -25,7 +25,7 @@ export function ModeInput({ value, onChange }: { value: FinanceMode; onChange: (
   return <Field label="지급 방식"><select value={value} onChange={event => onChange(event.target.value as FinanceMode)}><option value="OFFICE">사무소 수납·지급</option><option value="DIRECT">농가 → 작업자 직접 지급</option></select></Field>;
 }
 export function CycleInput({ cycle, weekday, date, onChange }: { cycle: Cycle; weekday: number; date: string | null; onChange: (cycle: Cycle, weekday: number, date: string | null) => void }) {
-  return <div className={styles.fields}>
+  return <div className={styles.financeFormGrid}>
     <Field label="지급 주기"><select value={cycle} onChange={event => onChange(event.target.value as Cycle, weekday, date)}><option value="DAILY">당일</option><option value="WEEKLY">주급 · 월~일 작업분, 다음 주 지급</option><option value="CUSTOM">개별 날짜 · 미정 가능</option></select></Field>
     {cycle === "WEEKLY" ? <Field label="다음 주 지급 요일"><select value={weekday} onChange={event => onChange(cycle, Number(event.target.value), date)}>{["월", "화", "수", "목", "금", "토", "일"].map((day, index) => <option value={index + 1} key={day}>{day}요일</option>)}</select></Field> : cycle === "CUSTOM" ? <Field label="지급예정일"><input type="date" value={date ?? ""} onChange={event => onChange(cycle, weekday, event.target.value || null)} /></Field> : null}
   </div>;

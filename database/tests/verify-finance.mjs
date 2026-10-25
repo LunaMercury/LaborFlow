@@ -32,12 +32,14 @@ try {
   sql(`CREATE TABLE finance_test_marker(token uuid PRIMARY KEY); INSERT INTO finance_test_marker VALUES ('${token}');`);
   sql(readFileSync(new URL('./finance-parent-fixture.sql', import.meta.url), 'utf8'));
   sql(readFileSync(new URL('./no-show-parent-fixture.sql', import.meta.url), 'utf8'));
+  sql(readFileSync(new URL('./schedule-charge-parent-fixture.sql', import.meta.url), 'utf8'));
   sql(readFileSync(new URL('../migrations/029_create_no_show_response_model.sql', import.meta.url), 'utf8'));
   sql(readFileSync(new URL('../migrations/030_extend_no_show_response_history.sql', import.meta.url), 'utf8'));
   sql(readFileSync(new URL('../migrations/036_create_finance_ledger.sql', import.meta.url), 'utf8'));
   sql(readFileSync(new URL('../migrations/037_extend_no_show_management.sql', import.meta.url), 'utf8'));
+  sql(readFileSync(new URL('../migrations/038_add_schedule_charge_rates.sql', import.meta.url), 'utf8'));
   if (process.argv.includes('--schema-only')) {
-    console.log('PASS: migrations 029/030/036/037 applied to a disposable minimal parent schema (no application tests in this mode).');
+    console.log('PASS: migrations 029/030/036/037/038 applied to a disposable minimal parent schema (no application tests in this mode).');
   } else {
   const mapping = docker(['port', name, '5432/tcp']);
   const port = mapping.match(/^127\.0\.0\.1:(\d+)$/)?.[1];
@@ -61,7 +63,7 @@ try {
   if (!/\btests="[1-9][0-9]*"/.test(noShowSuite) || !/\bskipped="0"/.test(noShowSuite))
     throw new Error('No-show JDBC tests must actually execute, not be skipped.');
   console.log(`Integration report: ${join(buildDir, 'reports/tests/test/index.html')}`);
-  console.log('PASS: migrations 029/030/036/037 applied to disposable DB; see finance/no-show JDBC integration cases in core report.');
+  console.log('PASS: migrations 029/030/036/037/038 applied to disposable DB; see finance/no-show/schedule JDBC integration cases in core report.');
   }
 } finally {
   if (created) docker(['rm', '--force', '--volumes', name]);

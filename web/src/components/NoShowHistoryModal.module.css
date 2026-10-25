@@ -3,8 +3,12 @@
 .incident { border-bottom: 1px solid var(--color-pages-journal-page-panel-border); padding: 16px 0; min-width: 0; }
 .incident:first-child { padding-top: 0; }
 .incident:last-child { border-bottom: 0; padding-bottom: 0; }
-.identity, .identity > div { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
-.identity { justify-content: space-between; }
+.incidentSummary { cursor: pointer; min-height: 44px; line-height: 1.6; overflow-wrap: anywhere; }
+.incidentSummary::marker { color: var(--color-pages-work-schedule-page-no-show-modal-header-text); }
+.incidentSummary:focus-visible { outline: 2px solid var(--color-pages-journal-page-input-focus-border); outline-offset: 2px; border-radius: 4px; }
+.identity { align-items: baseline; display: inline-flex; flex-wrap: wrap; gap: 8px; max-width: 100%; vertical-align: top; }
+.incidentSummary > .status, .incidentSummary > .cancelled { display: inline-block; margin-left: 8px; font-size: 12px; }
+.incidentBody { padding-top: 4px; }
 .identity strong { font-size: 14px; }
 .status { color: var(--color-components-worker-profile-modal-danger-action-button-text); font-weight: 700; }
 .cancelled { color: var(--color-pages-journal-page-secondary-button-text); }

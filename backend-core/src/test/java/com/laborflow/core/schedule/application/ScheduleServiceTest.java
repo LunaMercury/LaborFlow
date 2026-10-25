@@ -527,4 +527,16 @@ class ScheduleServiceTest {
             List.of()
         );
     }
+
+    @Test void invalidChargeRatesFailBeforeAnyScheduleWrites() {
+        for (String amount : List.of("-1", "1.5", "1000000000000")) {
+            var rates=new com.laborflow.core.schedule.dto.ScheduleChargeRates(new java.math.BigDecimal(amount),null);
+            var request=new com.laborflow.core.schedule.dto.CreateScheduleTaskRequest(ownerUuid,null,null,null,
+                workDate,workDate,"Fiction work",clientWorkSiteUuid,"Fiction site","Fiction address","",1,1,
+                LocalTime.of(7,0),LocalTime.of(17,0),"",List.of(),rates);
+            assertThatThrownBy(()->service.createTask("test",request)).isInstanceOf(IllegalArgumentException.class);
+        }
+        org.mockito.Mockito.verifyNoInteractions(clientsService);
+        org.mockito.Mockito.verify(scheduleDao,never()).setCreatedTaskChargeRates(org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any());
+    }
 }

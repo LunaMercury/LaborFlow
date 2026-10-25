@@ -13,6 +13,7 @@ import com.laborflow.core.schedule.dto.DeleteScheduleTaskRangeRequest;
 import com.laborflow.core.schedule.dto.FarmOwnerOptionResponse;
 import com.laborflow.core.schedule.dto.RescheduleTaskRangeRequest;
 import com.laborflow.core.schedule.dto.ReplaceNoShowRequest;
+import com.laborflow.core.schedule.dto.ScheduleChargeRates;
 import com.laborflow.core.schedule.dto.ScheduleAssignmentRequest;
 import com.laborflow.core.schedule.dto.ScheduleTaskListResponse;
 import com.laborflow.core.schedule.dto.ScheduleTaskResponse;
@@ -84,6 +85,7 @@ public class ScheduleService {
     public ScheduleTaskResponse createTask(String loginId, CreateScheduleTaskRequest request) {
         UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
         LocalDate startDate = request.startDate();
+        validateChargeRates(request.chargeRates());
         LocalDate endDate = request.endDate();
         if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
             throw new IllegalArgumentException("Schedule range is invalid.");
@@ -142,6 +144,7 @@ public class ScheduleService {
             normalizeWorkTypeCodes(request.workTypeCodes())
         );
 
+        if (request.chargeRates() != null) scheduleDao.setCreatedTaskChargeRates(agencyOwnerUuid, scheduleDayUuid, request.chargeRates());
         return scheduleDao.findTask(agencyOwnerUuid, scheduleDayUuid, startDate)
             .orElseThrow(() -> new IllegalArgumentException("Schedule day was not found."));
     }
@@ -153,6 +156,7 @@ public class ScheduleService {
         LocalDate workDate,
         UpdateScheduleTaskRequest request
     ) {
+        validateChargeRates(request.chargeRates());
         UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
         if (!scheduleDao.scheduleDayBelongsToAgencyOwner(agencyOwnerUuid, scheduleDayUuid)) {
             throw new IllegalArgumentException("Schedule day was not found.");
@@ -248,6 +252,7 @@ public class ScheduleService {
             requiredWomen,
             normalizeOptionalText(request.memo())
         );
+        if (request.chargeRates() != null) scheduleDao.setScheduleDayChargeRates(agencyOwnerUuid, scheduleDayUuid, request.chargeRates());
         scheduleDao.replaceTaskWorkTypes(agencyOwnerUuid, scheduleDayUuid, workTypeCodes);
         if (assignmentWriteRequested) {
             scheduleDao.replaceAssignments(agencyOwnerUuid, scheduleDayUuid, assignments);
@@ -505,6 +510,7 @@ public class ScheduleService {
 
     @Transactional
     public void updateTaskRange(String loginId, UpdateScheduleTaskRangeRequest request) {
+        validateChargeRates(request.chargeRates());
         UUID agencyOwnerUuid = findAgencyOwnerUuid(loginId);
         List<UUID> taskIds = normalizeTaskIds(request.taskIds());
         LocalDate startDate = request.startDate();
@@ -551,6 +557,7 @@ public class ScheduleService {
                 requiredWomen,
                 normalizeOptionalText(request.memo())
             );
+            if (request.chargeRates() != null) scheduleDao.setScheduleDayChargeRates(agencyOwnerUuid, taskId, request.chargeRates());
             scheduleDao.replaceTaskWorkTypes(agencyOwnerUuid, taskId, workTypeCodes);
         }
 
@@ -567,6 +574,16 @@ public class ScheduleService {
     private UUID findAgencyOwnerUuid(String loginId) {
         return scheduleDao.findAgencyOwnerUuidByLoginId(normalizeLoginId(loginId))
             .orElseThrow(() -> new IllegalArgumentException("Labor agency owner was not found."));
+    }
+
+    private static void validateChargeRates(ScheduleChargeRates rates) {
+        if (rates == null) return;
+        for (var rate : java.util.Arrays.asList(rates.male(), rates.female())) {
+            if (rate != null && (rate.signum() < 0 || rate.compareTo(new java.math.BigDecimal("999999999999")) > 0
+                || rate.stripTrailingZeros().scale() > 0)) {
+                throw new IllegalArgumentException("Charge rates must be whole KRW amounts from 0 to 999999999999.");
+            }
+        }
     }
 
     private List<ScheduleAssignmentRequest> normalizeAssignments(

@@ -53,6 +53,12 @@ public interface ScheduleDao {
 
     Optional<ScheduleTaskResponse> findTask(UUID agencyOwnerUuid, UUID scheduleDayUuid, LocalDate workDate);
 
+    void setScheduleDayChargeRates(UUID agencyOwnerUuid, UUID scheduleDayUuid,
+        com.laborflow.core.schedule.dto.ScheduleChargeRates rates);
+
+    void setCreatedTaskChargeRates(UUID agencyOwnerUuid, UUID firstScheduleDayUuid,
+        com.laborflow.core.schedule.dto.ScheduleChargeRates rates);
+
     void updateTask(
         UUID agencyOwnerUuid,
         UUID scheduleDayUuid,

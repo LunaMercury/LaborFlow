@@ -124,11 +124,12 @@ function NoShowHistoryContent({ loginId, workerProfileUuid, workDate, assignment
           const isEditing = editing?.uuid === incident.uuid;
           const isCancelling = cancelling?.uuid === incident.uuid;
           const cancelled = incident.status === "CANCELLED";
-          return <article className={styles.incident} key={incident.uuid}>
-            <header className={styles.identity}>
-              <div><time dateTime={incident.workDate}>{incident.workDate}</time><strong>{incident.workerName || "익명 참여자"}</strong></div>
+          return <details className={styles.incident} key={incident.uuid}>
+            <summary className={styles.incidentSummary} tabIndex={0}>
+              <span className={styles.identity}><time dateTime={incident.workDate}>{incident.workDate}</time><strong>{incident.workerName || "익명 참여자"}</strong></span>
               <span className={cancelled ? styles.cancelled : styles.status}>{statusLabels[incident.status]}</span>
-            </header>
+            </summary>
+            <div className={styles.incidentBody}>
             <dl className={styles.facts}>
               <div><dt>거래처</dt><dd>{incident.ownerName || "-"}</dd></div>
               <div><dt>현장</dt><dd>{incident.siteName || "-"}</dd></div>
@@ -176,7 +177,8 @@ function NoShowHistoryContent({ loginId, workerProfileUuid, workDate, assignment
                 {revision.note ? <p>{revision.note}</p> : null}
               </li>)}</ol>
             </details> : null}
-          </article>;
+            </div>
+          </details>;
         })}
       </div>
     </div>

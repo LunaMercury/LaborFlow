@@ -77,7 +77,11 @@ public class FinanceService {
             WorkerOverride worker=defaults.workerOverrides().stream()
                 .filter(w -> w.workerProfileUuid().equals(assignment.workerProfileUuid())).findFirst().orElse(null);
             String lineMode=worker!=null && worker.defaultMode()!=null ? worker.defaultMode() : mode;
-            BigDecimal lineCharge=worker!=null && worker.chargeRate()!=null ? worker.chargeRate() : charge;
+            BigDecimal scheduledCharge="WOMEN".equals(assignment.area()) ? source.femaleChargeRate()
+                : "MEN".equals(assignment.area()) ? source.maleChargeRate() : null;
+            // Farm labour charges must not become the agency referral fee in DIRECT mode.
+            BigDecimal lineCharge=worker!=null && worker.chargeRate()!=null ? worker.chargeRate()
+                : "OFFICE".equals(lineMode) && scheduledCharge!=null ? scheduledCharge : charge;
             BigDecimal linePay=worker!=null && worker.payRate()!=null ? worker.payRate() : pay;
             LocalDate payout=worker==null ? due(source.workDate(),defaults.payoutCycle(),defaults.weeklyPayday(),defaults.customDueDate())
                 : due(source.workDate(),worker.payoutCycle(),worker.weeklyPayday(),worker.customDueDate());

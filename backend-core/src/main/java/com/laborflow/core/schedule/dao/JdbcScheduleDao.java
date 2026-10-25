@@ -373,6 +373,8 @@ public class JdbcScheduleDao implements ScheduleDao {
                 COALESCE(client_site.memo, '') AS site_memo,
                 d.male_required_count,
                 d.female_required_count,
+                d.male_charge_rate,
+                d.female_charge_rate,
                 COALESCE(d.memo, '') AS memo,
                 d.daily_start_time,
                 d.daily_end_time
@@ -430,7 +432,8 @@ public class JdbcScheduleDao implements ScheduleDao {
                 task.requiredWomen(),
                 workTypeCodesBySiteUuid.getOrDefault(task.workSiteId(), List.of()),
                 task.memo(),
-                assignmentsByScheduleDayUuid.getOrDefault(task.id(), List.of())
+                assignmentsByScheduleDayUuid.getOrDefault(task.id(), List.of()),
+                new com.laborflow.core.schedule.dto.ScheduleChargeRates(task.maleChargeRate(), task.femaleChargeRate())
             ))
             .toList();
     }
@@ -440,6 +443,26 @@ public class JdbcScheduleDao implements ScheduleDao {
         return findTasks(agencyOwnerUuid, workDate).stream()
             .filter(task -> task.id().equals(scheduleDayUuid))
             .findFirst();
+    }
+
+    @Override
+    public void setScheduleDayChargeRates(UUID office, UUID day, com.laborflow.core.schedule.dto.ScheduleChargeRates rates) {
+        int changed = jdbcTemplate.update("""
+            UPDATE public.work_schedule_day d SET male_charge_rate=?, female_charge_rate=?
+            FROM public.farm_work_site s WHERE s.uuid=d.work_site_uuid AND s.agency_owner_uuid=?
+                AND d.uuid=? AND d.deleted_at IS NULL AND s.deleted_at IS NULL
+            """, rates.male(), rates.female(), office, day);
+        if (changed != 1) throw new IllegalArgumentException("Schedule day was not found.");
+    }
+
+    @Override
+    public void setCreatedTaskChargeRates(UUID office, UUID firstDay, com.laborflow.core.schedule.dto.ScheduleChargeRates rates) {
+        jdbcTemplate.update("""
+            UPDATE public.work_schedule_day d SET male_charge_rate=?, female_charge_rate=?
+            FROM public.farm_work_site s, public.work_schedule_day first_day
+            WHERE first_day.uuid=? AND first_day.work_site_uuid=s.uuid AND d.work_site_uuid=s.uuid
+                AND s.agency_owner_uuid=? AND d.deleted_at IS NULL AND s.deleted_at IS NULL
+            """, rates.male(), rates.female(), firstDay, office);
     }
 
     @Override
@@ -927,8 +950,6 @@ public class JdbcScheduleDao implements ScheduleDao {
             WHERE a.agency_owner_uuid = ?
                 AND a.schedule_day_uuid = ?
                 AND a.uuid = ?
-                AND a.participant_type = 'REGISTERED'
-                AND a.worker_profile_uuid IS NOT NULL
                 AND a.deleted_at IS NULL
             """,
             (resultSet, rowNumber) -> new NoShowAssignmentContext(
@@ -946,7 +967,7 @@ public class JdbcScheduleDao implements ScheduleDao {
         ).stream().findFirst().orElseThrow(
             () -> new IllegalArgumentException("Original assignment was not found.")
         );
-        if (original.workerProfileUuid().equals(replacementWorkerProfileUuid)) {
+        if (java.util.Objects.equals(original.workerProfileUuid(), replacementWorkerProfileUuid)) {
             throw new IllegalArgumentException("The no-show worker cannot replace themselves.");
         }
         if (original.workDate().isAfter(LocalDate.now(java.time.ZoneId.of("Asia/Seoul")))) {
@@ -955,34 +976,16 @@ public class JdbcScheduleDao implements ScheduleDao {
         if ("CANCELLED".equals(original.status())) {
             throw new com.laborflow.core.noshow.application.NoShowException("취소된 배정에는 노쇼를 기록할 수 없습니다.");
         }
-        Integer openCount = jdbcTemplate.queryForObject("""
+        Integer activeCount = jdbcTemplate.queryForObject("""
             SELECT count(*) FROM public.worker_no_show_incident
-            WHERE agency_owner_uuid=? AND original_assignment_uuid=? AND status='OPEN' AND deleted_at IS NULL
+            WHERE agency_owner_uuid=? AND original_assignment_uuid=? AND status IN ('OPEN','REPLACED') AND deleted_at IS NULL
             """,Integer.class,agencyOwnerUuid,originalAssignmentUuid);
-        if (openCount != null && openCount > 0) {
+        if (activeCount != null && activeCount > 0) {
             changeNoShowReplacement(agencyOwnerUuid,accountUuid,scheduleDayUuid,originalAssignmentUuid,replacementWorkerProfileUuid);
             return;
         }
-        if ("REPLACED".equalsIgnoreCase(original.status())) {
-            UUID persistedReplacementWorkerUuid = jdbcTemplate.query(
-                """
-                SELECT replacement_worker_profile_uuid
-                FROM public.worker_no_show_incident
-                WHERE agency_owner_uuid = ?
-                    AND original_assignment_uuid = ?
-                    AND deleted_at IS NULL
-                """,
-                (resultSet, rowNumber) -> resultSet.getObject(
-                    "replacement_worker_profile_uuid",
-                    UUID.class
-                ),
-                agencyOwnerUuid,
-                originalAssignmentUuid
-            ).stream().findFirst().orElse(null);
-            if (replacementWorkerProfileUuid.equals(persistedReplacementWorkerUuid)) {
-                return;
-            }
-            throw new IllegalArgumentException("The no-show assignment was already replaced.");
+        if (!java.util.Set.of("PLANNED", "WORKED", "ABSENT").contains(original.status())) {
+            throw new IllegalArgumentException("Original assignment cannot be replaced.");
         }
 
         String previousAttendanceData = jdbcTemplate.query(
@@ -1648,7 +1651,9 @@ public class JdbcScheduleDao implements ScheduleDao {
                 d.male_required_count,
                 d.female_required_count,
                 d.memo,
-                d.status
+                d.status,
+                d.male_charge_rate,
+                d.female_charge_rate
             FROM public.work_schedule_day d
             JOIN public.farm_work_site s ON s.uuid = d.work_site_uuid
             WHERE s.agency_owner_uuid = ?
@@ -1666,7 +1671,9 @@ public class JdbcScheduleDao implements ScheduleDao {
                 resultSet.getInt("male_required_count"),
                 resultSet.getInt("female_required_count"),
                 resultSet.getString("memo"),
-                resultSet.getString("status")
+                resultSet.getString("status"),
+                resultSet.getBigDecimal("male_charge_rate"),
+                resultSet.getBigDecimal("female_charge_rate")
             ),
             params.toArray()
         );
@@ -1773,9 +1780,11 @@ public class JdbcScheduleDao implements ScheduleDao {
                 male_required_count,
                 female_required_count,
                 memo,
+                male_charge_rate,
+                female_charge_rate,
                 status
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
             ON CONFLICT (work_site_uuid, work_date) WHERE deleted_at IS NULL DO NOTHING
             """,
             template.workSiteUuid(),
@@ -1784,7 +1793,9 @@ public class JdbcScheduleDao implements ScheduleDao {
             template.endTime().orElse(null),
             template.requiredMen(),
             template.requiredWomen(),
-            template.memo()
+            template.memo(),
+            template.maleChargeRate(),
+            template.femaleChargeRate()
         );
     }
 
@@ -1948,7 +1959,9 @@ public class JdbcScheduleDao implements ScheduleDao {
             resultSet.getInt("female_required_count"),
             resultSet.getString("memo"),
             resultSet.getObject("daily_start_time", LocalTime.class),
-            resultSet.getObject("daily_end_time", LocalTime.class)
+            resultSet.getObject("daily_end_time", LocalTime.class),
+            resultSet.getBigDecimal("male_charge_rate"),
+            resultSet.getBigDecimal("female_charge_rate")
         );
     }
 
@@ -2029,7 +2042,9 @@ public class JdbcScheduleDao implements ScheduleDao {
         int requiredWomen,
         String memo,
         LocalTime startTime,
-        LocalTime endTime
+        LocalTime endTime,
+        java.math.BigDecimal maleChargeRate,
+        java.math.BigDecimal femaleChargeRate
     ) {
     }
 
@@ -2068,7 +2083,9 @@ public class JdbcScheduleDao implements ScheduleDao {
         int requiredMen,
         int requiredWomen,
         String memo,
-        String status
+        String status,
+        java.math.BigDecimal maleChargeRate,
+        java.math.BigDecimal femaleChargeRate
     ) {
     }
 }

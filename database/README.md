@@ -4,6 +4,7 @@ Migration files are the source of truth for the PostgreSQL schema.
 
 2026-10-25: `036_create_finance_ledger.sql` adds the separate finance work/cash/allocation/revision model.
 2026-10-25: `037_extend_no_show_management.sql` supports anonymous assignments and no-show note/cancellation history. See [no-show API/data flow](../docs/api/no-show.md).
+2026-10-25: `038_add_schedule_charge_rates.sql` adds nullable per-person farm charge rates to schedule days. See [schedule contract](../docs/api/schedule.md#일정-농가-청구-단가).
 See [finance data](../docs/database/finance.md), [API](../docs/api/finance.md), and [rules/manual checks](../docs/product/finance-policies.md).
 No legacy pay-term data is automatically imported. Customer database upgrade has not been verified by the disposable-DB tests.
 `backend-core` uses Flyway and copies these files into `classpath:db/migration` during the Gradle `processResources` task.

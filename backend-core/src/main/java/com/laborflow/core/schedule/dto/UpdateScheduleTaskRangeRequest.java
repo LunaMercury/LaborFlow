@@ -20,6 +20,13 @@ public record UpdateScheduleTaskRangeRequest(
     int requiredMen,
     int requiredWomen,
     String memo,
-    List<String> workTypeCodes
+    List<String> workTypeCodes,
+    ScheduleChargeRates chargeRates
 ) {
+    public UpdateScheduleTaskRangeRequest(List<UUID> taskIds, LocalDate startDate, LocalDate endDate,
+        UUID ownerUuid, String title, UUID clientWorkSiteUuid, String siteName, String address, String siteMemo,
+        LocalTime startTime, LocalTime endTime, int requiredMen, int requiredWomen, String memo, List<String> workTypeCodes) {
+        this(taskIds, startDate, endDate, ownerUuid, title, clientWorkSiteUuid, siteName, address, siteMemo,
+            startTime, endTime, requiredMen, requiredWomen, memo, workTypeCodes, null);
+    }
 }

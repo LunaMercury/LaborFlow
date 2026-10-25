@@ -22,6 +22,14 @@ public record CreateScheduleTaskRequest(
     LocalTime startTime,
     LocalTime endTime,
     String memo,
-    List<String> workTypeCodes
+    List<String> workTypeCodes,
+    ScheduleChargeRates chargeRates
 ) {
+    public CreateScheduleTaskRequest(UUID ownerUuid, String ownerName, String ownerNickname, String ownerPhone,
+        LocalDate startDate, LocalDate endDate, String title, UUID clientWorkSiteUuid, String siteName,
+        String address, String siteMemo, int requiredMen, int requiredWomen, LocalTime startTime,
+        LocalTime endTime, String memo, List<String> workTypeCodes) {
+        this(ownerUuid, ownerName, ownerNickname, ownerPhone, startDate, endDate, title, clientWorkSiteUuid,
+            siteName, address, siteMemo, requiredMen, requiredWomen, startTime, endTime, memo, workTypeCodes, null);
+    }
 }

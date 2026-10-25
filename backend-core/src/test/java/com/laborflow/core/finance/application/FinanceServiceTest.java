@@ -73,6 +73,36 @@ class FinanceServiceTest {
     private RecordCash record(UUID request,long amount) {
         return new RecordCash(request,"PAYOUT",WORKER.toString(),DATE,n(amount),"TRANSFER",null,List.of(new Allocation(OBLIGATION,n(amount))));
     }
+    @Test void scheduleChargeRatesFollowAssignmentAreasAndNeverChangeWorkerPay() {
+        Assignment men=new Assignment(ASSIGNMENT,WORKER,WORKER.toString(),"M","PLANNED","WORKED",true,null,null,60,1,"MEN");
+        Assignment women=new Assignment(id(30),id(31),id(31).toString(),"W","PLANNED","WORKED",true,null,null,60,1,"WOMEN");
+        when(dao.source(OFFICE,DAY)).thenReturn(Optional.of(new Source(DAY,DATE,CLIENT,PROFILE,"Client",SITE,"Site","Work",true,"stable",true,List.of(men,women),n(160000),n(140000))));
+        when(dao.settings(OFFICE)).thenReturn(Optional.of(new Settings(1,"OFFICE",n(120000),n(100000),"DAILY",1,null,List.of(),List.of())));
+        Work prepared=service.prepareWork("demo",DAY);
+        assertEquals(n(160000),prepared.snapshot().lines().get(0).chargeRate());
+        assertEquals(n(140000),prepared.snapshot().lines().get(1).chargeRate());
+        assertEquals(n(100000),prepared.snapshot().lines().get(0).payRate());
+        assertEquals(n(100000),prepared.snapshot().lines().get(1).payRate());
+        assertEquals(n(100000),prepared.totals().workProfit());
+    }
+    @Test void scheduleZeroIsNotMissingAndDirectReferralFeesAndWorkerOverridesStayIndependent() {
+        Assignment men=new Assignment(ASSIGNMENT,WORKER,WORKER.toString(),"M","PLANNED","WORKED",true,null,null,60,1,"MEN");
+        when(dao.source(OFFICE,DAY)).thenReturn(Optional.of(new Source(DAY,DATE,CLIENT,PROFILE,"Client",SITE,"Site","Work",true,"stable",true,List.of(men),n(0),null)));
+        when(dao.settings(OFFICE)).thenReturn(Optional.of(new Settings(1,"OFFICE",n(150000),n(100000),"DAILY",1,null,List.of(),List.of())));
+        assertEquals(n(0),service.prepareWork("demo",DAY).snapshot().lines().getFirst().chargeRate());
+        when(dao.settings(OFFICE)).thenReturn(Optional.of(new Settings(1,"DIRECT",n(20000),n(100000),"DAILY",1,null,List.of(),List.of())));
+        assertEquals(n(20000),service.prepareWork("demo",DAY).snapshot().lines().getFirst().chargeRate());
+        when(dao.settings(OFFICE)).thenReturn(Optional.of(new Settings(1,"OFFICE",n(150000),n(100000),"DAILY",1,null,
+            List.of(new WorkerOverride(WORKER,null,n(170000),null,"DAILY",1,null)),List.of())));
+        assertEquals(n(170000),service.prepareWork("demo",DAY).snapshot().lines().getFirst().chargeRate());
+    }
+    @Test void reopeningPreparedWorkNeverRepricesExistingAmountsFromChangedScheduleRates() {
+        var old=stored(false,snapshot(n(150000),n(130000)));
+        when(dao.workByDay(OFFICE,DAY)).thenReturn(Optional.of(old));
+        when(dao.source(OFFICE,DAY)).thenReturn(Optional.of(new Source(DAY,DATE,CLIENT,PROFILE,"Client",SITE,"Site","Work",true,"stable",true,List.of(assignment(true,1)),n(190000),n(180000))));
+        assertEquals(n(150000),service.prepareWork("demo",DAY).snapshot().lines().getFirst().chargeAmount());
+        verify(dao,never()).insertWork(any(),any(),any());
+    }
     @Test void noActualAttendanceMeansNoInferredDraftLinesAndPrepareIsExplicitAndRepeatable() {
         when(dao.source(OFFICE,DAY)).thenReturn(Optional.of(source("draft",List.of(assignment(false,1)))));
         Work prepared=service.prepareWork("demo",DAY);

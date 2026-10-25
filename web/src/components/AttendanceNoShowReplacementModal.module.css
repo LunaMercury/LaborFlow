@@ -30,6 +30,19 @@
 }
 
 .candidates { display: flex; flex-direction: column; }
+.searchInput {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--color-pages-journal-page-input-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font: inherit;
+  background: var(--color-pages-journal-page-input-background);
+  color: var(--color-pages-journal-page-input-text);
+}
+.searchInput:focus-visible { outline: 2px solid var(--color-pages-journal-page-input-focus-border); outline-offset: 2px; }
 
 .candidate {
   align-items: start;
@@ -51,7 +64,7 @@
   outline-offset: -2px;
 }
 
-.candidate input, .conflictWarning input {
+.candidate input {
   accent-color: var(--color-app-active-menu-dropdown-item-text);
   flex-shrink: 0;
   margin-top: 4px;
@@ -68,19 +81,6 @@
   overflow-wrap: anywhere;
 }
 
-.conflictWarning {
-  align-items: start;
-  background: var(--color-pages-work-schedule-page-no-show-conflict-warning-background);
-  border: 1px solid var(--color-pages-work-schedule-page-no-show-conflict-warning-border);
-  color: var(--color-pages-work-schedule-page-no-show-conflict-warning-text);
-  display: flex;
-  font-size: 13px;
-  gap: 10px;
-  line-height: 1.6;
-  padding: 12px;
-}
-
-.timeConflict { color: var(--color-pages-work-schedule-page-no-show-candidate-list-no-show-time-conflict-text); }
 .actions { display: flex; flex-shrink: 0; gap: 8px; justify-content: flex-end; }
 .actions .saveButton {
   background: var(--color-pages-work-schedule-page-no-show-modal-header-no-show-confirm-button-background);

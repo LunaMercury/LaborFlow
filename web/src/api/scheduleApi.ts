@@ -8,6 +8,11 @@ const apiBaseUrl = getApiBaseUrl();
 
 export type ScheduleAssignmentArea = "men" | "women";
 
+export type ScheduleChargeRates = {
+  male: number | null;
+  female: number | null;
+};
+
 export type ScheduleAssignment = {
   assignmentUuid?: string;
   area: ScheduleAssignmentArea;
@@ -29,6 +34,7 @@ export type ScheduleAssignment = {
 
 export type ScheduleTask = {
   address: string;
+  chargeRates?: ScheduleChargeRates;
   assignments: ScheduleAssignment[];
   clientWorkSiteUuid: string | null;
   id: string;
@@ -100,6 +106,7 @@ export type FarmOwnerOption = {
 
 export type CreateScheduleTaskPayload = {
   address: string;
+  chargeRates?: ScheduleChargeRates | null;
   clientWorkSiteUuid: string | null;
   endDate: string;
   endTime: string | null;
@@ -119,6 +126,7 @@ export type CreateScheduleTaskPayload = {
 };
 
 export type UpdateScheduleTaskPayload = {
+  chargeRates?: ScheduleChargeRates | null;
   movedWorkerProfileUuids?: string[];
   acknowledgedCautions?: CautionAcknowledgement[];
   acknowledgedSeparationRuleUuids?: string[];
@@ -155,6 +163,7 @@ export type RescheduleScheduleRangePayload = {
 
 export type UpdateScheduleTaskRangePayload = {
   address: string;
+  chargeRates?: ScheduleChargeRates | null;
   clientWorkSiteUuid: string | null;
   endDate: string;
   endTime: string | null;

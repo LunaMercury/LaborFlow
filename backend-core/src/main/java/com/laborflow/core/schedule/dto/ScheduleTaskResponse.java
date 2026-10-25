@@ -20,6 +20,15 @@ public record ScheduleTaskResponse(
     int requiredWomen,
     List<String> workTypeCodes,
     String memo,
-    List<ScheduleAssignmentResponse> assignments
+    List<ScheduleAssignmentResponse> assignments,
+    ScheduleChargeRates chargeRates
 ) {
+    public ScheduleTaskResponse(UUID id, UUID workSiteId, UUID clientWorkSiteUuid, UUID ownerUuid,
+        String title, String ownerName, String siteName, String address, String siteMemo, String timeRange,
+        String startTime, String endTime, int requiredMen, int requiredWomen, List<String> workTypeCodes,
+        String memo, List<ScheduleAssignmentResponse> assignments) {
+        this(id, workSiteId, clientWorkSiteUuid, ownerUuid, title, ownerName, siteName, address, siteMemo,
+            timeRange, startTime, endTime, requiredMen, requiredWomen, workTypeCodes, memo, assignments,
+            new ScheduleChargeRates(null, null));
+    }
 }
