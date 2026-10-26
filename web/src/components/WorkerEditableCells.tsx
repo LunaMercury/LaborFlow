@@ -38,7 +38,8 @@ export function EditableWorkerNameCell({
   const [draftName, setDraftName] = useState(name);
   const [draftNickname, setDraftNickname] = useState(nickname ?? "");
   const [isSaving, setIsSaving] = useState(false);
-  const { anchorRef, popoverRef, popoverStyle } = useFloatingCellEditor(isEditing);
+  const { anchorRef, popoverRef, popoverStyle } =
+    useFloatingCellEditor(isEditing);
 
   const openEditor = () => {
     setDraftName(name);
@@ -91,11 +92,19 @@ export function EditableWorkerNameCell({
         />
       )}
       {onSave ? (
-        <EditButton buttonRef={anchorRef} label="이름 수정" onClick={openEditor} />
+        <EditButton
+          buttonRef={anchorRef}
+          label="이름 수정"
+          onClick={openEditor}
+        />
       ) : null}
 
       {isEditing ? (
-        <div className={styles.cellEditPopover} ref={popoverRef} style={popoverStyle}>
+        <div
+          className={styles.cellEditPopover}
+          ref={popoverRef}
+          style={popoverStyle}
+        >
           <div className={styles.nameEditFields}>
             <input
               aria-label="이름"
@@ -115,7 +124,11 @@ export function EditableWorkerNameCell({
               />
             </div>
           </div>
-          <CellEditActions disabled={isSaving} onCancel={closeEditor} onSave={saveEditor} />
+          <CellEditActions
+            disabled={isSaving}
+            onCancel={closeEditor}
+            onSave={saveEditor}
+          />
         </div>
       ) : null}
     </div>
@@ -152,7 +165,8 @@ export function EditableTextCell({
   const [isEditing, setIsEditing] = useState(false);
   const [draftValue, setDraftValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
-  const { anchorRef, popoverRef, popoverStyle } = useFloatingCellEditor(isEditing);
+  const { anchorRef, popoverRef, popoverStyle } =
+    useFloatingCellEditor(isEditing);
 
   const openEditor = () => {
     setDraftValue(formatValue ? formatValue(value) : value);
@@ -176,10 +190,18 @@ export function EditableTextCell({
   return (
     <div className={styles.editableCell}>
       <span className={styles.editableCellText}>{value || "-"}</span>
-      <EditButton buttonRef={anchorRef} label={`${ariaLabel} 수정`} onClick={openEditor} />
+      <EditButton
+        buttonRef={anchorRef}
+        label={`${ariaLabel} 수정`}
+        onClick={openEditor}
+      />
 
       {isEditing ? (
-        <div className={styles.cellEditPopover} ref={popoverRef} style={popoverStyle}>
+        <div
+          className={styles.cellEditPopover}
+          ref={popoverRef}
+          style={popoverStyle}
+        >
           <input
             aria-label={ariaLabel}
             className={styles.cellEditInput}
@@ -187,10 +209,18 @@ export function EditableTextCell({
             maxLength={maxLength}
             value={draftValue}
             onChange={(event) =>
-              setDraftValue(formatValue ? formatValue(event.target.value) : event.target.value)
+              setDraftValue(
+                formatValue
+                  ? formatValue(event.target.value)
+                  : event.target.value,
+              )
             }
           />
-          <CellEditActions disabled={isSaving} onCancel={closeEditor} onSave={saveEditor} />
+          <CellEditActions
+            disabled={isSaving}
+            onCancel={closeEditor}
+            onSave={saveEditor}
+          />
         </div>
       ) : null}
     </div>
@@ -204,7 +234,9 @@ function useFloatingCellEditor(isOpen: boolean): {
 } {
   const anchorRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({ visibility: "hidden" });
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({
+    visibility: "hidden",
+  });
 
   useLayoutEffect(() => {
     if (!isOpen) {
@@ -221,11 +253,17 @@ function useFloatingCellEditor(isOpen: boolean): {
 
       const viewportPadding = 8;
       const popoverGap = 8;
-      const popoverWidth = Math.min(320, window.innerWidth - viewportPadding * 2);
-      const measuredHeight = popoverRef.current?.getBoundingClientRect().height ?? 96;
-      const availableBelow = window.innerHeight - anchorRect.bottom - popoverGap - viewportPadding;
+      const popoverWidth = Math.min(
+        320,
+        window.innerWidth - viewportPadding * 2,
+      );
+      const measuredHeight =
+        popoverRef.current?.getBoundingClientRect().height ?? 96;
+      const availableBelow =
+        window.innerHeight - anchorRect.bottom - popoverGap - viewportPadding;
       const availableAbove = anchorRect.top - popoverGap - viewportPadding;
-      const shouldOpenBelow = availableBelow >= measuredHeight || availableBelow >= availableAbove;
+      const shouldOpenBelow =
+        availableBelow >= measuredHeight || availableBelow >= availableAbove;
       const preferredTop = shouldOpenBelow
         ? anchorRect.bottom + popoverGap
         : anchorRect.top - popoverGap - measuredHeight;

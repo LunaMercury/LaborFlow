@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { AssignmentCautionEditor, type AssignmentCautionEditorHandle } from "./AssignmentCautionEditor";
+import {
+  AssignmentCautionEditor,
+  type AssignmentCautionEditorHandle,
+} from "./AssignmentCautionEditor";
 import { notifyCautionsChanged } from "../api/assignmentCautionsApi";
 import {
   createWorker,
@@ -168,11 +171,15 @@ export function WorkerProfileModal({
   const [noShowCount, setNoShowCount] = useState(worker?.noShowCount ?? 0);
   const submittingRef = useRef(false);
   const cautionDraftRef = useRef<AssignmentCautionEditorHandle>(null);
-  const [separationRules, setSeparationRules] = useState<SeparationRuleDraft[]>([]);
+  const [separationRules, setSeparationRules] = useState<SeparationRuleDraft[]>(
+    [],
+  );
   const [separationSearch, setSeparationSearch] = useState("");
-  const [isLoadingSeparationRules, setIsLoadingSeparationRules] = useState(isEditMode);
+  const [isLoadingSeparationRules, setIsLoadingSeparationRules] =
+    useState(isEditMode);
   const [separationRuleError, setSeparationRuleError] = useState("");
-  const [separationRuleReloadVersion, setSeparationRuleReloadVersion] = useState(0);
+  const [separationRuleReloadVersion, setSeparationRuleReloadVersion] =
+    useState(0);
 
   useEffect(() => {
     setNoShowCount(worker?.noShowCount ?? 0);
@@ -198,7 +205,9 @@ export function WorkerProfileModal({
                 rule.workerProfileUuidA === worker.profileUuid ||
                 rule.workerProfileUuidB === worker.profileUuid,
             )
-            .map((rule) => toSeparationRuleDraft(rule, worker.profileUuid as string)),
+            .map((rule) =>
+              toSeparationRuleDraft(rule, worker.profileUuid as string),
+            ),
         );
         setSeparationRuleError("");
       })
@@ -227,7 +236,10 @@ export function WorkerProfileModal({
     return workers
       .filter((candidate) => Boolean(candidate.profileUuid))
       .filter((candidate) => candidate.profileUuid !== worker?.profileUuid)
-      .filter((candidate) => !selectedWorkerUuids.has(candidate.profileUuid as string))
+      .filter(
+        (candidate) =>
+          !selectedWorkerUuids.has(candidate.profileUuid as string),
+      )
       .filter((candidate) => {
         if (!normalizedSearch) {
           return false;
@@ -310,9 +322,10 @@ export function WorkerProfileModal({
     submittingRef.current = true;
     setIsSubmitting(true);
     try {
-      const assignmentCautionChanges = isEditMode && worker?.profileUuid
-        ? cautionDraftRef.current?.getChanges()
-        : undefined;
+      const assignmentCautionChanges =
+        isEditMode && worker?.profileUuid
+          ? cautionDraftRef.current?.getChanges()
+          : undefined;
       if (isEditMode && worker?.profileUuid && !assignmentCautionChanges) {
         throw new Error("배치 주의 거래처를 불러온 뒤 다시 저장해 주세요.");
       }
@@ -425,11 +438,11 @@ export function WorkerProfileModal({
             ) : null}
             <button
               className={styles.primaryActionButton}
-                disabled={
-                  isSubmitting ||
-                  isLoadingSeparationRules ||
-                  Boolean(separationRuleError)
-                }
+              disabled={
+                isSubmitting ||
+                isLoadingSeparationRules ||
+                Boolean(separationRuleError)
+              }
               form={formId}
               type="submit"
             >
@@ -566,8 +579,14 @@ export function WorkerProfileModal({
                 {isEditMode && worker?.profileUuid ? (
                   <div className={styles.noShowHistoryRow}>
                     <span>노쇼 이력 {noShowCount}회</span>
-                    <button className={styles.secondaryActionButton} disabled={isSubmitting} type="button"
-                      onClick={() => setNoShowHistoryOpen(true)}>노쇼 이력 관리</button>
+                    <button
+                      className={styles.secondaryActionButton}
+                      disabled={isSubmitting}
+                      type="button"
+                      onClick={() => setNoShowHistoryOpen(true)}
+                    >
+                      노쇼 이력 관리
+                    </button>
                   </div>
                 ) : null}
 
@@ -716,8 +735,8 @@ export function WorkerProfileModal({
               <div className={styles.workSkillHeader}>
                 <h3>가능한 작업</h3>
                 <p>
-                  작업 종류를 등록한 뒤 작업별 숙련등급을 선택합니다. 기존 별점은
-                  A~D 또는 미평가로 환산해 표시합니다.
+                  작업 종류를 등록한 뒤 작업별 숙련등급을 선택합니다. 기존
+                  별점은 A~D 또는 미평가로 환산해 표시합니다.
                 </p>
               </div>
               <div className={styles.workTypeEditorPanel}>
@@ -739,20 +758,28 @@ export function WorkerProfileModal({
                 <div className={styles.separationHeader}>
                   <div>
                     <h3>동시 배치 주의</h3>
-                    <p>같은 현장에 함께 배치하기 전에 경고할 작업자를 등록합니다.</p>
+                    <p>
+                      같은 현장에 함께 배치하기 전에 경고할 작업자를 등록합니다.
+                    </p>
                   </div>
                   <span>{separationRules.length}명</span>
                 </div>
 
                 {isLoadingSeparationRules ? (
-                  <p className={styles.separationStateText}>목록을 불러오는 중입니다.</p>
+                  <p className={styles.separationStateText}>
+                    목록을 불러오는 중입니다.
+                  </p>
                 ) : separationRuleError ? (
                   <div className={styles.separationErrorState}>
-                    <p className={styles.separationErrorText}>{separationRuleError}</p>
+                    <p className={styles.separationErrorText}>
+                      {separationRuleError}
+                    </p>
                     <button
                       type="button"
                       onClick={() =>
-                        setSeparationRuleReloadVersion((currentVersion) => currentVersion + 1)
+                        setSeparationRuleReloadVersion(
+                          (currentVersion) => currentVersion + 1,
+                        )
                       }
                     >
                       다시 시도
@@ -762,7 +789,10 @@ export function WorkerProfileModal({
                   <>
                     <div className={styles.separationRuleList}>
                       {separationRules.map((rule) => (
-                        <div className={styles.separationRuleRow} key={rule.otherWorkerProfileUuid}>
+                        <div
+                          className={styles.separationRuleRow}
+                          key={rule.otherWorkerProfileUuid}
+                        >
                           <strong>{rule.otherWorkerName}</strong>
                           <input
                             maxLength={500}
@@ -771,8 +801,12 @@ export function WorkerProfileModal({
                             onChange={(event) =>
                               setSeparationRules((currentRules) =>
                                 currentRules.map((currentRule) =>
-                                  currentRule.otherWorkerProfileUuid === rule.otherWorkerProfileUuid
-                                    ? { ...currentRule, reason: event.target.value }
+                                  currentRule.otherWorkerProfileUuid ===
+                                  rule.otherWorkerProfileUuid
+                                    ? {
+                                        ...currentRule,
+                                        reason: event.target.value,
+                                      }
                                     : currentRule,
                                 ),
                               )
@@ -785,7 +819,8 @@ export function WorkerProfileModal({
                               setSeparationRules((currentRules) =>
                                 currentRules.filter(
                                   (currentRule) =>
-                                    currentRule.otherWorkerProfileUuid !== rule.otherWorkerProfileUuid,
+                                    currentRule.otherWorkerProfileUuid !==
+                                    rule.otherWorkerProfileUuid,
                                 ),
                               )
                             }
@@ -795,7 +830,9 @@ export function WorkerProfileModal({
                         </div>
                       ))}
                       {separationRules.length === 0 ? (
-                        <p className={styles.separationStateText}>등록된 작업자가 없습니다.</p>
+                        <p className={styles.separationStateText}>
+                          등록된 작업자가 없습니다.
+                        </p>
                       ) : null}
                     </div>
 
@@ -805,13 +842,17 @@ export function WorkerProfileModal({
                         placeholder="이름, 호칭 또는 전화번호 검색"
                         type="search"
                         value={separationSearch}
-                        onChange={(event) => setSeparationSearch(event.target.value)}
+                        onChange={(event) =>
+                          setSeparationSearch(event.target.value)
+                        }
                       />
                       {separationCandidates.length > 0 ? (
                         <div className={styles.separationSearchResults}>
                           {separationCandidates.map((candidate) => {
                             const candidateName =
-                              candidate.name.trim() || candidate.nickname?.trim() || "이름 없음";
+                              candidate.name.trim() ||
+                              candidate.nickname?.trim() ||
+                              "이름 없음";
                             return (
                               <button
                                 key={candidate.profileUuid}
@@ -820,7 +861,8 @@ export function WorkerProfileModal({
                                   setSeparationRules((currentRules) => [
                                     ...currentRules,
                                     {
-                                      otherWorkerProfileUuid: candidate.profileUuid as string,
+                                      otherWorkerProfileUuid:
+                                        candidate.profileUuid as string,
                                       otherWorkerName: candidateName,
                                       reason: "",
                                     },
@@ -841,19 +883,32 @@ export function WorkerProfileModal({
               </section>
             ) : null}
             {isEditMode && worker?.profileUuid ? (
-              <AssignmentCautionEditor key={`${loginId}:${worker.profileUuid}`} loginId={loginId} workerProfileUuid={worker.profileUuid}
-                deferSave disabled={isSubmitting} draftRef={cautionDraftRef} />
+              <AssignmentCautionEditor
+                key={`${loginId}:${worker.profileUuid}`}
+                loginId={loginId}
+                workerProfileUuid={worker.profileUuid}
+                deferSave
+                disabled={isSubmitting}
+                draftRef={cautionDraftRef}
+              />
             ) : null}
           </form>
         </div>
       </section>
       {noShowHistoryOpen && isEditMode && worker?.profileUuid ? (
-        <NoShowHistoryModal loginId={loginId} workerProfileUuid={worker.profileUuid}
+        <NoShowHistoryModal
+          loginId={loginId}
+          workerProfileUuid={worker.profileUuid}
           onClose={() => setNoShowHistoryOpen(false)}
           onChanged={async () => {
             const refreshedWorkers = await fetchWorkers(loginId);
-            setNoShowCount(refreshedWorkers.find(item => item.profileUuid === worker.profileUuid)?.noShowCount ?? 0);
-          }} />
+            setNoShowCount(
+              refreshedWorkers.find(
+                (item) => item.profileUuid === worker.profileUuid,
+              )?.noShowCount ?? 0,
+            );
+          }}
+        />
       ) : null}
     </div>
   );

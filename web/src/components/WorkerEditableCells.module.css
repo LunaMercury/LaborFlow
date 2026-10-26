@@ -9,7 +9,9 @@
 
 .workerNameCellButton {
   appearance: none;
-  background: var(--color-components-worker-editable-cells-worker-name-cell-button-background);
+  background: var(
+    --color-components-worker-editable-cells-worker-name-cell-button-background
+  );
   border: 0;
   border-radius: 6px;
   display: flex;
@@ -21,12 +23,17 @@
 }
 
 .workerNameCellButton:hover {
-  background: var(--color-components-worker-editable-cells-worker-name-cell-button-hover-background);
+  background: var(
+    --color-components-worker-editable-cells-worker-name-cell-button-hover-background
+  );
   cursor: pointer;
 }
 
 .workerNameCellButton:focus-visible {
-  box-shadow: 0 0 0 3px var(--color-components-worker-editable-cells-worker-name-cell-button-focus-visible-shadow-color);
+  box-shadow: 0 0 0 3px
+    var(
+      --color-components-worker-editable-cells-worker-name-cell-button-focus-visible-shadow-color
+    );
   outline: 0;
 }
 
@@ -66,7 +73,9 @@
 .cellEditButton {
   align-items: center;
   appearance: none;
-  background: var(--color-components-worker-editable-cells-cell-edit-button-background);
+  background: var(
+    --color-components-worker-editable-cells-cell-edit-button-background
+  );
   border: 0;
   border-radius: 999px;
   color: var(--color-components-worker-editable-cells-cell-edit-button-text);
@@ -80,17 +89,25 @@
 }
 
 .cellEditButton:hover {
-  background: var(--color-components-worker-editable-cells-cell-edit-button-hover-background);
-  color: var(--color-components-worker-editable-cells-cell-edit-button-hover-text);
+  background: var(
+    --color-components-worker-editable-cells-cell-edit-button-hover-background
+  );
+  color: var(
+    --color-components-worker-editable-cells-cell-edit-button-hover-text
+  );
   cursor: pointer;
 }
 
 .cellEditPopover {
   align-items: flex-end;
-  background: var(--color-components-worker-editable-cells-cell-edit-popover-background);
-  border: 1px solid var(--color-components-worker-editable-cells-cell-edit-popover-border);
+  background: var(
+    --color-components-worker-editable-cells-cell-edit-popover-background
+  );
+  border: 1px solid
+    var(--color-components-worker-editable-cells-cell-edit-popover-border);
   border-radius: 8px;
-  box-shadow: 0 14px 30px var(--color-components-worker-editable-cells-cell-edit-popover-shadow-color);
+  box-shadow: 0 14px 30px
+    var(--color-components-worker-editable-cells-cell-edit-popover-shadow-color);
   display: flex;
   gap: 8px;
   justify-content: center;
@@ -120,8 +137,11 @@
 }
 
 .cellEditInput {
-  background: var(--color-components-worker-editable-cells-cell-edit-input-background);
-  border: 1px solid var(--color-components-worker-editable-cells-cell-edit-input-border);
+  background: var(
+    --color-components-worker-editable-cells-cell-edit-input-background
+  );
+  border: 1px solid
+    var(--color-components-worker-editable-cells-cell-edit-input-border);
   border-radius: 8px;
   color: var(--color-components-worker-editable-cells-cell-edit-input-text);
   min-height: 36px;
@@ -130,8 +150,13 @@
 }
 
 .cellEditInput:focus {
-  border-color: var(--color-components-worker-editable-cells-cell-edit-input-focus-border);
-  box-shadow: 0 0 0 3px var(--color-components-worker-editable-cells-cell-edit-input-focus-shadow-color);
+  border-color: var(
+    --color-components-worker-editable-cells-cell-edit-input-focus-border
+  );
+  box-shadow: 0 0 0 3px
+    var(
+      --color-components-worker-editable-cells-cell-edit-input-focus-shadow-color
+    );
   outline: 0;
 }
 
@@ -158,13 +183,21 @@
 }
 
 .cellEditConfirmButton {
-  background: var(--color-components-worker-editable-cells-cell-edit-confirm-button-background);
-  color: var(--color-components-worker-editable-cells-cell-edit-confirm-button-text);
+  background: var(
+    --color-components-worker-editable-cells-cell-edit-confirm-button-background
+  );
+  color: var(
+    --color-components-worker-editable-cells-cell-edit-confirm-button-text
+  );
 }
 
 .cellEditCancelButton {
-  background: var(--color-components-worker-editable-cells-cell-edit-cancel-button-background);
-  color: var(--color-components-worker-editable-cells-cell-edit-cancel-button-text);
+  background: var(
+    --color-components-worker-editable-cells-cell-edit-cancel-button-background
+  );
+  color: var(
+    --color-components-worker-editable-cells-cell-edit-cancel-button-text
+  );
 }
 
 .cellEditConfirmButton:hover,

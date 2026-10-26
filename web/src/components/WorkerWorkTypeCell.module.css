@@ -19,8 +19,11 @@
 
 .workTypePillRow {
   align-items: center;
-  background: var(--color-components-worker-work-type-cell-work-type-pill-row-background);
-  border: 1px solid var(--color-components-worker-work-type-cell-work-type-pill-row-border);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-pill-row-background
+  );
+  border: 1px solid
+    var(--color-components-worker-work-type-cell-work-type-pill-row-border);
   border-radius: 999px;
   color: var(--color-components-worker-work-type-cell-work-type-pill-row-text);
   display: flex;
@@ -43,10 +46,15 @@
 .workTypeGradeButton {
   align-items: center;
   appearance: none;
-  background: var(--color-components-worker-work-type-cell-work-type-grade-button-background);
-  border: 1px solid var(--color-components-worker-work-type-cell-work-type-grade-button-border);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-grade-button-background
+  );
+  border: 1px solid
+    var(--color-components-worker-work-type-cell-work-type-grade-button-border);
   border-radius: 999px;
-  color: var(--color-components-worker-work-type-cell-work-type-grade-button-text);
+  color: var(
+    --color-components-worker-work-type-cell-work-type-grade-button-text
+  );
   display: flex;
   flex: 0 0 auto;
   font-size: 11px;
@@ -65,22 +73,35 @@
 }
 
 .workTypeGradeButton:hover {
-  background: var(--color-components-worker-work-type-cell-work-type-grade-button-hover-background);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-grade-button-hover-background
+  );
   cursor: pointer;
 }
 
 .workTypeGradeButton:focus-visible {
-  border-color: var(--color-components-worker-work-type-cell-work-type-grade-button-focus-border);
-  box-shadow: 0 0 0 3px var(--color-components-worker-work-type-cell-work-type-grade-button-focus-shadow-color);
+  border-color: var(
+    --color-components-worker-work-type-cell-work-type-grade-button-focus-border
+  );
+  box-shadow: 0 0 0 3px
+    var(
+      --color-components-worker-work-type-cell-work-type-grade-button-focus-shadow-color
+    );
   outline: 0;
 }
 
 .workTypeGradeMenu {
   align-items: stretch;
-  background: var(--color-components-worker-work-type-cell-work-type-grade-menu-background);
-  border: 1px solid var(--color-components-worker-work-type-cell-work-type-grade-menu-border);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-grade-menu-background
+  );
+  border: 1px solid
+    var(--color-components-worker-work-type-cell-work-type-grade-menu-border);
   border-radius: 8px;
-  box-shadow: 0 14px 30px var(--color-components-worker-work-type-cell-work-type-grade-menu-shadow-color);
+  box-shadow: 0 14px 30px
+    var(
+      --color-components-worker-work-type-cell-work-type-grade-menu-shadow-color
+    );
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -94,7 +115,9 @@
 
 .workTypeGradeMenuIntro,
 .workTypeGradeMenuNote {
-  color: var(--color-components-worker-work-type-cell-work-type-grade-menu-note-text);
+  color: var(
+    --color-components-worker-work-type-cell-work-type-grade-menu-note-text
+  );
   font-size: 12px;
   font-weight: 700;
   line-height: 1.45;
@@ -103,7 +126,10 @@
 }
 
 .workTypeGradeMenuNote {
-  border-top: 1px solid var(--color-components-worker-work-type-cell-work-type-grade-menu-note-border);
+  border-top: 1px solid
+    var(
+      --color-components-worker-work-type-cell-work-type-grade-menu-note-border
+    );
   margin-top: 2px;
   padding-top: 8px;
 }
@@ -111,10 +137,14 @@
 .workTypeGradeOption {
   align-items: flex-start;
   appearance: none;
-  background: var(--color-components-worker-work-type-cell-work-type-grade-option-background);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-grade-option-background
+  );
   border: 1px solid transparent;
   border-radius: 6px;
-  color: var(--color-components-worker-work-type-cell-work-type-grade-option-text);
+  color: var(
+    --color-components-worker-work-type-cell-work-type-grade-option-text
+  );
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -127,15 +157,23 @@
 
 .workTypeGradeOption:hover,
 .workTypeGradeOption:focus-visible {
-  background: var(--color-components-worker-work-type-cell-work-type-grade-option-hover-background);
-  border-color: var(--color-components-worker-work-type-cell-work-type-grade-option-hover-border);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-grade-option-hover-background
+  );
+  border-color: var(
+    --color-components-worker-work-type-cell-work-type-grade-option-hover-border
+  );
   cursor: pointer;
   outline: 0;
 }
 
 .workTypeGradeOption[aria-selected="true"] {
-  background: var(--color-components-worker-work-type-cell-work-type-grade-option-selected-background);
-  border-color: var(--color-components-worker-work-type-cell-work-type-grade-option-selected-border);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-grade-option-selected-background
+  );
+  border-color: var(
+    --color-components-worker-work-type-cell-work-type-grade-option-selected-border
+  );
 }
 
 .workTypeGradeOptionHeading {
@@ -157,7 +195,9 @@
 }
 
 .workTypeGradeOption small {
-  color: var(--color-components-worker-work-type-cell-work-type-grade-option-description-text);
+  color: var(
+    --color-components-worker-work-type-cell-work-type-grade-option-description-text
+  );
   font-size: 11px;
   font-weight: 700;
   line-height: 1.4;
@@ -179,8 +219,12 @@
 }
 
 .workTypeRemoveButton {
-  background: var(--color-components-worker-work-type-cell-work-type-remove-button-background);
-  color: var(--color-components-worker-work-type-cell-work-type-remove-button-text);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-remove-button-background
+  );
+  color: var(
+    --color-components-worker-work-type-cell-work-type-remove-button-text
+  );
 }
 
 .workTypeAddArea {
@@ -191,8 +235,12 @@
 }
 
 .workTypeAddButton {
-  background: var(--color-components-worker-work-type-cell-work-type-add-button-background);
-  color: var(--color-components-worker-work-type-cell-work-type-add-button-text);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-add-button-background
+  );
+  color: var(
+    --color-components-worker-work-type-cell-work-type-add-button-text
+  );
 }
 
 .workTypeRemoveButton:hover,
@@ -204,11 +252,17 @@
 
 .workTypeDropdown {
   align-items: stretch;
-  background: var(--color-components-worker-work-type-cell-work-type-dropdown-background);
-  border: 1px solid var(--color-components-worker-work-type-cell-work-type-dropdown-border);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-dropdown-background
+  );
+  border: 1px solid
+    var(--color-components-worker-work-type-cell-work-type-dropdown-border);
   border-radius: 8px;
   box-sizing: border-box;
-  box-shadow: 0 14px 30px var(--color-components-worker-work-type-cell-work-type-dropdown-shadow-color);
+  box-shadow: 0 14px 30px
+    var(
+      --color-components-worker-work-type-cell-work-type-dropdown-shadow-color
+    );
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -220,10 +274,15 @@
 }
 
 .workTypeSearchInput {
-  background: var(--color-components-worker-work-type-cell-work-type-search-input-background);
-  border: 1px solid var(--color-components-worker-work-type-cell-work-type-search-input-border);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-search-input-background
+  );
+  border: 1px solid
+    var(--color-components-worker-work-type-cell-work-type-search-input-border);
   border-radius: 8px;
-  color: var(--color-components-worker-work-type-cell-work-type-search-input-text);
+  color: var(
+    --color-components-worker-work-type-cell-work-type-search-input-text
+  );
   flex: 0 0 auto;
   min-height: 32px;
   padding: 0 10px;
@@ -231,8 +290,13 @@
 }
 
 .workTypeSearchInput:focus {
-  border-color: var(--color-components-worker-work-type-cell-work-type-search-input-focus-border);
-  box-shadow: 0 0 0 3px var(--color-components-worker-work-type-cell-work-type-search-input-focus-shadow-color);
+  border-color: var(
+    --color-components-worker-work-type-cell-work-type-search-input-focus-border
+  );
+  box-shadow: 0 0 0 3px
+    var(
+      --color-components-worker-work-type-cell-work-type-search-input-focus-shadow-color
+    );
   outline: 0;
 }
 
@@ -249,10 +313,14 @@
 
 .workTypeOptionButton {
   appearance: none;
-  background: var(--color-components-worker-work-type-cell-work-type-option-button-background);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-option-button-background
+  );
   border: 0;
   border-radius: 6px;
-  color: var(--color-components-worker-work-type-cell-work-type-option-button-text);
+  color: var(
+    --color-components-worker-work-type-cell-work-type-option-button-text
+  );
   flex: 0 0 auto;
   font-size: 14px;
   font-weight: 800;
@@ -262,16 +330,25 @@
 }
 
 .workTypeOptionButton:hover {
-  background: var(--color-components-worker-work-type-cell-work-type-option-button-hover-background);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-option-button-hover-background
+  );
 }
 
 .createWorkTypeButton {
   align-items: center;
   appearance: none;
-  background: var(--color-components-worker-work-type-cell-work-type-option-button-hover-background);
-  border: 1px solid var(--color-components-worker-work-type-cell-work-type-search-input-focus-border);
+  background: var(
+    --color-components-worker-work-type-cell-work-type-option-button-hover-background
+  );
+  border: 1px solid
+    var(
+      --color-components-worker-work-type-cell-work-type-search-input-focus-border
+    );
   border-radius: 6px;
-  color: var(--color-components-worker-work-type-cell-work-type-option-button-text);
+  color: var(
+    --color-components-worker-work-type-cell-work-type-option-button-text
+  );
   display: flex;
   flex: 0 0 auto;
   gap: 8px;
@@ -302,7 +379,9 @@
 }
 
 .createWorkTypeError {
-  color: var(--color-components-worker-work-type-cell-work-type-remove-button-text);
+  color: var(
+    --color-components-worker-work-type-cell-work-type-remove-button-text
+  );
   font-size: 12px;
   font-weight: 700;
   line-height: 1.4;
@@ -310,7 +389,9 @@
 }
 
 .emptyWorkTypeText {
-  color: var(--color-components-worker-work-type-cell-empty-work-type-text-text);
+  color: var(
+    --color-components-worker-work-type-cell-empty-work-type-text-text
+  );
   font-size: 13px;
   font-weight: 800;
   line-height: 1.4;

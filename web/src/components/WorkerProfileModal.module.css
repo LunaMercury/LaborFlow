@@ -7,7 +7,9 @@
 
 .modalBackdrop {
   align-items: center;
-  background: var(--color-components-worker-profile-modal-modal-backdrop-background);
+  background: var(
+    --color-components-worker-profile-modal-modal-backdrop-background
+  );
   display: flex;
   inset: 0;
   justify-content: center;
@@ -18,10 +20,16 @@
 
 .workerProfileDialog {
   align-items: stretch;
-  background: var(--color-components-worker-profile-modal-worker-profile-dialog-background);
-  border: 1px solid var(--color-components-worker-profile-modal-worker-profile-dialog-border);
+  background: var(
+    --color-components-worker-profile-modal-worker-profile-dialog-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-worker-profile-dialog-border);
   border-radius: 8px;
-  box-shadow: 0 24px 60px var(--color-components-worker-profile-modal-worker-profile-dialog-shadow-color);
+  box-shadow: 0 24px 60px
+    var(
+      --color-components-worker-profile-modal-worker-profile-dialog-shadow-color
+    );
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -95,10 +103,17 @@
 .availabilityMemoField input,
 .paymentField input,
 .paymentField select {
-  background: var(--color-components-worker-profile-modal-payment-field-payment-field-background);
-  border: 1px solid var(--color-components-worker-profile-modal-payment-field-payment-field-border);
+  background: var(
+    --color-components-worker-profile-modal-payment-field-payment-field-background
+  );
+  border: 1px solid
+    var(
+      --color-components-worker-profile-modal-payment-field-payment-field-border
+    );
   border-radius: 8px;
-  color: var(--color-components-worker-profile-modal-payment-field-payment-field-text);
+  color: var(
+    --color-components-worker-profile-modal-payment-field-payment-field-text
+  );
   font-size: 14px;
   min-height: 40px;
   padding: 0 12px;
@@ -116,8 +131,13 @@
 .availabilityMemoField input:focus,
 .paymentField input:focus,
 .paymentField select:focus {
-  border-color: var(--color-components-worker-profile-modal-payment-field-payment-field-focus-focus-focus-focus-focus-border);
-  box-shadow: 0 0 0 3px var(--color-components-worker-profile-modal-payment-field-payment-field-focus-focus-focus-focus-focus-shadow-color);
+  border-color: var(
+    --color-components-worker-profile-modal-payment-field-payment-field-focus-focus-focus-focus-focus-border
+  );
+  box-shadow: 0 0 0 3px
+    var(
+      --color-components-worker-profile-modal-payment-field-payment-field-focus-focus-focus-focus-focus-shadow-color
+    );
   outline: 0;
 }
 
@@ -151,14 +171,20 @@
 }
 
 .genderButton {
-  background: var(--color-components-worker-profile-modal-gender-button-background);
-  border: 1px solid var(--color-components-worker-profile-modal-gender-button-border);
+  background: var(
+    --color-components-worker-profile-modal-gender-button-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-gender-button-border);
   color: var(--color-components-worker-profile-modal-gender-button-text);
 }
 
 .activeGenderButton {
-  background: var(--color-components-worker-profile-modal-active-gender-button-background);
-  border: 1px solid var(--color-components-worker-profile-modal-active-gender-button-border);
+  background: var(
+    --color-components-worker-profile-modal-active-gender-button-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-active-gender-button-border);
   color: var(--color-components-worker-profile-modal-active-gender-button-text);
 }
 
@@ -170,8 +196,11 @@
 
 .availabilitySection {
   align-items: stretch;
-  background: var(--color-components-worker-profile-modal-availability-section-background);
-  border: 1px solid var(--color-components-worker-profile-modal-availability-section-border);
+  background: var(
+    --color-components-worker-profile-modal-availability-section-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-availability-section-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -196,15 +225,20 @@
 }
 
 .noShowHistoryRow > span {
-  color: var(--color-components-worker-profile-modal-availability-header-availability-memo-field-text);
+  color: var(
+    --color-components-worker-profile-modal-availability-header-availability-memo-field-text
+  );
   font-size: 13px;
   font-weight: 700;
 }
 
 .workerRiskSetting {
   align-items: center;
-  background: var(--color-components-worker-profile-modal-worker-risk-setting-background);
-  border: 1px solid var(--color-components-worker-profile-modal-worker-risk-setting-border);
+  background: var(
+    --color-components-worker-profile-modal-worker-risk-setting-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-worker-risk-setting-border);
   border-radius: 7px;
   display: flex;
   gap: 16px;
@@ -225,13 +259,17 @@
 }
 
 .workerRiskSetting > div > span {
-  color: var(--color-components-worker-profile-modal-worker-risk-setting-text-2);
+  color: var(
+    --color-components-worker-profile-modal-worker-risk-setting-text-2
+  );
   font-size: 11px;
 }
 
 .availabilityHeader span,
 .availabilityMemoField span {
-  color: var(--color-components-worker-profile-modal-availability-header-availability-memo-field-text);
+  color: var(
+    --color-components-worker-profile-modal-availability-header-availability-memo-field-text
+  );
   font-size: 13px;
   font-weight: 900;
 }
@@ -246,8 +284,11 @@
 
 .availabilityToggle {
   align-items: center;
-  background: var(--color-components-worker-profile-modal-availability-toggle-background);
-  border: 1px solid var(--color-components-worker-profile-modal-availability-toggle-border);
+  background: var(
+    --color-components-worker-profile-modal-availability-toggle-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-availability-toggle-border);
   border-radius: 999px;
   color: var(--color-components-worker-profile-modal-availability-toggle-text);
   display: flex;
@@ -261,7 +302,9 @@
 }
 
 .availabilityToggle input {
-  accent-color: var(--color-components-worker-profile-modal-availability-toggle-accent);
+  accent-color: var(
+    --color-components-worker-profile-modal-availability-toggle-accent
+  );
   height: 16px;
   margin: 0;
   width: 16px;
@@ -299,22 +342,37 @@
 }
 
 .availabilityPresetRow button {
-  background: var(--color-components-worker-profile-modal-availability-preset-row-background);
-  border: 1px solid var(--color-components-worker-profile-modal-availability-preset-row-border);
-  color: var(--color-components-worker-profile-modal-availability-preset-row-text);
+  background: var(
+    --color-components-worker-profile-modal-availability-preset-row-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-availability-preset-row-border);
+  color: var(
+    --color-components-worker-profile-modal-availability-preset-row-text
+  );
 }
 
 .availableDayButton {
-  background: var(--color-components-worker-profile-modal-available-day-button-background);
-  border: 1px solid var(--color-components-worker-profile-modal-available-day-button-border);
+  background: var(
+    --color-components-worker-profile-modal-available-day-button-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-available-day-button-border);
   color: var(--color-components-worker-profile-modal-available-day-button-text);
   min-width: 42px;
 }
 
 .activeAvailableDayButton {
-  background: var(--color-components-worker-profile-modal-active-available-day-button-background);
-  border: 1px solid var(--color-components-worker-profile-modal-active-available-day-button-border);
-  color: var(--color-components-worker-profile-modal-active-available-day-button-text);
+  background: var(
+    --color-components-worker-profile-modal-active-available-day-button-background
+  );
+  border: 1px solid
+    var(
+      --color-components-worker-profile-modal-active-available-day-button-border
+    );
+  color: var(
+    --color-components-worker-profile-modal-active-available-day-button-text
+  );
   min-width: 42px;
 }
 
@@ -328,8 +386,11 @@
 
 .paymentSection {
   align-items: stretch;
-  background: var(--color-components-worker-profile-modal-payment-section-background);
-  border: 1px solid var(--color-components-worker-profile-modal-payment-section-border);
+  background: var(
+    --color-components-worker-profile-modal-payment-section-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-payment-section-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -348,7 +409,9 @@
 
 .paymentHeader span,
 .paymentField span {
-  color: var(--color-components-worker-profile-modal-payment-header-payment-field-text);
+  color: var(
+    --color-components-worker-profile-modal-payment-header-payment-field-text
+  );
   font-size: 13px;
   font-weight: 900;
 }
@@ -382,7 +445,8 @@
 
 .workSkillSection {
   align-items: stretch;
-  border: 1px solid var(--color-components-worker-profile-modal-work-skill-section-border);
+  border: 1px solid
+    var(--color-components-worker-profile-modal-work-skill-section-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -391,8 +455,11 @@
 }
 
 .workSkillHeader {
-  background: var(--color-components-worker-profile-modal-work-skill-header-background);
-  border-bottom: 1px solid var(--color-components-worker-profile-modal-work-skill-header-border);
+  background: var(
+    --color-components-worker-profile-modal-work-skill-header-background
+  );
+  border-bottom: 1px solid
+    var(--color-components-worker-profile-modal-work-skill-header-border);
   padding: 14px 16px;
 }
 
@@ -418,7 +485,8 @@
 
 .separationSection {
   align-items: stretch;
-  border: 1px solid var(--color-components-worker-profile-modal-separation-section-border);
+  border: 1px solid
+    var(--color-components-worker-profile-modal-separation-section-border);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -442,7 +510,9 @@
 .separationHeader p,
 .separationStateText,
 .separationErrorText {
-  color: var(--color-components-worker-profile-modal-separation-state-text-separation-error-text-text);
+  color: var(
+    --color-components-worker-profile-modal-separation-state-text-separation-error-text-text
+  );
   font-size: 13px;
   font-weight: 700;
   line-height: 1.5;
@@ -450,7 +520,9 @@
 }
 
 .separationHeader > span {
-  background: var(--color-components-worker-profile-modal-separation-header-background);
+  background: var(
+    --color-components-worker-profile-modal-separation-header-background
+  );
   border-radius: 999px;
   color: var(--color-components-worker-profile-modal-separation-header-text);
   flex-shrink: 0;
@@ -460,13 +532,18 @@
 }
 
 .separationErrorText {
-  color: var(--color-components-worker-profile-modal-separation-error-text-text);
+  color: var(
+    --color-components-worker-profile-modal-separation-error-text-text
+  );
 }
 
 .separationErrorState {
   align-items: center;
-  background: var(--color-components-worker-profile-modal-separation-error-state-background);
-  border: 1px solid var(--color-components-worker-profile-modal-separation-error-state-border);
+  background: var(
+    --color-components-worker-profile-modal-separation-error-state-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-separation-error-state-border);
   border-radius: 8px;
   display: flex;
   gap: 12px;
@@ -475,10 +552,15 @@
 }
 
 .separationErrorState button {
-  background: var(--color-components-worker-profile-modal-separation-error-state-background-2);
-  border: 1px solid var(--color-components-worker-profile-modal-separation-error-state-border-2);
+  background: var(
+    --color-components-worker-profile-modal-separation-error-state-background-2
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-separation-error-state-border-2);
   border-radius: 6px;
-  color: var(--color-components-worker-profile-modal-separation-error-state-text);
+  color: var(
+    --color-components-worker-profile-modal-separation-error-state-text
+  );
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 900;
@@ -500,8 +582,11 @@
 
 .separationRuleRow {
   align-items: center;
-  background: var(--color-components-worker-profile-modal-separation-rule-row-background);
-  border: 1px solid var(--color-components-worker-profile-modal-separation-rule-row-border);
+  background: var(
+    --color-components-worker-profile-modal-separation-rule-row-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-separation-rule-row-border);
   border-radius: 8px;
   display: grid;
   gap: 10px;
@@ -520,10 +605,17 @@
 
 .separationRuleRow input,
 .separationSearchField > input {
-  background: var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-background);
-  border: 1px solid var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-border);
+  background: var(
+    --color-components-worker-profile-modal-separation-rule-row-separation-search-field-background
+  );
+  border: 1px solid
+    var(
+      --color-components-worker-profile-modal-separation-rule-row-separation-search-field-border
+    );
   border-radius: 8px;
-  color: var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-text);
+  color: var(
+    --color-components-worker-profile-modal-separation-rule-row-separation-search-field-text
+  );
   font-size: 13px;
   min-height: 38px;
   padding: 0 11px;
@@ -532,16 +624,25 @@
 
 .separationRuleRow input:focus,
 .separationSearchField > input:focus {
-  border-color: var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-focus-focus-border);
-  box-shadow: 0 0 0 3px var(--color-components-worker-profile-modal-separation-rule-row-separation-search-field-focus-focus-shadow-color);
+  border-color: var(
+    --color-components-worker-profile-modal-separation-rule-row-separation-search-field-focus-focus-border
+  );
+  box-shadow: 0 0 0 3px
+    var(
+      --color-components-worker-profile-modal-separation-rule-row-separation-search-field-focus-focus-shadow-color
+    );
   outline: 0;
 }
 
 .separationRuleRow > button {
   align-items: center;
-  background: var(--color-components-worker-profile-modal-separation-rule-row-background-2);
+  background: var(
+    --color-components-worker-profile-modal-separation-rule-row-background-2
+  );
   border: 0;
-  color: var(--color-components-worker-profile-modal-separation-rule-row-text-2);
+  color: var(
+    --color-components-worker-profile-modal-separation-rule-row-text-2
+  );
   display: flex;
   font-size: 22px;
   height: 32px;
@@ -551,7 +652,9 @@
 }
 
 .separationRuleRow > button:hover {
-  color: var(--color-components-worker-profile-modal-separation-rule-row-hover-text);
+  color: var(
+    --color-components-worker-profile-modal-separation-rule-row-hover-text
+  );
   cursor: pointer;
 }
 
@@ -564,10 +667,18 @@
 }
 
 .separationSearchResults {
-  background: var(--color-components-worker-profile-modal-separation-search-results-background);
-  border: 1px solid var(--color-components-worker-profile-modal-separation-search-results-border);
+  background: var(
+    --color-components-worker-profile-modal-separation-search-results-background
+  );
+  border: 1px solid
+    var(
+      --color-components-worker-profile-modal-separation-search-results-border
+    );
   border-radius: 8px;
-  box-shadow: 0 14px 28px var(--color-components-worker-profile-modal-separation-search-results-shadow-color);
+  box-shadow: 0 14px 28px
+    var(
+      --color-components-worker-profile-modal-separation-search-results-shadow-color
+    );
   display: flex;
   flex-direction: column;
   left: 0;
@@ -581,9 +692,14 @@
 
 .separationSearchResults button {
   align-items: center;
-  background: var(--color-components-worker-profile-modal-separation-search-results-background);
+  background: var(
+    --color-components-worker-profile-modal-separation-search-results-background
+  );
   border: 0;
-  border-bottom: 1px solid var(--color-components-worker-profile-modal-separation-search-results-border-2);
+  border-bottom: 1px solid
+    var(
+      --color-components-worker-profile-modal-separation-search-results-border-2
+    );
   display: flex;
   gap: 12px;
   justify-content: space-between;
@@ -597,17 +713,23 @@
 }
 
 .separationSearchResults button:hover {
-  background: var(--color-components-worker-profile-modal-separation-search-results-hover-background);
+  background: var(
+    --color-components-worker-profile-modal-separation-search-results-hover-background
+  );
   cursor: pointer;
 }
 
 .separationSearchResults strong {
-  color: var(--color-components-worker-profile-modal-separation-search-results-text);
+  color: var(
+    --color-components-worker-profile-modal-separation-search-results-text
+  );
   font-size: 13px;
 }
 
 .separationSearchResults span {
-  color: var(--color-components-worker-profile-modal-separation-search-results-text-2);
+  color: var(
+    --color-components-worker-profile-modal-separation-search-results-text-2
+  );
   font-size: 12px;
 }
 
@@ -626,20 +748,32 @@
 }
 
 .primaryActionButton {
-  background: var(--color-components-worker-profile-modal-primary-action-button-background);
+  background: var(
+    --color-components-worker-profile-modal-primary-action-button-background
+  );
   border: 0;
-  color: var(--color-components-worker-profile-modal-primary-action-button-text);
+  color: var(
+    --color-components-worker-profile-modal-primary-action-button-text
+  );
 }
 
 .secondaryActionButton {
-  background: var(--color-components-worker-profile-modal-secondary-action-button-background);
-  border: 1px solid var(--color-components-worker-profile-modal-secondary-action-button-border);
-  color: var(--color-components-worker-profile-modal-secondary-action-button-text);
+  background: var(
+    --color-components-worker-profile-modal-secondary-action-button-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-secondary-action-button-border);
+  color: var(
+    --color-components-worker-profile-modal-secondary-action-button-text
+  );
 }
 
 .dangerActionButton {
-  background: var(--color-components-worker-profile-modal-danger-action-button-background);
-  border: 1px solid var(--color-components-worker-profile-modal-danger-action-button-border);
+  background: var(
+    --color-components-worker-profile-modal-danger-action-button-background
+  );
+  border: 1px solid
+    var(--color-components-worker-profile-modal-danger-action-button-border);
   color: var(--color-components-worker-profile-modal-danger-action-button-text);
   margin-right: 8px;
 }

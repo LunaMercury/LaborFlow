@@ -1,30 +1,247 @@
-.page { max-width: 1280px; margin: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; color: var(--color-pages-journal-page-heading-text); }
-.page h1 { font-size: 24px; } .page h2 { font-size: 16px; margin: 0; }
-.notice { padding: 12px; background: var(--color-pages-journal-page-filter-background); border-bottom: 2px solid var(--color-map-demo-outline); display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
-.toolbar,.tools,.switcher { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.toolbar label { display: flex; align-items: center; gap: 8px; }
-.toolbar a { color: var(--color-pages-journal-page-primary-button-background); }
-.tools button,.switcher button { min-width: 44px; min-height: 44px; border: 1px solid var(--color-pages-journal-page-input-border); border-radius: 6px; background: var(--color-pages-journal-page-panel-background); color: inherit; cursor: pointer; }
-.switcher { justify-content: flex-start; } .switcher button[aria-pressed=true] { background: var(--color-pages-journal-page-primary-button-background); color: var(--color-pages-journal-page-primary-button-text); }
-.workspace { display: grid; grid-template-columns: minmax(250px, .65fr) minmax(0, 1.35fr); gap: 16px; align-items: start; }
-.list { max-height: 850px; overflow-y: auto; min-width: 0; }
-.list article { padding: 12px 0; border-bottom: 1px solid var(--color-pages-journal-page-panel-border); display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-.record { width: 100%; border: 0; background: var(--color-pages-journal-page-panel-background); color: inherit; text-align: left; display: flex; flex-direction: column; gap: 6px; padding: 10px; cursor: pointer; line-height: 1.5; overflow-wrap: anywhere; min-height: 44px; }
-.record time,.record span,.page small { font-size: 13px; color: var(--color-pages-journal-page-secondary-text); }
-.mapPanel { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.canvas { width: 100%; height: auto; aspect-ratio: 10 / 7; display: block; border: 1px solid var(--color-pages-journal-page-panel-border); border-radius: 8px; touch-action: none; cursor: grab; user-select: none; }
-.canvas:active { cursor: grabbing; } .placing { cursor: crosshair; }
-.land { fill: var(--color-map-demo-land); } .grid { fill: none; stroke: var(--color-map-demo-grid); stroke-width: 1; }
-.river { fill: none; stroke: var(--color-map-demo-water); stroke-width: 32; } .road { stroke: var(--color-map-demo-road); stroke-width: 17; fill: none; }
-.mapText { font-size: 16px; fill: var(--color-pages-journal-page-secondary-text); }
-.field,.selectedField { fill: var(--color-map-demo-field); stroke: var(--color-map-demo-outline); stroke-width: 2; cursor: pointer; }
-.selectedField { fill: var(--color-map-demo-selected); stroke-width: 4; }
-.pin,.selectedPin { fill: var(--color-pages-journal-page-primary-button-background); stroke: var(--color-map-demo-label); stroke-width: 2; cursor: pointer; }
-.selectedPin { fill: var(--color-map-demo-pin-selected); } .pinDot { fill: var(--color-map-demo-label); } .hit { fill: transparent; }
-.pinLabel { pointer-events: none; } .pinLabel rect { fill: var(--color-map-demo-label); stroke: var(--color-map-demo-outline); } .pinLabel text { fill: var(--color-pages-journal-page-heading-text); font-size: 13px; }
-.cross { stroke: var(--color-map-demo-pin-selected); stroke-width: 2; }
-.summary { border: 1px solid var(--color-pages-journal-page-panel-border); border-radius: 8px; background: var(--color-pages-journal-page-panel-background); padding: 12px; display: flex; flex-direction: column; gap: 10px; max-height: 350px; overflow-y: auto; }
-.summary p { margin: 0; font-size: 13px; } .missing { border: 0; background: none; color: var(--color-pages-journal-page-primary-button-background); text-align: left; cursor: pointer; min-height: 40px; }
-.detail { background: var(--color-pages-journal-page-panel-background); border-radius: 8px; padding: 20px; width: 100%; max-width: 650px; max-height: 85dvh; overflow: auto; }
-.body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
-@media(max-width:819px) { .page { padding: 12px; } .page h1 { font-size: 20px; } .workspace { display: flex; flex-direction: column; } .workspace > section { width: 100%; } .mobileHidden { display: none; } .summary { max-height: 290px; } .list { max-height: none; } }
+.page {
+  max-width: 1280px;
+  margin: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--color-pages-journal-page-heading-text);
+}
+.page h1 {
+  font-size: 24px;
+}
+.page h2 {
+  font-size: 16px;
+  margin: 0;
+}
+.notice {
+  padding: 12px;
+  background: var(--color-pages-journal-page-filter-background);
+  border-bottom: 2px solid var(--color-map-demo-outline);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+.toolbar,
+.tools,
+.switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toolbar a {
+  color: var(--color-pages-journal-page-primary-button-background);
+}
+.tools button,
+.switcher button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--color-pages-journal-page-input-border);
+  border-radius: 6px;
+  background: var(--color-pages-journal-page-panel-background);
+  color: inherit;
+  cursor: pointer;
+}
+.switcher {
+  justify-content: flex-start;
+}
+.switcher button[aria-pressed="true"] {
+  background: var(--color-pages-journal-page-primary-button-background);
+  color: var(--color-pages-journal-page-primary-button-text);
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.65fr) minmax(0, 1.35fr);
+  gap: 16px;
+  align-items: start;
+}
+.list {
+  max-height: 850px;
+  overflow-y: auto;
+  min-width: 0;
+}
+.list article {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-pages-journal-page-panel-border);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.record {
+  width: 100%;
+  border: 0;
+  background: var(--color-pages-journal-page-panel-background);
+  color: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  cursor: pointer;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  min-height: 44px;
+}
+.record time,
+.record span,
+.page small {
+  font-size: 13px;
+  color: var(--color-pages-journal-page-secondary-text);
+}
+.mapPanel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 10 / 7;
+  display: block;
+  border: 1px solid var(--color-pages-journal-page-panel-border);
+  border-radius: 8px;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+.canvas:active {
+  cursor: grabbing;
+}
+.placing {
+  cursor: crosshair;
+}
+.land {
+  fill: var(--color-map-demo-land);
+}
+.grid {
+  fill: none;
+  stroke: var(--color-map-demo-grid);
+  stroke-width: 1;
+}
+.river {
+  fill: none;
+  stroke: var(--color-map-demo-water);
+  stroke-width: 32;
+}
+.road {
+  stroke: var(--color-map-demo-road);
+  stroke-width: 17;
+  fill: none;
+}
+.mapText {
+  font-size: 16px;
+  fill: var(--color-pages-journal-page-secondary-text);
+}
+.field,
+.selectedField {
+  fill: var(--color-map-demo-field);
+  stroke: var(--color-map-demo-outline);
+  stroke-width: 2;
+  cursor: pointer;
+}
+.selectedField {
+  fill: var(--color-map-demo-selected);
+  stroke-width: 4;
+}
+.pin,
+.selectedPin {
+  fill: var(--color-pages-journal-page-primary-button-background);
+  stroke: var(--color-map-demo-label);
+  stroke-width: 2;
+  cursor: pointer;
+}
+.selectedPin {
+  fill: var(--color-map-demo-pin-selected);
+}
+.pinDot {
+  fill: var(--color-map-demo-label);
+}
+.hit {
+  fill: transparent;
+}
+.pinLabel {
+  pointer-events: none;
+}
+.pinLabel rect {
+  fill: var(--color-map-demo-label);
+  stroke: var(--color-map-demo-outline);
+}
+.pinLabel text {
+  fill: var(--color-pages-journal-page-heading-text);
+  font-size: 13px;
+}
+.cross {
+  stroke: var(--color-map-demo-pin-selected);
+  stroke-width: 2;
+}
+.summary {
+  border: 1px solid var(--color-pages-journal-page-panel-border);
+  border-radius: 8px;
+  background: var(--color-pages-journal-page-panel-background);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+.summary p {
+  margin: 0;
+  font-size: 13px;
+}
+.missing {
+  border: 0;
+  background: none;
+  color: var(--color-pages-journal-page-primary-button-background);
+  text-align: left;
+  cursor: pointer;
+  min-height: 40px;
+}
+.detail {
+  background: var(--color-pages-journal-page-panel-background);
+  border-radius: 8px;
+  padding: 20px;
+  width: 100%;
+  max-width: 650px;
+  max-height: 85dvh;
+  overflow: auto;
+}
+.body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+@media (max-width: 819px) {
+  .page {
+    padding: 12px;
+  }
+  .page h1 {
+    font-size: 20px;
+  }
+  .workspace {
+    display: flex;
+    flex-direction: column;
+  }
+  .workspace > section {
+    width: 100%;
+  }
+  .mobileHidden {
+    display: none;
+  }
+  .summary {
+    max-height: 290px;
+  }
+  .list {
+    max-height: none;
+  }
+}

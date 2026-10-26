@@ -136,7 +136,9 @@ export function TeamCompositionModal({
 
   const removeWorker = (workerId: string) => {
     setSelectedWorkerIds((currentWorkerIds) =>
-      currentWorkerIds.filter((currentWorkerId) => currentWorkerId !== workerId),
+      currentWorkerIds.filter(
+        (currentWorkerId) => currentWorkerId !== workerId,
+      ),
     );
   };
 
@@ -285,7 +287,9 @@ export function TeamCompositionModal({
                       placeholder="작업자 이름 검색"
                       type="text"
                       value={workerSearchText}
-                      onChange={(event) => setWorkerSearchText(event.target.value)}
+                      onChange={(event) =>
+                        setWorkerSearchText(event.target.value)
+                      }
                     />
                     <div className={styles.workerSearchDropdown}>
                       {availableWorkers.length > 0 ? (
@@ -324,7 +328,6 @@ export function TeamCompositionModal({
             </div>
           </div>
         </form>
-
       </section>
     </div>
   );
