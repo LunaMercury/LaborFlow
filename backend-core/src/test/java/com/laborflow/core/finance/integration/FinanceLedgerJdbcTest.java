@@ -133,6 +133,23 @@ class FinanceLedgerJdbcTest {
             List.of(new Allocation(target.uuid(), amount(value)))), null));
     }
 
+    @Test void payoutPlanPersistsInSnapshotsAndRevisionsWithoutBlockingActualPaymentBeforeCollection() {
+        Work prepared=service.prepareWork(login(),day);
+        Work saved=service.saveWork(login(),prepared.uuid(),new SaveWork(prepared.version(),"CONFIRMED",null,
+            prepared.currentSource().fingerprint(),"OFFICE",null,null,date,
+            List.of(new LineInput(assignment,"OFFICE",BigDecimal.ONE,amount(150000),amount(130000),amount(150000),amount(130000),
+                true,date.plusDays(7),"Fiction planned payment",new PayoutPlan("CASH","AFTER_COLLECTION"))),List.of(),null));
+        assertThat(service.getWork(login(),saved.uuid()).snapshot().lines().getFirst().payoutPlan()).isEqualTo(new PayoutPlan("CASH","AFTER_COLLECTION"));
+        var revisions=service.getWork(login(),saved.uuid()).revisions();
+        assertThat(revisions.stream().filter(revision->revision.version()==saved.version()).findFirst().orElseThrow().snapshot().lines().getFirst().payoutPlan()).isEqualTo(new PayoutPlan("CASH","AFTER_COLLECTION"));
+        assertThat(revisions.stream().filter(revision->revision.version()==1).findFirst().orElseThrow().snapshot().lines().getFirst().payoutPlan()).isNull();
+        assertThat(balance("RECEIPT").settledAmount()).isZero();
+        Cash paid=service.recordCash(login(),request(UUID.randomUUID(),"PAYOUT",130000));
+        assertThat(paid.method()).isEqualTo("TRANSFER");
+        assertThat(balance("PAYOUT").outstandingAmount()).isZero();
+        assertThat(balance("RECEIPT").settledAmount()).isZero();
+        assertThat(service.getWork(login(),saved.uuid()).snapshot().lines().getFirst().payoutPlan().method()).isEqualTo("CASH");
+    }
     @Test void officeAndDirectCalculationsPersistWithSeparateObligationsAndRoundTripSnapshots() {
         var saved = confirmed("OFFICE", 150000, 130000);
         assertThat(FinanceRules.totals(dao.work(office, saved.uuid()).orElseThrow().snapshot()).workProfit()).isEqualByComparingTo("25000");

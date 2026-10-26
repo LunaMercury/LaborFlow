@@ -140,22 +140,27 @@ test("correction restores original allocations only within same party and kind",
 
 test("page renders actual product tabs and no invented production data", () => {
   const markup = renderToStaticMarkup(React.createElement(FinancePage, { loginId: "test", onNavigate() {} }));
-  for (const label of ["수익 현황", "농가 수납", "작업자 지급", "기본값·지급 주기", "작업일 시작"]) assert.ok(markup.includes(label));
+  for (const label of ["수익 현황", "농가 수납", "작업자 지급", "작업일 시작"]) assert.ok(markup.includes(label));
+  assert.ok(!markup.includes("기본값·지급 주기"));
   assert.ok(!markup.includes("박농가"));
   assert.ok(!markup.includes("<table"));
 });
 
-test("work detail exposes Seoul attendance, explicit prepare and grouped blocker", () => {
+test("work detail opens directly editable with actual hours and retains the grouped confirmation blocker", () => {
   const props = { loginId: "test", initialWork: work, onNavigate() {}, onClose() {}, onSaved() {} };
   const markup = renderToStaticMarkup(React.createElement(FinanceWorkEditor, props));
   assert.ok(markup.includes("김작업"));
+  assert.ok(markup.includes("근태 확인"));
+  assert.ok(!markup.includes("현재 실제 근태"));
   assert.ok(markup.includes("07:00"));
-  assert.ok(markup.includes("근태 기반 초안 생성"));
+  assert.ok(markup.includes("<table"));
+  assert.ok(!markup.includes("초안"));
+  assert.match(markup, /aria-label="김작업 청구 금액 수정"/);
   for (const assignmentStatus of ["ASSIGNED", "CANCELLED", "REPLACED"]) {
     const grouped = { ...work, currentSource: { ...source, assignments: [{ ...assignment, assignmentStatus, attendanceStatus: "CANCELLED", workerCount: 3 }] } };
     const blocked = renderToStaticMarkup(React.createElement(FinanceWorkEditor, { ...props, initialWork: grouped }));
     assert.ok(blocked.includes("개인별 분리·근태 확인 필요"));
-    assert.match(blocked, /disabled=""[^>]*>근태 기반 초안 생성/);
+    assert.match(blocked, /disabled=""[^>]*>금액 확인·확정/);
   }
 });
 
@@ -170,16 +175,14 @@ test("DIRECT work uses office-fee labels and separates farm-to-worker payment fr
     const snapshot = { ...source, sourceFingerprint: source.fingerprint, defaultMode: mode, defaultChargeRate: "20000", defaultPayRate: "130000", receiptDueDate: source.workDate, lines: [{ ...assignment, mode, quantity: 1, chargeRate: "20000", payRate: "130000", chargeAmount: "20000", payAmount: "130000", override: false, payoutDueDate: source.workDate, note: null }], extras: [], note: null };
     const markup = renderToStaticMarkup(React.createElement(FinanceWorkEditor, { loginId: "test", initialWork: { ...work, uuid: "work-1", version: 1, status: "DRAFT", snapshot }, onNavigate() {}, onClose() {}, onSaved() {} }));
     if (mode === "DIRECT") {
-      assert.ok(markup.includes("사무소 소개료 단가"));
-      assert.ok(markup.includes("최종 사무소 소개료"));
-      assert.ok(markup.includes("농가 직접 지급 확인 대상액"));
+      assert.ok(markup.includes("사무소에는 소개료만 청구"));
+      assert.ok(markup.includes("농가 직접 지급"));
       assert.ok(markup.includes("사무소 비용·입출금에서 제외"));
       assert.ok(!markup.includes("<span>농가 청구 단가</span>"));
-      assert.ok(!markup.includes("최종 농가 청구액"));
+      assert.ok(markup.includes("청구 금액 수정"));
     } else {
-      assert.ok(markup.includes("농가 청구 단가"));
-      assert.ok(markup.includes("최종 농가 청구액"));
-      assert.ok(markup.includes("최종 작업자 지급액"));
+      assert.ok(markup.includes("청구 금액 수정"));
+      assert.ok(markup.includes("작업자 지급"));
       assert.ok(!markup.includes("농가 직접 지급 확인 대상액"));
     }
   }

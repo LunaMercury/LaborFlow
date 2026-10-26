@@ -29,14 +29,29 @@ public final class FinanceDtos {
                 active, fingerprint, attendanceReady, assignments, null, null);
         }
     }
+    public record PayoutPlan(String method, String timing) { }
     public record LineInput(UUID assignmentUuid, String mode, BigDecimal quantity,
         BigDecimal chargeRate, BigDecimal payRate, BigDecimal chargeAmount, BigDecimal payAmount,
-        boolean override, LocalDate payoutDueDate, String note) { }
+        boolean override, LocalDate payoutDueDate, String note, PayoutPlan payoutPlan) {
+        public LineInput(UUID assignmentUuid, String mode, BigDecimal quantity, BigDecimal chargeRate,
+            BigDecimal payRate, BigDecimal chargeAmount, BigDecimal payAmount, boolean override,
+            LocalDate payoutDueDate, String note) {
+            this(assignmentUuid,mode,quantity,chargeRate,payRate,chargeAmount,payAmount,override,payoutDueDate,note,null);
+        }
+    }
     public record Line(UUID assignmentUuid, UUID workerProfileUuid, String payeeKey,
         String displayName, String attendanceStatus, OffsetDateTime actualStartAt,
         OffsetDateTime actualEndAt, Integer breakMinutes, String mode, BigDecimal quantity,
         BigDecimal chargeRate, BigDecimal payRate, BigDecimal chargeAmount, BigDecimal payAmount,
-        boolean override, LocalDate payoutDueDate, String note) { }
+        boolean override, LocalDate payoutDueDate, String note, PayoutPlan payoutPlan) {
+        public Line(UUID assignmentUuid, UUID workerProfileUuid, String payeeKey, String displayName,
+            String attendanceStatus, OffsetDateTime actualStartAt, OffsetDateTime actualEndAt,
+            Integer breakMinutes, String mode, BigDecimal quantity, BigDecimal chargeRate, BigDecimal payRate,
+            BigDecimal chargeAmount, BigDecimal payAmount, boolean override, LocalDate payoutDueDate, String note) {
+            this(assignmentUuid,workerProfileUuid,payeeKey,displayName,attendanceStatus,actualStartAt,actualEndAt,
+                breakMinutes,mode,quantity,chargeRate,payRate,chargeAmount,payAmount,override,payoutDueDate,note,null);
+        }
+    }
     public record Extra(UUID uuid, String name, String basis, BigDecimal quantity,
         BigDecimal chargeRate, BigDecimal costRate, BigDecimal chargeAmount, BigDecimal costAmount) { }
     public record SaveWork(long version, String status, String reason, String sourceFingerprint,

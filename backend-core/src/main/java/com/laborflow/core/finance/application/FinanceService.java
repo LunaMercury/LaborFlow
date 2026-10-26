@@ -142,7 +142,16 @@ public class FinanceService {
             if (assignment==null) throw invalid("Choose only this day's confirmed worked assignments.");
             if (assignment.payeeKey()==null || (assignment.workerProfileUuid()!=null && !dao.ownsWorker(office,assignment.workerProfileUuid())))
                 throw missing();
-            Line saved=line(assignment,input);
+            Line oldLine=original.lines().stream().filter(l -> l.assignmentUuid().equals(input.assignmentUuid())).findFirst().orElse(null);
+            PayoutPlan plan=input.payoutPlan()!=null ? validatedPayoutPlan(input.payoutPlan()) : oldLine==null ? null : oldLine.payoutPlan();
+            LocalDate payoutDate=input.payoutDueDate();
+            if (input.payoutPlan()!=null && plan!=null) {
+                if ("SAME_DAY".equals(plan.timing())) payoutDate=source.workDate();
+                else if ("AFTER_7_DAYS".equals(plan.timing())) payoutDate=source.workDate().plusDays(7);
+                // AFTER_COLLECTION is a note, never a payment gate or automatic postponement.
+            }
+            Line saved=line(assignment,new LineInput(input.assignmentUuid(),input.mode(),input.quantity(),input.chargeRate(),
+                input.payRate(),input.chargeAmount(),input.payAmount(),input.override(),payoutDate,input.note(),plan));
             if (previous.everConfirmed()) {
                 Line historical=original.lines().stream().filter(l -> l.assignmentUuid().equals(input.assignmentUuid())).findFirst().orElse(null);
                 if (historical!=null) {
@@ -151,7 +160,7 @@ public class FinanceService {
                         throw conflict("This assignment's worker identity changed. Retain the original ledger and use a separate verified assignment.");
                     saved=new Line(saved.assignmentUuid(),historical.workerProfileUuid(),historical.payeeKey(),historical.displayName(),
                         saved.attendanceStatus(),saved.actualStartAt(),saved.actualEndAt(),saved.breakMinutes(),saved.mode(),saved.quantity(),
-                        saved.chargeRate(),saved.payRate(),saved.chargeAmount(),saved.payAmount(),saved.override(),saved.payoutDueDate(),saved.note());
+                        saved.chargeRate(),saved.payRate(),saved.chargeAmount(),saved.payAmount(),saved.override(),saved.payoutDueDate(),saved.note(),saved.payoutPlan());
                 }
             }
             if (confirming && (saved.chargeAmount()==null || saved.payAmount()==null)) throw invalid("Enter both charge and pay amounts, including explicit zero where applicable.");
@@ -312,7 +321,12 @@ public class FinanceService {
         BigDecimal q=quantity(i.quantity()), chargeRate=money(i.chargeRate()), payRate=money(i.payRate());
         return new Line(a.assignmentUuid(),a.workerProfileUuid(),a.payeeKey(),a.displayName(),a.attendanceStatus(),
             a.actualStartAt(),a.actualEndAt(),a.breakMinutes(),mode(i.mode()),q,chargeRate,payRate,
-            amount(q,chargeRate,i.chargeAmount()),amount(q,payRate,i.payAmount()),i.override(),i.payoutDueDate(),text(i.note(),1000));
+            amount(q,chargeRate,i.chargeAmount()),amount(q,payRate,i.payAmount()),i.override(),i.payoutDueDate(),text(i.note(),1000),i.payoutPlan());
+    }
+    private PayoutPlan validatedPayoutPlan(PayoutPlan plan) {
+        String method=plan.method()==null ? null : choice(plan.method(),Set.of("CASH","TRANSFER"),"planned payment method");
+        String timing=plan.timing()==null ? null : choice(plan.timing(),Set.of("SAME_DAY","AFTER_7_DAYS","AFTER_COLLECTION","CUSTOM"),"planned payment timing");
+        return new PayoutPlan(method,timing);
     }
     private Summary summary(List<Work> items) {
         BigDecimal charge=ZERO,pay=ZERO,cost=ZERO,profit=ZERO,direct=ZERO;

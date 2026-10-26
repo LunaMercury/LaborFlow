@@ -23,6 +23,8 @@
 - version bigint NN >=1, status DRAFT/CONFIRMED, work_date date NN, snapshot jsonb NN, ever_confirmed boolean DEFAULT false, created_at timestamptz DEFAULT now().
 - (agency_owner_uuid,uuid) UNIQUE 및 사무소/작업일 인덱스. 정산은 날짜별 일정당 1건이다.
 - snapshot은 당시 표시명, 지급 주체, 금액, 실제 근태 근거, 원천 fingerprint, 예정일을 보존한다.
+- 2026-10-26부터 snapshot.lines[].payoutPlan에 예정 method(CASH/TRANSFER/null)와 timing(SAME_DAY/AFTER_7_DAYS/AFTER_COLLECTION/CUSTOM/null)을 함께 보관한다. 기존 JSON의 누락값은 null로 읽으며 별도 SQL 컬럼은 추가하지 않는다.
+- AFTER_COLLECTION은 수금 대기 표시일 뿐 finance_cash와 의무/실제 지급의 선후 관계를 강제하지 않는다. 지급 예정 수단과 실제 finance_cash.method는 다를 수 있고 각각 보존한다.
 - GET은 생성하지 않고 명시적 prepare에서 DRAFT 생성. 같은 날짜 재호출은 기존 기록을 유지한다.
 
 ### finance_work_revision

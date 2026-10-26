@@ -73,6 +73,42 @@ class FinanceServiceTest {
     private RecordCash record(UUID request,long amount) {
         return new RecordCash(request,"PAYOUT",WORKER.toString(),DATE,n(amount),"TRANSFER",null,List.of(new Allocation(OBLIGATION,n(amount))));
     }
+    private SaveWork saveWithPlan(PayoutPlan plan,LocalDate due) {
+        return new SaveWork(1,"CONFIRMED",null,"stable","OFFICE",null,null,DATE,
+            List.of(new LineInput(ASSIGNMENT,"OFFICE",BigDecimal.ONE,null,null,n(150000),n(130000),true,due,"Fiction note",plan)),List.of(),null);
+    }
+    @Test void plannedPaymentTimingUsesWorkDateAndCollectionWaitingNeverPostponesOrPays() {
+        for (String timing : List.of("SAME_DAY","AFTER_7_DAYS","AFTER_COLLECTION","CUSTOM")) {
+            LocalDate original=DATE.plusDays(2);
+            Work saved=service.saveWork("demo",WORK,saveWithPlan(new PayoutPlan("CASH",timing),original));
+            LocalDate expected=timing.equals("SAME_DAY") ? DATE : timing.equals("AFTER_7_DAYS") ? LocalDate.of(2026,11,1) : original;
+            assertEquals(expected,saved.snapshot().lines().getFirst().payoutDueDate());
+            assertEquals(new PayoutPlan("CASH",timing),saved.snapshot().lines().getFirst().payoutPlan());
+            assertEquals(n(130000),saved.snapshot().lines().getFirst().payAmount());
+        }
+        verify(dao,never()).insertCash(any(),any(),any());
+    }
+    @Test void invalidPayoutPlanIsRejectedBeforeSavingAndLegacyJsonRemainsReadable() {
+        for (PayoutPlan plan : List.of(new PayoutPlan("CARD","SAME_DAY"),new PayoutPlan("CASH","AUTOMATIC_COLLECTION_GATE")))
+            assertThrows(FinanceException.class,()->service.saveWork("demo",WORK,saveWithPlan(plan,DATE)));
+        verify(dao,never()).updateWork(any(),any(),anyString(),any(),any());
+        Snapshot legacy=snapshot(n(150000),n(130000));
+        String json=FinanceJson.write(legacy).replace(",\"payoutPlan\":null","");
+        assertNull(FinanceJson.read(json,Snapshot.class).lines().getFirst().payoutPlan());
+    }
+    @Test void omittingPayoutPlanPreservesExistingPlanWhileOtherAmountsChange() {
+        Line original=snapshot(n(150000),n(130000)).lines().getFirst();
+        Line planned=new Line(original.assignmentUuid(),original.workerProfileUuid(),original.payeeKey(),original.displayName(),
+            original.attendanceStatus(),original.actualStartAt(),original.actualEndAt(),original.breakMinutes(),original.mode(),original.quantity(),
+            original.chargeRate(),original.payRate(),original.chargeAmount(),original.payAmount(),original.override(),original.payoutDueDate(),original.note(),new PayoutPlan("TRANSFER","AFTER_COLLECTION"));
+        Snapshot before=snapshot(n(150000),n(130000));
+        Snapshot withPlan=new Snapshot(before.workDate(),before.clientUuid(),before.clientProfileUuid(),before.clientName(),before.siteUuid(),before.siteName(),before.workTitle(),before.sourceFingerprint(),before.defaultMode(),before.defaultChargeRate(),before.defaultPayRate(),before.receiptDueDate(),List.of(planned),before.extras(),before.note());
+        when(dao.work(OFFICE,WORK)).thenReturn(Optional.of(stored(false,withPlan)));
+        Work saved=service.saveWork("demo",WORK,save("CONFIRMED",null,n(70000),n(130000)));
+        assertEquals(new PayoutPlan("TRANSFER","AFTER_COLLECTION"),saved.snapshot().lines().getFirst().payoutPlan());
+        assertEquals(n(70000),saved.snapshot().lines().getFirst().chargeAmount());
+        assertEquals(n(130000),saved.snapshot().lines().getFirst().payAmount());
+    }
     @Test void scheduleChargeRatesFollowAssignmentAreasAndNeverChangeWorkerPay() {
         Assignment men=new Assignment(ASSIGNMENT,WORKER,WORKER.toString(),"M","PLANNED","WORKED",true,null,null,60,1,"MEN");
         Assignment women=new Assignment(id(30),id(31),id(31).toString(),"W","PLANNED","WORKED",true,null,null,60,1,"WOMEN");

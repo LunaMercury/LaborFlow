@@ -5,6 +5,7 @@ import type { Amount, DueFilter } from "../domain/finance";
 export type FinanceMode = "OFFICE" | "DIRECT";
 export type CashKind = "RECEIPT" | "PAYOUT" | "DIRECT";
 export type Cycle = "DAILY" | "WEEKLY" | "CUSTOM";
+export type PayoutPlan = { method: "CASH" | "TRANSFER" | null; timing: "SAME_DAY" | "AFTER_7_DAYS" | "AFTER_COLLECTION" | "CUSTOM" | null };
 export type FinanceAssignment = {
   assignmentUuid: string; workerProfileUuid: string | null; payeeKey: string;
   displayName: string; assignmentStatus: string; attendanceStatus: string;
@@ -14,6 +15,7 @@ export type FinanceAssignment = {
 export type FinanceLine = Omit<FinanceAssignment, "assignmentStatus" | "confirmed" | "workerCount"> & {
   mode: FinanceMode; quantity: number; chargeRate: Amount; payRate: Amount;
   chargeAmount: Amount; payAmount: Amount; override: boolean; payoutDueDate: string | null; note: string | null;
+  payoutPlan?: PayoutPlan | null;
 };
 export type FinanceExtra = {
   uuid: string; name: string; basis: "PER_PERSON" | "PER_JOB"; quantity: number;
@@ -39,7 +41,7 @@ export type FinanceWork = {
 };
 export type WorkList = { items: FinanceWork[]; summary: WorkTotals & { confirmedCount: number; unconfirmedCount: number; reviewCount: number; workerDayCount: number; uniqueWorkerCount: number; guestAttendanceCount: number } };
 export type WorkPayload = Pick<FinanceSnapshot, "defaultMode" | "defaultChargeRate" | "defaultPayRate" | "receiptDueDate" | "extras" | "note"> & {
-  lines: Pick<FinanceLine, "assignmentUuid" | "mode" | "quantity" | "chargeRate" | "payRate" | "chargeAmount" | "payAmount" | "override" | "payoutDueDate" | "note">[];
+  lines: Pick<FinanceLine, "assignmentUuid" | "mode" | "quantity" | "chargeRate" | "payRate" | "chargeAmount" | "payAmount" | "override" | "payoutDueDate" | "note" | "payoutPlan">[];
   version: number; status: "DRAFT" | "CONFIRMED"; reason: string | null; sourceFingerprint: string;
 };
 export type FinanceBalance = {
